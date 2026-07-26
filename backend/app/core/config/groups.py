@@ -53,8 +53,8 @@ class AppSettings(BaseSettings):
 
     app_env: Literal["development", "test", "production"] = "development"
     log_level: str = "INFO"
-    api_port: int = 8000
-    cors_allowed_origins: str = "http://localhost:5173"
+    api_port: int = 7575
+    cors_allowed_origins: str = "http://localhost:3535"
 
     @property
     def cors_origins_list(self) -> list[str]:
@@ -87,7 +87,7 @@ class IdentitySettings(BaseSettings):
     model_config = _BASE_CONFIG
 
     lichess_client_id: str = "grandmate-v2"
-    lichess_redirect_uri: str = "http://localhost:5173/auth/callback"
+    lichess_redirect_uri: str = "http://localhost:3535/auth/callback"
     lichess_scopes: str = "email:read,preference:read"
     session_jwt_secret: SecretStr = SecretStr("")
     session_ttl_seconds: int = 604_800

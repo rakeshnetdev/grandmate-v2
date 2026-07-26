@@ -16,9 +16,9 @@
 import { z } from 'zod';
 
 const envSchema = z.object({
-  VITE_API_BASE_URL: z.string().url().default('http://localhost:8000'),
+  VITE_API_BASE_URL: z.string().url().default('http://localhost:7575'),
   VITE_LICHESS_CLIENT_ID: z.string().min(1).default('grandmate-v2'),
-  VITE_LICHESS_REDIRECT_URI: z.string().url().default('http://localhost:5173/auth/callback'),
+  VITE_LICHESS_REDIRECT_URI: z.string().url().default('http://localhost:3535/auth/callback'),
 });
 
 function loadEnv() {

@@ -31,8 +31,8 @@ read is the fix, and it is cheap to do at Phase 1 and expensive to retrofit at P
 |-----|---------|-------|
 | `APP_ENV` | `development` | `development` \| `test` \| `production` |
 | `LOG_LEVEL` | `INFO` | |
-| `API_PORT` | `8000` | |
-| `CORS_ALLOWED_ORIGINS` | `http://localhost:5173` | Comma separated |
+| `API_PORT` | `7575` | |
+| `CORS_ALLOWED_ORIGINS` | `http://localhost:3535` | Comma separated |
 
 ### Supabase
 | Key | Default | Notes |
@@ -46,7 +46,7 @@ read is the fix, and it is cheap to do at Phase 1 and expensive to retrofit at P
 | Key | Default | Notes |
 |-----|---------|-------|
 | `LICHESS_CLIENT_ID` | `grandmate-v2` | Public client; self-chosen, no secret needed |
-| `LICHESS_REDIRECT_URI` | `http://localhost:5173/auth/callback` | |
+| `LICHESS_REDIRECT_URI` | `http://localhost:3535/auth/callback` | |
 | `LICHESS_SCOPES` | `email:read,preference:read` | Minimal by default |
 | `SESSION_JWT_SECRET` | — | Secret. Signs backend-issued session tokens |
 | `SESSION_TTL_SECONDS` | `604800` | |

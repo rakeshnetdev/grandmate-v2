@@ -47,13 +47,13 @@ brew install uv node stockfish
 cd backend
 cp .env.example .env
 uv sync --extra dev
-uv run uvicorn app.main:app --reload      # http://localhost:8000
+uv run uvicorn app.main:app --reload      # http://localhost:7575
 
 # Frontend, in a second terminal
 cd frontend
 cp .env.example .env
 npm install
-npm run dev                               # http://localhost:5173
+npm run dev                               # http://localhost:3535
 ```
 
 The home page shows a backend connectivity card. If it reads "Unreachable", the backend

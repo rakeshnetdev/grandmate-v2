@@ -162,8 +162,10 @@ Sub-phases append a letter: `P1a-developer-insight`.
 
 ### Sequence for every phase
 
-1. **Branch first.** Create `P{N}-{slug}` from an up-to-date `main` *before* writing any
-   code. Never start work on `main`.
+1. **Ask before branching.** Confirm with the user first: *"Pull latest from `main` and
+   create `P{N}-{slug}`?"* Then `git checkout main && git pull`, and branch from there.
+   **Always branch from an up-to-date `main`, never from another phase branch.** Never
+   start work on `main` itself.
 2. **Implement** the approved scope.
 3. **Test and validate.** All suites pass; evaluation run and scores recorded where the
    phase requires it.
@@ -175,9 +177,17 @@ Sub-phases append a letter: `P1a-developer-insight`.
    Include the test results, what was built, known gaps, and any open questions. Then
    **stop and wait**. Do not commit before the user answers.
 6. **On approval**: commit, push the branch, and open a PR with `gh pr create`.
-7. **Wait for the user** to review and merge. Do not merge without being asked.
-8. **Next phase**: pull `main`, branch again. Do not start the next phase before the
-   current PR is settled and the user has signed off.
+7. **The user merges the PR manually.** Claude never merges. Wait for confirmation that
+   it is merged.
+8. **Next phase**: return to step 1 — ask, pull `main`, branch again. Do not start the
+   next phase before the current PR is merged and the user has signed off.
+
+### Why branching from `main` matters
+
+Phases 0 and 1 were split retroactively: both branches were created from the initial
+commit before either was merged, so neither contained the other's files and a checkout of
+one showed only half the project. Branching from an up-to-date `main` each time is what
+prevents that.
 
 ### Commit rules
 
