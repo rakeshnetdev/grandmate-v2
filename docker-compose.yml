@@ -1,0 +1,41 @@
+# Development environment.
+#
+# Optional: `uv run` and `npm run dev` on the host work fine and are faster to iterate
+# with. This exists so a contributor can get a consistent environment — particularly a
+# consistent Stockfish build, which affects analysis reproducibility — without installing
+# the engine themselves.
+#
+# Supabase runs via the Supabase CLI (`supabase start`), not here, so its own tooling
+# stays authoritative for the local database.
+
+services:
+  backend:
+    build: ./backend
+    ports:
+      - '8000:8000'
+    env_file:
+      - ./backend/.env
+    environment:
+      # Overrides the .env value: the Debian package installs to a different path than
+      # the Homebrew one most developers have locally.
+      STOCKFISH_PATH: /usr/games/stockfish
+    volumes:
+      # Live reload against host sources.
+      - ./backend/app:/app/app:ro
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  frontend:
+    image: node:22-slim
+    working_dir: /app
+    ports:
+      - '5173:5173'
+    env_file:
+      - ./frontend/.env
+    volumes:
+      - ./frontend:/app
+      # Anonymous volume keeps container node_modules from being shadowed by the host's,
+      # which matters when host and container platforms differ.
+      - /app/node_modules
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+    depends_on:
+      - backend

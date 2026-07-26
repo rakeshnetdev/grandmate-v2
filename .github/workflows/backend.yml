@@ -1,0 +1,52 @@
+name: Backend
+
+# Path-scoped so a frontend-only change does not run the Python suite. This is the
+# mechanism that keeps the monorepo's two halves independent in practice (ADR-0001):
+# separate jobs that fail separately.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend.yml'
+  pull_request:
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend.yml'
+
+defaults:
+  run:
+    working-directory: backend
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+
+      - name: Install dependencies
+        run: uv sync --extra dev --frozen
+
+      # Each step runs independently so a lint failure still reports the test result.
+      - name: Lint
+        run: uv run ruff check .
+
+      - name: Format check
+        run: uv run ruff format --check .
+
+      - name: Type check
+        run: uv run mypy app
+
+      - name: Test
+        run: uv run pytest -v --cov=app --cov-report=term-missing
+
+      # Enforces ADR-0003 explicitly rather than relying on it being inside the suite.
+      # A separate step names the failure clearly when it happens.
+      - name: Architecture boundaries
+        run: uv run pytest tests/test_layer_boundaries.py -v

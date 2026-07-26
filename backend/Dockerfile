@@ -1,0 +1,37 @@
+# Backend container.
+#
+# Stockfish is installed in the image rather than assumed on the host: the analysis core
+# is useless without it, and "works on my machine" is not an acceptable property for the
+# component that produces the system's ground truth.
+#
+# Hosting is deferred to Phase 17 (D-006). This image exists so development is consistent
+# and so the deployment decision is not foreclosed.
+
+FROM python:3.13-slim
+
+# Stockfish from Debian, plus curl for the healthcheck.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends stockfish curl \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
+WORKDIR /app
+
+# Dependencies first so a source change does not invalidate the dependency layer.
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-dev --no-install-project
+
+COPY app ./app
+RUN uv sync --frozen --no-dev
+
+ENV PATH="/app/.venv/bin:$PATH" \
+    PYTHONUNBUFFERED=1 \
+    STOCKFISH_PATH=/usr/games/stockfish
+
+EXPOSE 8000
+
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s \
+    CMD curl -fsS http://localhost:8000/health || exit 1
+
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
