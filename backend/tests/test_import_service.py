@@ -86,6 +86,25 @@ class TestIngest:
 
         assert job.progress["imported"] == 2
 
+    async def test_each_games_stored_pgn_contains_only_that_game(
+        self, db_session: AsyncSession, storage: LocalStorage
+    ) -> None:
+        """Regression: storage previously held the whole source text under every game's
+        key, so a multi-game file left both games' `raw_pgn_path` pointing at a blob
+        containing both — no way to tell which was which."""
+        profile = await _make_profile(db_session)
+        service = ImportService(db_session, storage)
+
+        await service.ingest(
+            profile.id, [SourceText(text=GAME_A + "\n" + GAME_B, label="batch.pgn")], max_games=10
+        )
+
+        games = (await db_session.execute(select(Game).order_by(Game.created_at))).scalars().all()
+        assert len(games) == 2
+        contents = {g.headers["White"]: (await storage.get(g.raw_pgn_path)).decode() for g in games}
+        assert "Carol" not in contents["Alice"]
+        assert "Alice" not in contents["Carol"]
+
     async def test_reimporting_the_same_game_is_flagged_as_duplicate_not_error(
         self, db_session: AsyncSession, storage: LocalStorage
     ) -> None:

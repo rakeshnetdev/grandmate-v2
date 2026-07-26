@@ -43,6 +43,11 @@ class ParsedGame:
     headers: dict[str, str]
     moves_uci: list[str]
     content_hash: str
+    # This game's own serialized PGN — not the source text it was found in. A source file
+    # holding several games must not leave every one of them pointing at storage for the
+    # whole file; each game gets exactly its own text. `str(game)` round-trips through
+    # python-chess (headers, moves, variations, comments, NAGs all preserved).
+    pgn_text: str
 
 
 @dataclass(frozen=True)
@@ -143,6 +148,7 @@ def parse_pgn_text(text: str) -> ParseResult:
                         headers=dict(game.headers),
                         moves_uci=moves_uci,
                         content_hash=_content_hash(game.headers, moves_uci),
+                        pgn_text=str(game),
                     )
                 )
         index += 1

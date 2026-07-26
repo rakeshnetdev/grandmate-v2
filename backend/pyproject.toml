@@ -40,6 +40,9 @@ dev = [
     "httpx2>=0.29",
     "ruff>=0.7",
     "mypy>=1.13",
+    # Property tests for move-replay consistency (Phase 4), sampled over real corpus games
+    # rather than from-scratch legal-game generation, which python-chess has no strategy for.
+    "hypothesis>=6.100",
 ]
 
 [build-system]
