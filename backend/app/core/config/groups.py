@@ -53,6 +53,10 @@ class AppSettings(BaseSettings):
 
     app_env: Literal["development", "test", "production"] = "development"
     log_level: str = "INFO"
+    # Bind address for the dev server entrypoint (`python -m app`). Loopback by default so
+    # a development machine does not expose the API to its network; containers override it
+    # to 0.0.0.0, which is required for published ports to reach the process.
+    api_host: str = "127.0.0.1"
     api_port: int = 7575
     cors_allowed_origins: str = "http://localhost:3535"
 

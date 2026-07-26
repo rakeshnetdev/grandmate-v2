@@ -63,6 +63,31 @@ def test_missing_production_config_returns_names_only() -> None:
     assert all(name.isupper() for name in missing)
 
 
+def test_bind_address_defaults_are_loopback_and_the_project_port() -> None:
+    """Regression: `API_PORT` existed but nothing read it, so the server bound 8000.
+
+    The entrypoint in `app/__main__.py` is what closes that gap; this asserts the values
+    it reads.
+    """
+    app_settings = Settings().app
+
+    assert app_settings.api_host == "127.0.0.1"
+    assert app_settings.api_port == 7575
+
+
+def test_bind_address_is_overridable_from_the_environment(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Containers set API_HOST=0.0.0.0; without this the published port reaches nothing."""
+    monkeypatch.setenv("API_HOST", "0.0.0.0")
+    monkeypatch.setenv("API_PORT", "9001")
+
+    app_settings = Settings().app
+
+    assert app_settings.api_host == "0.0.0.0"
+    assert app_settings.api_port == 9001
+
+
 def test_cors_origins_parse_from_comma_separated_string() -> None:
     settings = Settings()
     settings.app.cors_allowed_origins = "http://a.test, http://b.test ,"

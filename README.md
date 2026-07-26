@@ -47,7 +47,7 @@ brew install uv node stockfish
 cd backend
 cp .env.example .env
 uv sync --extra dev
-uv run uvicorn app.main:app --reload      # http://localhost:7575
+uv run python -m app                      # http://localhost:7575
 
 # Frontend, in a second terminal
 cd frontend
@@ -68,7 +68,7 @@ a typed settings module. See [configuration.md](final_docs/v2/configuration.md).
 ### Backend (`cd backend`)
 
 ```bash
-uv run uvicorn app.main:app --reload   # dev server
+uv run python -m app                   # dev server (host/port from .env)
 uv run pytest                          # tests
 uv run pytest --cov=app                # tests with coverage
 uv run ruff check .                    # lint

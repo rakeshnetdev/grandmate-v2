@@ -31,7 +31,8 @@ read is the fix, and it is cheap to do at Phase 1 and expensive to retrofit at P
 |-----|---------|-------|
 | `APP_ENV` | `development` | `development` \| `test` \| `production` |
 | `LOG_LEVEL` | `INFO` | |
-| `API_PORT` | `7575` | |
+| `API_HOST` | `127.0.0.1` | Bind address for `python -m app`. Containers override to `0.0.0.0` |
+| `API_PORT` | `7575` | Applied by `python -m app`; the bare `uvicorn` CLI ignores it |
 | `CORS_ALLOWED_ORIGINS` | `http://localhost:3535` | Comma separated |
 
 ### Supabase

@@ -19,10 +19,14 @@ services:
       # Overrides the .env value: the Debian package installs to a different path than
       # the Homebrew one most developers have locally.
       STOCKFISH_PATH: /usr/games/stockfish
+      # Overrides the .env loopback default; without this the published port above
+      # reaches nothing.
+      API_HOST: 0.0.0.0
     volumes:
       # Live reload against host sources.
       - ./backend/app:/app/app:ro
-    command: uvicorn app.main:app --host 0.0.0.0 --port 7575 --reload
+    # Host, port, and reload all come from configuration — see backend/app/__main__.py.
+    command: python -m app
 
   frontend:
     image: node:22-slim

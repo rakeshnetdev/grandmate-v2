@@ -7,10 +7,16 @@ FastAPI application. Managed with `uv`.
 ```bash
 cp .env.example .env
 uv sync --extra dev
-uv run uvicorn app.main:app --reload
+uv run python -m app
 ```
 
 Endpoints: `/health`, `/ready`, and `/docs` (development only).
+
+Start the server with `python -m app`, not the `uvicorn` CLI. The CLI cannot see
+`app/core/config`, so it ignores `API_HOST` / `API_PORT` and binds uvicorn's own default
+port instead. `app/__main__.py` reads the settings and passes them to the server, which is
+what keeps `.env` authoritative for the bind address. Reload is enabled when
+`APP_ENV=development`.
 
 ## Layout
 
