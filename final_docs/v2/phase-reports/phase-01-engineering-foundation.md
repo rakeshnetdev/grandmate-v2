@@ -122,7 +122,7 @@ The one skipped test is the parametrised layer-boundary check. It has no cases y
 the deterministic core modules land in Phases 4–8. Its six checker self-tests do run, which
 is what stops it from being a vacuous pass.
 
-## Five bugs found and fixed during the phase
+## Bugs found and fixed during the phase
 
 Worth recording, because each was caught by actually running things rather than by review.
 
@@ -162,6 +162,32 @@ now part of the phase routine rather than an afterthought. The fifth is the one 
 noting: it was a latent security defect that would only have manifested in a process
 serving both configurations, and it was found by deliberately writing a test for the
 scenario rather than by the code review that had already passed over it.
+
+## Sixth bug: found by CI, not locally
+
+Recorded because the failure mode is instructive.
+
+During the phase, `npm audit` returned a malformed (gzip-corrupted) response from the
+registry twice in a row. Working from the single advisory that had been visible before
+that, `react-router-dom` was pinned **down** to 7.11.0 and the phase report asserted we
+were not exposed.
+
+CI's audit showed the opposite: 7.11.0 sits inside 6.0.0–7.17.0, which carries **fourteen**
+high-severity advisories including XSS, open redirect, and RCE via a vendored turbo-stream.
+The pin was backwards. The correct version is 7.18.1 — the one originally installed.
+
+Two lessons applied:
+
+1. **A flaking tool is not a passing tool.** The local audit failing to return should have
+   blocked the conclusion rather than being noted as an aside and worked around.
+2. **The gate needed to survive an unfixable advisory.** `npm audit --audit-level=high`
+   cannot pass at any react-router version, and a permanently red gate gets deleted.
+   Replaced with `scripts/audit.mjs`, which checks against `.audit-allowlist.json` —
+   failing on unlisted advisories *and* on entries past their review date, so an accepted
+   risk is re-examined rather than accepted forever.
+
+The allowlist mechanism was verified by exit code in all three states: unlisted advisory
+exits 1, expired review date exits 1, valid justification exits 0.
 
 ## Verification performed
 
@@ -206,8 +232,7 @@ Nothing else deviates.
 
 | Gap | Resolution |
 |-----|-----------|
-| `react-router-dom` pinned to 7.11.0 | Every release from 7.12 is inside GHSA-qwww-vcr4-c8h2 and no patched version exists. The advisory concerns RSC mode, unused here. Pinned so `npm audit --audit-level=high` can gate in CI. Revisit when patched. |
-| `npm audit` endpoint flaked during the phase | Registry-side malformed response, not a project issue. The CI step will exercise it properly. |
+| `react-router-dom` has no advisory-free version | On **7.18.1**. 6.0.0–7.17.0 carries 14 high advisories (XSS, open redirect, RCE via vendored turbo-stream); 7.12.0–8.2.0 carries 1 (GHSA-qwww-vcr4-c8h2, RSC mode CSRF). 7.18.1 clears the fourteen that affect client-side routing; the one remaining is unreachable in a pure SPA. Accepted in `.audit-allowlist.json` with a review date of 2026-10-26. |
 | No E2E tests | Correct for Phase 1 — there is no user-visible workflow yet. Added when Phase 2 introduces login. |
 | Worker queue backend not chosen | Deliberate. The job *contract* is defined; the broker is selected in Phase 3 against a real workload. |
 | Layer boundary check has no real cases | Expected until Phase 4. Self-tests cover the checker itself. |

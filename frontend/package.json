@@ -13,7 +13,8 @@
     "typecheck": "tsc -b --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "audit": "node scripts/audit.mjs"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.101.4",
@@ -22,7 +23,7 @@
     "lucide-react": "^1.27.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
-    "react-router-dom": "7.11.0",
+    "react-router-dom": "7.18.1",
     "tailwind-merge": "^3.6.0",
     "zod": "^4.4.3"
   },

@@ -118,13 +118,31 @@ tests exercise the real provider context rather than an approximation of it.
 ## Quality gate
 
 ```bash
-npm run lint && npm run format:check && npm run build && npm test
+npm run lint && npm run format:check && npm run build && npm test && npm run audit
 ```
 
-## Note on dependencies
+## Dependency auditing
 
-`react-router-dom` is pinned to `7.11.0`. Every release from 7.12 onward is inside the
-range of [GHSA-qwww-vcr4-c8h2](https://github.com/advisories/GHSA-qwww-vcr4-c8h2) and no
-patched version exists yet. The advisory concerns RSC mode, which this SPA does not use,
-so we are not exposed — but pinning keeps `npm audit` clean so CI can gate on it. Revisit
-when a patched release ships.
+`npm run audit` runs `scripts/audit.mjs` rather than a bare `npm audit`, because
+react-router currently has **no advisory-free version**:
+
+| Version | Advisories |
+|---------|-----------|
+| 6.0.0 – 7.17.0 | 14 high — XSS, open redirect, RCE via vendored turbo-stream, DoS |
+| 7.12.0 – 8.2.0 | 1 high — [GHSA-qwww-vcr4-c8h2](https://github.com/advisories/GHSA-qwww-vcr4-c8h2), RSC mode CSRF |
+
+`npm audit fix --force` oscillates between the two, since each version fixes what the
+other has. We are on **7.18.1**: it clears the fourteen that genuinely affect client-side
+routing, and the one that remains is in React Server Components mode, which this SPA does
+not use — no RSC, no server actions, no react-router server runtime.
+
+An all-or-nothing `npm audit --audit-level=high` gate would therefore be permanently red,
+and a permanently red gate gets deleted. Instead each accepted advisory is recorded in
+`.audit-allowlist.json` with a justification and a review date. The script:
+
+- **fails** on any high or critical advisory not on the list
+- **fails** when an allowlist entry passes its `reviewBy` date, so an accepted risk gets
+  re-examined instead of accepted forever
+- **warns** when an entry no longer matches any advisory, so stale exceptions get removed
+
+Revisit when react-router ships a release outside both ranges.

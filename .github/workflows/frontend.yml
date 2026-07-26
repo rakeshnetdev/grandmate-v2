@@ -19,9 +19,10 @@ jobs:
   quality:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      # v5 runs on Node 24; v4 targets the deprecated Node 20 runtime.
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: '22'
           cache: npm
@@ -42,7 +43,9 @@ jobs:
       - name: Test
         run: npm run test:coverage
 
-      # react-router is pinned below the range of GHSA-qwww-vcr4-c8h2; this keeps that
-      # from silently regressing when the lockfile is next updated.
+      # Not a bare `npm audit`: react-router has no advisory-free version, so an
+      # all-or-nothing gate would be permanently red and would end up deleted. This
+      # checks against .audit-allowlist.json, where each accepted advisory carries a
+      # justification and a review date. See frontend/scripts/audit.mjs.
       - name: Audit dependencies
-        run: npm audit --audit-level=high
+        run: npm run audit
