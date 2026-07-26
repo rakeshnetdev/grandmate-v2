@@ -1,20 +1,52 @@
 # Development environment.
 #
-# Optional: `uv run` and `npm run dev` on the host work fine and are faster to iterate
-# with. This exists so a contributor can get a consistent environment — particularly a
-# consistent Stockfish build, which affects analysis reproducibility — without installing
-# the engine themselves.
+# `postgres` is the one service you genuinely need running to work on the backend. The
+# `backend` and `frontend` services are optional — `uv run python -m app` and
+# `npm run dev` on the host are faster to iterate with — but they exist so a contributor
+# gets a consistent environment, particularly a consistent Stockfish build, which affects
+# analysis reproducibility.
 #
-# Supabase runs via the Supabase CLI (`supabase start`), not here, so its own tooling
-# stays authoritative for the local database.
+#   docker compose up postgres        # just the database, what most work needs
+#   docker compose up                 # the whole stack
+#
+# Supabase is deferred to a later phase (ADR-0015). The database here is plain Postgres
+# with pgvector, which is the same engine Supabase runs, so adopting it later is a
+# connection-string change rather than a migration.
 
 services:
+  postgres:
+    # pgvector ships on top of the official Postgres image. Retrieval is a core
+    # capability from Phase 7, so the extension is present from the start rather than
+    # bolted on later.
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_USER: grandmate
+      POSTGRES_PASSWORD: grandmate
+      POSTGRES_DB: grandmate
+    ports:
+      # 5433 on the host, not 5432: a developer with a local Postgres already running
+      # should not have to stop it to work on this project.
+      - '5433:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      # Other services must wait for Postgres to accept connections, not merely for the
+      # container to exist.
+      test: ['CMD-SHELL', 'pg_isready -U grandmate -d grandmate']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   backend:
     build: ./backend
     ports:
       - '7575:7575'
     env_file:
-      - ./backend/.env
+      # `required: false` so a contributor without a local .env can still run
+      # `docker compose up postgres` — compose validates every service's env_file,
+      # so one missing file otherwise breaks unrelated commands.
+      - path: ./backend/.env
+        required: false
     environment:
       # Overrides the .env value: the Debian package installs to a different path than
       # the Homebrew one most developers have locally.
@@ -22,11 +54,17 @@ services:
       # Overrides the .env loopback default; without this the published port above
       # reaches nothing.
       API_HOST: 0.0.0.0
+      # Inside the compose network Postgres is reachable by service name on its own
+      # port, not via the host mapping.
+      DATABASE_URL: postgresql+asyncpg://grandmate:grandmate@postgres:5432/grandmate
     volumes:
       # Live reload against host sources.
       - ./backend/app:/app/app:ro
     # Host, port, and reload all come from configuration — see backend/app/__main__.py.
     command: python -m app
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   frontend:
     image: node:22-slim
@@ -34,7 +72,8 @@ services:
     ports:
       - '3535:3535'
     env_file:
-      - ./frontend/.env
+      - path: ./frontend/.env
+        required: false
     volumes:
       - ./frontend:/app
       # Anonymous volume keeps container node_modules from being shadowed by the host's,
@@ -43,3 +82,6 @@ services:
     command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
     depends_on:
       - backend
+
+volumes:
+  postgres_data:

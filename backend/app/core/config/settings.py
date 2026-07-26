@@ -16,8 +16,10 @@ from functools import lru_cache
 from pydantic import BaseModel, Field
 
 from app.core.config.groups import (
+    DEFAULT_DATABASE_URL,
     AgentSettings,
     AppSettings,
+    DatabaseSettings,
     DevInsightSettings,
     EngineSettings,
     EvaluationSettings,
@@ -25,7 +27,7 @@ from app.core.config.groups import (
     IngestionSettings,
     LLMSettings,
     RetrievalSettings,
-    SupabaseSettings,
+    StorageSettings,
 )
 
 
@@ -38,7 +40,8 @@ class Settings(BaseModel):
     """
 
     app: AppSettings = Field(default_factory=AppSettings)
-    supabase: SupabaseSettings = Field(default_factory=SupabaseSettings)
+    database: DatabaseSettings = Field(default_factory=DatabaseSettings)
+    storage: StorageSettings = Field(default_factory=StorageSettings)
     identity: IdentitySettings = Field(default_factory=IdentitySettings)
     engine: EngineSettings = Field(default_factory=EngineSettings)
     llm: LLMSettings = Field(default_factory=LLMSettings)
@@ -76,10 +79,12 @@ class Settings(BaseModel):
         than at the first request that happens to need a key.
         """
         missing: list[str] = []
-        if not self.supabase.supabase_url:
-            missing.append("SUPABASE_URL")
-        if not self.supabase.supabase_service_role_key.get_secret_value():
-            missing.append("SUPABASE_SERVICE_ROLE_KEY")
+        # Not merely "is it set" — DATABASE_URL always resolves, because a blank value
+        # falls back to the local development default. So the real production failure is
+        # a URL that was never overridden: the process would start cleanly and quietly
+        # talk to a database that does not exist, or worse, to a developer's.
+        if not self.database.url or self.database.url == DEFAULT_DATABASE_URL:
+            missing.append("DATABASE_URL")
         if not self.identity.session_jwt_secret.get_secret_value():
             missing.append("SESSION_JWT_SECRET")
         if not self.llm.is_configured:

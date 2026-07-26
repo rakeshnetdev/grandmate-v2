@@ -1,6 +1,9 @@
 # ADR-0002 — Supabase Postgres as System of Record
 
-- **Status**: Accepted
+- **Status**: Accepted in direction, **deferred in timing by ADR-0015**
+- **Note**: MVP runs on plain Postgres 17 with pgvector. Supabase adoption moves to
+  Phase 17 alongside the hosting decision. Because Supabase *is* Postgres, nothing in
+  the schema, migrations, or repository code changes as a result.
 - **Date**: 2026-07-25
 - **Phase**: 0
 - **Deciders**: Project owner

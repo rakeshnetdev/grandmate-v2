@@ -34,6 +34,29 @@ def _empty_string_as_none(value: object) -> object:
 # An optional integer that accepts a blank .env entry as "unset".
 OptionalInt = Annotated[int | None, BeforeValidator(_empty_string_as_none)]
 
+# Local development database. Port 5433 rather than 5432 so a developer's existing
+# Postgres keeps the standard port (ADR-0015).
+DEFAULT_DATABASE_URL = "postgresql+asyncpg://grandmate:grandmate@localhost:5433/grandmate"
+
+
+def _blank_falls_back_to_default(value: object) -> object:
+    """Treat a blank ``DATABASE_URL`` in ``.env`` as "not set", so the default applies.
+
+    Without this, a leftover ``DATABASE_URL=`` line silently produces an *empty*
+    connection string rather than falling back — which fails later, far from the cause,
+    as an unhelpful driver error. Same reasoning as ``_empty_string_as_none``: ``.env``
+    cannot express "unset" except by being blank.
+    """
+    if isinstance(value, str) and not value.strip():
+        return DEFAULT_DATABASE_URL
+    if isinstance(value, SecretStr) and not value.get_secret_value().strip():
+        return DEFAULT_DATABASE_URL
+    return value
+
+
+# A connection URL where a blank .env entry means "use the default".
+DatabaseUrl = Annotated[SecretStr, BeforeValidator(_blank_falls_back_to_default)]
+
 # Resolve .env relative to the backend package root rather than the process working
 # directory, so `uv run` from any directory picks up the same file.
 BACKEND_ROOT = Path(__file__).resolve().parents[3]
@@ -70,15 +93,53 @@ class AppSettings(BaseSettings):
         return self.app_env == "production"
 
 
-class SupabaseSettings(BaseSettings):
-    """Supabase connection details. Populated by the owner at Phase 2."""
+class DatabaseSettings(BaseSettings):
+    """Postgres connection and pool sizing (ADR-0015).
+
+    MVP runs plain Postgres 17 with pgvector in one container. Supabase is deferred to
+    Phase 17, and because Supabase *is* Postgres, adopting it later changes this URL and
+    nothing else.
+
+    The default points at port 5433, not 5432: a developer with a local Postgres already
+    running should not have to stop it to work on this project.
+    """
 
     model_config = _BASE_CONFIG
 
-    supabase_url: str = ""
-    supabase_anon_key: SecretStr = SecretStr("")
-    supabase_service_role_key: SecretStr = SecretStr("")
-    database_url: SecretStr = SecretStr("")
+    database_url: DatabaseUrl = SecretStr(DEFAULT_DATABASE_URL)
+    # Sized for a single dev machine. Revisited at Phase 17 against real concurrency.
+    db_pool_size: int = 5
+    db_max_overflow: int = 10
+    db_echo_sql: bool = False
+
+    @property
+    def url(self) -> str:
+        """The connection URL. Kept behind a property so the secret is read deliberately."""
+        return self.database_url.get_secret_value()
+
+    @property
+    def sync_url(self) -> str:
+        """Synchronous driver URL, for Alembic migrations.
+
+        Alembic runs migrations synchronously, so the asyncpg driver in the application
+        URL has to be swapped for psycopg. Deriving it here keeps one URL in ``.env``
+        rather than two that could drift apart.
+        """
+        return self.url.replace("+asyncpg", "+psycopg")
+
+
+class StorageSettings(BaseSettings):
+    """Object storage for uploaded PGNs and generated reports (ADR-0015).
+
+    MVP writes to the local filesystem behind a ``StorageBackend`` interface. Swapping to
+    S3, R2, or Supabase Storage later means writing one adapter, with no change to
+    calling code.
+    """
+
+    model_config = _BASE_CONFIG
+
+    storage_backend: Literal["local"] = "local"
+    storage_local_path: str = ".storage"
 
 
 class IdentitySettings(BaseSettings):
@@ -236,6 +297,7 @@ class EvaluationSettings(BaseSettings):
 __all__ = [
     "AgentSettings",
     "AppSettings",
+    "DatabaseSettings",
     "DevInsightSettings",
     "EngineSettings",
     "EvaluationSettings",
@@ -243,5 +305,5 @@ __all__ = [
     "IngestionSettings",
     "LLMSettings",
     "RetrievalSettings",
-    "SupabaseSettings",
+    "StorageSettings",
 ]

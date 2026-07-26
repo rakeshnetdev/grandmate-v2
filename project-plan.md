@@ -731,13 +731,13 @@ Set up a maintainable monorepo with hard boundaries between backend and frontend
 Establish the persistent system of record and the chess-platform identity model.
 
 ### Deliverables
-- local Supabase project running via the Supabase CLI
+- local Postgres 17 with pgvector, one container (ADR-0015 — Supabase deferred to Phase 17)
 - schema migration baseline
 - **Lichess OAuth2 Authorization Code + PKCE login**
 - **Chess.com account linking by username** (see identity note below)
 - backend-issued session JWT and dependency-injected auth context
 - user, profile, and profile-relationship tables
-- storage buckets for PGNs and exports
+- storage behind a `StorageBackend` interface, filesystem implementation for MVP
 - local seed data
 
 ### Identity note
@@ -1338,6 +1338,9 @@ Prepare the platform for reliable real-world use.
 - backup and recovery playbook
 - incident runbooks
 - **hosting decision made here, deferred from Phase 0**
+- **managed data platform decision, deferred from Phase 2** — adopt Supabase per
+  ADR-0002 or an alternative; write the Storage adapter and switch the connection
+  string. No schema change is involved, since MVP already runs Postgres.
 
 ### Tasks
 - request id and trace propagation
