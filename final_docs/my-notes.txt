@@ -1,0 +1,22 @@
+phase 0
+1 - eys
+2 - yes
+3 - I need every user profile they can login using lichess or chess. After login based on lichess or chess, they have their dashboard or view. to see others it can be on seperate page leverage most of the logic used for self view.
+4 - use gpt-40-min by default, i have api key , ask me when to setup in .env.  setup .env and use it from there.
+5. - defer later phases
+
+Phase 2:
+6 - use local supabase, i will provide details later, i have account so. yes maintain .env. dont hard code keys or constants. like stockfish depth..etc
+ 
+ 7 - if you think you can existing corpus fromother project use it, if not curate something useful for the project from web.
+ 8 - yes, got with depth 12 to start with.
+ 9 - i don't think tsv file data is accurate, curate from lichess, i don't know if you need FEN or PEG. 
+ 10 - soundss good.
+ 11 - yes, lets see the plan at that time
+ 12 - yes
+
+ RAG is very important, have proper corpus and leverage corpus as part of the plan. retrive knowledge corpus wherever its needed, chat example. 
+
+ This project is agentic RAG along with it should use concepts like (RAG, multi-RAG, MCP, evals, synthetic dataset/goldensset, finetuning, agents, mult-agents,langgraph..etc)
+
+ 
