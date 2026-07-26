@@ -44,11 +44,11 @@ read is the fix, and it is cheap to do at Phase 1 and expensive to retrofit at P
 | `DATABASE_URL` | — | Direct Postgres connection for migrations |
 
 ### Identity
+MVP login is username-claim, not OAuth (ADR-0014, deferring ADR-0007's Lichess PKCE) —
+there is no client id, redirect URI, or scope list to configure yet.
+
 | Key | Default | Notes |
 |-----|---------|-------|
-| `LICHESS_CLIENT_ID` | `grandmate-v2` | Public client; self-chosen, no secret needed |
-| `LICHESS_REDIRECT_URI` | `http://localhost:3535/auth/callback` | |
-| `LICHESS_SCOPES` | `email:read,preference:read` | Minimal by default |
 | `SESSION_JWT_SECRET` | — | Secret. Signs backend-issued session tokens |
 | `SESSION_TTL_SECONDS` | `604800` | |
 
@@ -136,8 +136,6 @@ provider's own response.
 | Key | Notes |
 |-----|-------|
 | `VITE_API_BASE_URL` | Backend origin |
-| `VITE_LICHESS_CLIENT_ID` | Public by design |
-| `VITE_LICHESS_REDIRECT_URI` | |
 
 Nothing secret appears here. If a value needs protecting, it belongs behind the backend.
 
@@ -146,7 +144,7 @@ Nothing secret appears here. If a value needs protecting, it belongs behind the 
 | Moment | Action needed |
 |--------|--------------|
 | Phase 1, backend scaffold lands | Add `OPENAI_API_KEY` to `backend/.env`; confirm `gpt-4o-mini`; set `LLM_DAILY_TOKEN_CEILING` |
-| Phase 2, Supabase setup | Supply `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `DATABASE_URL` |
-| Phase 2, Lichess app | Confirm the registered redirect URI |
+| Phase 2 | `docker compose up -d postgres` (ADR-0015); set `SESSION_JWT_SECRET` to a random string |
+| Before any private-data feature | Implement real Lichess OAuth2 PKCE (ADR-0007/ADR-0014) |
 
 Claude will prompt at each of these points rather than proceeding with broken defaults.

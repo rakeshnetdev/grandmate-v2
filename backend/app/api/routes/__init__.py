@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
-from app.api.routes import dev, health
+from app.api.routes import auth, dev, health
 
 API_V1_PREFIX = "/api/v1"
 
@@ -33,9 +33,9 @@ def build_v1_router(*, include_dev_routes: bool = False) -> APIRouter:
     off in production.
     """
     router = APIRouter(prefix=API_V1_PREFIX)
+    router.include_router(auth.router)
 
-    # Feature routers land here from Phase 2 onward:
-    #   router.include_router(auth.router)
+    # Further feature routers land here from Phase 3 onward:
     #   router.include_router(profiles.router)
 
     if include_dev_routes:

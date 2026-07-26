@@ -143,23 +143,18 @@ class StorageSettings(BaseSettings):
 
 
 class IdentitySettings(BaseSettings):
-    """Lichess OAuth and session token settings (ADR-0007).
+    """Session token settings for MVP username-claim login (ADR-0014).
 
-    Lichess is a public OAuth client: there is no client secret, and ``client_id`` is a
-    self-chosen constant. Only the session signing secret is sensitive here.
+    Real Lichess OAuth2 PKCE (ADR-0007) is deferred; there is no client id, redirect URI,
+    or scope list to configure until that lands, since login goes through
+    ``PlatformClient`` instead of an OAuth exchange. Only the session signing secret is
+    sensitive here.
     """
 
     model_config = _BASE_CONFIG
 
-    lichess_client_id: str = "grandmate-v2"
-    lichess_redirect_uri: str = "http://localhost:3535/auth/callback"
-    lichess_scopes: str = "email:read,preference:read"
     session_jwt_secret: SecretStr = SecretStr("")
     session_ttl_seconds: int = 604_800
-
-    @property
-    def lichess_scopes_list(self) -> list[str]:
-        return [scope.strip() for scope in self.lichess_scopes.split(",") if scope.strip()]
 
 
 class EngineSettings(BaseSettings):

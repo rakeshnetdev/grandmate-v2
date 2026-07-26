@@ -38,6 +38,14 @@ programme. It therefore cannot be a login provider in MVP. Chess.com is instead 
 is designed so Chess.com can be promoted to a login provider if approval is granted.
 → ADR-0007
 
+**Timing deviation decided in Phase 2**: real Lichess OAuth2 PKCE is deferred. MVP login
+for *both* Lichess and Chess.com checks that a username exists on the platform (via its
+public API) and logs the caller in as that account — no proof of ownership, every identity
+row marked `verified = false`. This must close before any private-data or write feature
+ships. The direction in ADR-0007 (Lichess as the eventual OAuth login provider, Chess.com
+as source-only) is retained; only the Phase 2 implementation is simplified.
+→ ADR-0014
+
 ### D-004 — Viewing other players · Locked
 The post-login dashboard shows only the authenticated player's own profile. Viewing
 another player happens on a **separate page** that reuses the same analysis pipeline,

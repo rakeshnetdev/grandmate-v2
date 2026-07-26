@@ -19,6 +19,7 @@ from app.api.routes import build_root_router, build_v1_router
 from app.core.config import Settings, get_settings
 from app.core.devinsight import TraceStore
 from app.core.logging import configure_logging, get_logger
+from app.db.session import create_engine, create_session_factory
 
 logger = get_logger(__name__)
 
@@ -30,6 +31,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     Production startup fails fast on missing configuration rather than deferring the
     error to the first request that needs a key. Development is permissive, because
     Phase 1 has nothing that requires Supabase or an LLM.
+
+    The database engine is built here rather than at import time so each application
+    instance (one per test, plus the real process one) gets its own connection pool that
+    is disposed on shutdown instead of leaking across instances.
     """
     settings: Settings = app.state.settings
 
@@ -38,6 +43,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         if missing:
             # Names only. Never values.
             raise RuntimeError(f"Missing required configuration: {', '.join(missing)}")
+
+    engine = create_engine(settings.database)
+    app.state.db_engine = engine
+    app.state.db_session_factory = create_session_factory(engine)
 
     logger.info(
         "application_started",
@@ -48,6 +57,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         dev_insight=settings.dev_insight_active,
     )
     yield
+    await engine.dispose()
     logger.info("application_stopped")
 
 

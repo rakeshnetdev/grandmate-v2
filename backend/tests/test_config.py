@@ -158,13 +158,6 @@ def test_cors_origins_parse_from_comma_separated_string() -> None:
     assert settings.app.cors_origins_list == ["http://a.test", "http://b.test"]
 
 
-def test_lichess_scopes_parse_and_stay_minimal() -> None:
-    """Minimal scopes by default. Widening them is a deliberate act, not a default."""
-    scopes = Settings().identity.lichess_scopes_list
-
-    assert scopes == ["email:read", "preference:read"]
-
-
 def test_blank_env_value_means_unset_for_optional_fields(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

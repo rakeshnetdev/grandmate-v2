@@ -48,6 +48,7 @@ include = ["app*"]
 testpaths = ["tests"]
 asyncio_mode = "auto"
 filterwarnings = ["error"]
+markers = ["serial: mutates shared database schema; do not parallelise"]
 # Resolve `app` from the source tree rather than relying on the editable install's
 # import finder, which proved unreliable across re-syncs. Makes the suite independent of
 # install state, which matters most in CI.

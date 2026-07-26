@@ -9,6 +9,7 @@ import { createBrowserRouter } from 'react-router-dom';
 
 import { RootLayout } from '@/app/layouts/RootLayout';
 import { HomePage } from '@/pages/HomePage';
+import { LoginPage } from '@/pages/LoginPage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
 
 export const routes = [
@@ -17,7 +18,7 @@ export const routes = [
     element: <RootLayout />,
     children: [
       { index: true, element: <HomePage /> },
-      // Phase 2:  { path: 'auth/callback', element: <AuthCallbackPage /> }
+      { path: 'login', element: <LoginPage /> },
       // Phase 9:  { path: 'players/:profileId', element: <PlayerPage /> }
       { path: '*', element: <NotFoundPage /> },
     ],

@@ -5,6 +5,7 @@
  */
 import { Link, Outlet } from 'react-router-dom';
 
+import { UserMenu } from '@/features/auth';
 import { DevInsightPanel } from '@/features/devinsight';
 
 export function RootLayout() {
@@ -15,8 +16,8 @@ export function RootLayout() {
           <Link to="/" className="text-lg font-semibold tracking-tight">
             GrandMate
           </Link>
-          <nav className="flex gap-4 text-sm text-muted-foreground">
-            {/* Feature routes are added here from Phase 2 onward. */}
+          <nav className="flex items-center gap-4 text-sm text-muted-foreground">
+            <UserMenu />
           </nav>
         </div>
       </header>
