@@ -1,0 +1,51 @@
+name: Frontend
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/frontend.yml'
+  pull_request:
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/frontend.yml'
+
+defaults:
+  run:
+    working-directory: frontend
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      # v5 runs on Node 24; v4 targets the deprecated Node 20 runtime.
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Format check
+        run: npm run format:check
+
+      - name: Type check and build
+        run: npm run build
+
+      - name: Test
+        run: npm run test:coverage
+
+      # Not a bare `npm audit`: react-router has no advisory-free version, so an
+      # all-or-nothing gate would be permanently red and would end up deleted. This
+      # checks against .audit-allowlist.json, where each accepted advisory carries a
+      # justification and a review date. See frontend/scripts/audit.mjs.
+      - name: Audit dependencies
+        run: npm run audit

@@ -1,0 +1,18 @@
+{
+  "$comment": [
+    "Advisories consciously accepted, with justification and a review date.",
+    "An entry here is a decision, not a mute button: scripts/audit.mjs fails the build",
+    "if an entry is past its reviewBy date, and warns when an entry is no longer needed",
+    "so the list cannot quietly become permanent cruft."
+  ],
+  "allow": [
+    {
+      "id": "GHSA-qwww-vcr4-c8h2",
+      "package": "react-router",
+      "title": "RSC Mode CSRF Bypass Allows Action Execution Before 400 Response",
+      "justification": "Affects React Router's RSC (React Server Components) mode. GrandMate's frontend is a pure client-side SPA using createBrowserRouter with no RSC, no server actions, and no react-router server runtime, so the vulnerable code path is not reachable. There is no unaffected version available: every release from 7.12.0 carries this advisory, while 6.0.0-7.17.0 carries fourteen others including XSS, open redirect, and RCE via turbo-stream that DO affect client-side routing. 7.18.1 is strictly the safer choice.",
+      "acceptedOn": "2026-07-26",
+      "reviewBy": "2026-10-26"
+    }
+  ]
+}
