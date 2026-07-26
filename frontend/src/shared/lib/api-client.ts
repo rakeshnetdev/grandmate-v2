@@ -59,11 +59,16 @@ async function request<TSchema extends z.ZodTypeAny>(
 ): Promise<z.infer<TSchema>> {
   const url = `${env.VITE_API_BASE_URL}${path}`;
 
+  // `FormData` (multipart upload, e.g. PGN import) must not get a JSON Content-Type or a
+  // JSON.stringify body — the browser sets the multipart boundary header itself only when
+  // Content-Type is left unset.
+  const isFormData = body instanceof FormData;
+
   const response = await fetch(url, {
     method,
     signal,
-    headers: body ? { 'Content-Type': 'application/json' } : undefined,
-    body: body ? JSON.stringify(body) : undefined,
+    headers: body && !isFormData ? { 'Content-Type': 'application/json' } : undefined,
+    body: body ? (isFormData ? body : JSON.stringify(body)) : undefined,
     // Session cookies are issued by our own backend (ADR-0007), so credentials travel.
     credentials: 'include',
   });

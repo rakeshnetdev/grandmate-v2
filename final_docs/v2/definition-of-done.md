@@ -20,6 +20,16 @@ when all of the following hold.
 - [ ] All tests pass; results pasted into the phase report, not summarised as "passing"
 - [ ] CI green
 
+### Manual verification
+- [ ] The phase report includes a **"How to test this phase"** section the owner can run
+  themselves — concrete commands or click-through steps, not "tested manually"
+- [ ] At least one example per surface the phase changed: a `curl` call for a new/changed
+  API route, a UI click-through for a new page or flow, a CLI invocation for a new script
+- [ ] Examples use real values (a real sample PGN, a real username) so they can be pasted
+  and run as-is, not filled in with placeholders first
+- [ ] For UI changes: confirmed in an actual browser, not just component tests — see
+  `claude.md`'s rule on this
+
 ### Evaluation
 - [ ] Evaluation criteria defined for the phase
 - [ ] Deterministic evaluation set exists, however small
@@ -57,14 +67,58 @@ when all of the following hold.
 ## Completed
 ## Files created or changed
 ## Tests added
-## Test results          <- actual output, including failures
-## Evaluation performed  <- scores, thresholds, deltas
-## Deviations from plan  <- with reasons
-## Reuse from grandmate/ <- with ledger references
+## Test results              <- actual output, including failures
+## How to test this phase    <- runnable commands / click-through steps, with examples (see below)
+## Evaluation performed      <- scores, thresholds, deltas
+## Deviations from plan      <- with reasons
+## Reuse from grandmate/     <- with ledger references
 ## Known gaps
 ## Risks
-## Recommendation        <- ready for sign-off, or not, and why
+## Recommendation            <- ready for sign-off, or not, and why
 ```
+
+### "How to test this phase" — worked examples
+
+This section is for the owner, not for CI — something to paste into a terminal or click
+through in a browser to see the phase's own claims for themselves, independent of the
+automated suite. One example per surface the phase touched.
+
+**New or changed API route** — a real `curl` call with real example data, plus the
+expected shape of the response:
+
+```bash
+curl -X POST localhost:7575/api/v1/imports \
+  -b cookies.txt \
+  -F 'pgn_text=[Event "Test"]
+[White "Alice"]
+[Black "Bob"]
+[Result "1-0"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 1-0'
+# -> 201, {"status": "done", "progress": {"imported": 1, "duplicates": 0, "rejected": []}, ...}
+```
+
+**New or changed UI flow** — numbered click-through steps against the running dev
+servers, ending in what the owner should see:
+
+```
+1. docker compose up -d postgres
+2. uv run python -m app          (backend/)
+3. npm run dev                   (frontend/)
+4. Open http://localhost:3535/login, log in with a real Lichess username
+5. Go to /imports, paste a short PGN, click "Import games"
+6. Expect: status turns "Done", with "1 imported · 0 duplicates · 0 rejected"
+```
+
+**New script or CLI entry point** — the exact invocation and expected exit code / output:
+
+```bash
+uv run alembic upgrade head
+# -> exits 0, logs "Running upgrade ... -> ..., <migration name>"
+```
+
+Use real values throughout (a real sample PGN, a real username, a real migration name) —
+a reader should be able to copy the block and run it, not fill in placeholders first.
 
 ## Rules that override convenience
 

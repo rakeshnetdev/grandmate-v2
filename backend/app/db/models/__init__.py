@@ -18,12 +18,18 @@ from app.db.models.identity import (
     User,
     UserIdentity,
 )
+from app.db.models.imports import Game, GameColor, Job, JobKind, JobStatus
 
 __all__ = [
     "AuditAction",
     "AuditEvent",
     "AuthProvider",
+    "Game",
+    "GameColor",
     "GameSource",
+    "Job",
+    "JobKind",
+    "JobStatus",
     "Persona",
     "Profile",
     "ProfileKind",

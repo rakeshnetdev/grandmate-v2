@@ -24,6 +24,11 @@ dependencies = [
     # Auth: PKCE exchange and session tokens.
     "httpx>=0.27",
     "pyjwt>=2.10",
+    # PGN parsing and validation (Phase 3). Full move-replay/FEN pipeline lands in Phase 4;
+    # Phase 3 only reads headers and mainline moves for validation and dedup hashing.
+    "python-chess>=1.999",
+    # Required by FastAPI/Starlette to parse multipart form + file uploads (imports).
+    "python-multipart>=0.0.12",
 ]
 
 [project.optional-dependencies]

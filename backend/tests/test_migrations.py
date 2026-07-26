@@ -49,6 +49,8 @@ EXPECTED_TABLES = {
     "profile_sources",
     "profile_relationships",
     "audit_events",
+    "jobs",
+    "games",
 }
 
 EXPECTED_ENUMS = {
@@ -58,6 +60,9 @@ EXPECTED_ENUMS = {
     "relationship_role",
     "game_source",
     "audit_action",
+    "job_kind",
+    "job_status",
+    "game_color",
 }
 
 
