@@ -20,6 +20,7 @@ from app.core.config import Settings, get_settings
 from app.core.devinsight import TraceStore
 from app.core.logging import configure_logging, get_logger
 from app.db.session import create_engine, create_session_factory
+from app.integrations.storage import build_storage
 
 logger = get_logger(__name__)
 
@@ -47,6 +48,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     engine = create_engine(settings.database)
     app.state.db_engine = engine
     app.state.db_session_factory = create_session_factory(engine)
+    app.state.storage = build_storage(settings.storage)
 
     logger.info(
         "application_started",

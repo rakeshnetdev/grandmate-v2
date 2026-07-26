@@ -146,6 +146,22 @@ tone consistency only** — never to chess knowledge. Chess truth stays determin
 engine-derived. Fine-tuning proceeds only if the evaluation set shows a gain that
 prompting and retrieval cannot reach.
 
+### D-018 — Phase 3 ingestion mechanics · Locked
+Three implementation defaults proposed and confirmed with the owner before coding:
+
+- **Job processing**: in-process, DB-backed (a generic `jobs` table), not a Redis-backed
+  queue. No new infrastructure for MVP-scale imports; Phase 3 processes synchronously
+  within the request, Phase 9's external-API imports are the first caller expected to
+  need real async work.
+- **Batch semantics**: one endpoint handles pasted text, one file, or many files
+  together, and any file may itself contain one game or many concatenated games. A
+  single-game upload is the N=1 case of this path, not a separate mode — confirmed with
+  the owner, who asked that it "work even with a PGN with a single game" and noted scale
+  can grow later without a different code path.
+- **Dedup key**: sha256 over normalised movetext + result + players + date, scoped to
+  `(profile_id, content_hash)`. Catches the same game re-exported with different
+  comments/clock annotations; a raw-text hash would not.
+
 ---
 
 ## Open questions raised back to the owner

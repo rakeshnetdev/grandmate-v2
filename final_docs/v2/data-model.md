@@ -77,19 +77,34 @@ view-another-player page.
 ## Games and analysis
 
 ### `games`
+**Implemented in Phase 3**, with two adjustments from this draft:
+
+- `raw_pgn_path` points at the `StorageBackend` local adapter, not Supabase Storage —
+  Supabase remains deferred per ADR-0015.
+- `job_id` (uuid FK → `jobs`, nullable, `ON DELETE SET NULL`) was added: traceability from
+  a game back to the import job that created it. A game outlives its job — deleting a job
+  record must not delete the games it produced — hence `SET NULL` rather than `CASCADE`.
+
+`focus_color` and `opponent_name` are nullable and **unpopulated by Phase 3**: PGN header
+tags (`White`/`Black`) are stored raw in `headers`, but resolving which side the profile
+played is Phase 4's header-normalisation policy, not raw ingestion. The columns exist now
+so Phase 4 does not need a schema-reshaping migration — the same precedent as
+`ProfileRelationship` in Phase 2.
+
 | Column | Type | Notes |
 |--------|------|-------|
 | `id` | uuid PK | |
 | `profile_id` | uuid FK | The focus player |
+| `job_id` | uuid FK null | The import job that created this row (Phase 3 addition) |
 | `source` | enum | |
 | `source_game_ref` | text null | Platform game id |
 | `content_hash` | text | Dedup key over normalised movetext |
 | `headers` | jsonb | Raw PGN headers |
-| `focus_color` | enum | `white` \| `black` |
-| `opponent_name` | text | |
-| `time_control` | text | |
-| `played_at` | timestamptz | |
-| `raw_pgn_path` | text | Supabase Storage path |
+| `focus_color` | enum null | `white` \| `black` — populated starting Phase 4 |
+| `opponent_name` | text null | Populated starting Phase 4 |
+| `time_control` | text null | |
+| `played_at` | timestamptz null | |
+| `raw_pgn_path` | text | Local `StorageBackend` path (Supabase deferred, ADR-0015) |
 
 Unique constraint on `(profile_id, content_hash)` — this is what makes re-import
 idempotent across upload, Lichess, and Chess.com.
@@ -246,8 +261,25 @@ instead of silently vanishing.
 ## Operations
 
 ### `jobs`
-`id`, `kind`, `profile_id`, `status`, `progress`, `idempotency_key`, `error` jsonb,
-`created_at`, `completed_at`.
+**Implemented in Phase 3.** `id`, `kind` (`pgn_import` so far), `profile_id`, `status`
+(`pending`/`processing`/`done`/`failed`), `progress` jsonb
+(`{total, imported, duplicates, rejected: [...]}`), `idempotency_key` (reserved, unused
+until Phase 9), `error` jsonb (job-level failure only — per-game rejections live in
+`progress`), `created_at`/`updated_at`, `completed_at`.
+
+Generic by design, per the rule against two code paths for one capability: Phase 3's PGN
+import, Phase 5's engine analysis, and Phase 9's Lichess/Chess.com sync all need "a
+long-running unit of work with visible, pollable status," so they share one table with
+`kind` as the discriminator rather than one job table per phase.
+
+Phase 3's manual upload processes **synchronously within the request** — parsing a
+handful of pasted/uploaded games is sub-second, so there is nothing to gain from a
+background task except two database sessions to keep consistent in tests. Every job Phase
+3 creates is already `done` (or `failed`) by the time `POST /imports` returns, but
+`GET /imports/{id}` still polls correctly. Phase 9's real external-API imports are the
+first caller that will need genuine async processing; moving the call from inline to a
+background task or worker at that point changes nothing about this schema or the API
+contract.
 
 ### `audit_events`
 `id`, `actor_user_id`, `action`, `subject_type`, `subject_id`, `metadata` jsonb,

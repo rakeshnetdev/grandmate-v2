@@ -53,11 +53,22 @@ class PlatformClient:
         self._client = client
 
     async def _get(self, url: str) -> httpx.Response:
+        """Fetch ``url``, translating transport failures into :class:`PlatformError`.
+
+        A DNS failure, connection refusal, or timeout raises a raw ``httpx.HTTPError``,
+        not a :class:`PlatformError` — uncaught, that becomes an unhandled 500 in the
+        route instead of the clean 502 `PlatformError` already maps to. FastAPI's CORS
+        middleware does not get a chance to attach headers to that 500 either, so the
+        browser reports it as a blocked CORS request, masking the real cause.
+        """
         headers = {"User-Agent": USER_AGENT}
-        if self._client is not None:
-            return await self._client.get(url, headers=headers)
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            return await client.get(url, headers=headers)
+        try:
+            if self._client is not None:
+                return await self._client.get(url, headers=headers)
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                return await client.get(url, headers=headers)
+        except httpx.HTTPError as exc:
+            raise PlatformError(f"Could not reach {url}: {exc}") from exc
 
     async def fetch_user(self, provider: AuthProvider, username: str) -> PlatformUser:
         """Look a user up, or raise :class:`UserNotFoundError`."""

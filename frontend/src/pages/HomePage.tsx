@@ -1,9 +1,11 @@
 /**
  * Landing page.
  *
- * Phase 2 placeholder: shows connectivity and, once logged in, the account that was
- * created. Phase 8 replaces the "Next" card with the real profile dashboard.
+ * Shows connectivity and, once logged in, the account that was created plus a way into
+ * game ingestion. Phase 8 replaces the "Next" card with the real profile dashboard.
  */
+import { Link } from 'react-router-dom';
+
 import { useCurrentUser } from '@/features/auth';
 import { BackendStatusCard } from '@/features/health';
 import {
@@ -33,14 +35,21 @@ export function HomePage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Next</CardTitle>
+            <CardTitle>Import games</CardTitle>
             <CardDescription>Phase 3 — game ingestion</CardDescription>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground">
-              {user
-                ? 'Upload a PGN or import games once ingestion lands.'
-                : 'Log in with Lichess or Chess.com to create your profile.'}
+              {user ? (
+                <>
+                  <Link to="/imports" className="font-medium text-primary underline">
+                    Upload a PGN or paste one
+                  </Link>{' '}
+                  to start building your game history.
+                </>
+              ) : (
+                'Log in with Lichess or Chess.com to create your profile.'
+              )}
             </p>
           </CardContent>
         </Card>
