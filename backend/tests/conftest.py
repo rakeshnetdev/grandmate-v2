@@ -67,3 +67,8 @@ def client(settings: Settings) -> Iterator[TestClient]:
     app = create_app(settings)
     with TestClient(app) as test_client:
         yield test_client
+
+
+# Database fixtures live in their own module to keep this file focused; re-exported here
+# so tests get them without importing from a helper path.
+from tests.db_fixtures import database_url, db_engine, db_schema, db_session  # noqa: E402, F401

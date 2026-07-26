@@ -8,7 +8,14 @@ from __future__ import annotations
 import pytest
 from pydantic import SecretStr, ValidationError
 
-from app.core.config import EngineSettings, LLMSettings, Settings, get_settings
+from app.core.config import (
+    DEFAULT_DATABASE_URL,
+    DatabaseSettings,
+    EngineSettings,
+    LLMSettings,
+    Settings,
+    get_settings,
+)
 
 
 def test_engine_defaults_match_the_locked_decision() -> None:
@@ -57,10 +64,91 @@ def test_missing_production_config_returns_names_only() -> None:
     """The production check reports variable names, never their values."""
     missing = Settings().missing_required_for_production()
 
-    assert "SUPABASE_URL" in missing
+    assert "DATABASE_URL" in missing
     assert "SESSION_JWT_SECRET" in missing
     assert "OPENAI_API_KEY" in missing
-    assert all(name.isupper() for name in missing)
+    assert all(name.replace("_", "").isupper() for name in missing)
+
+
+class TestDatabaseConfiguration:
+    """ADR-0015: plain Postgres for MVP, Supabase deferred to Phase 17."""
+
+    def test_defaults_to_local_postgres_on_5433(self) -> None:
+        """5433, not 5432, so a developer's existing Postgres keeps the standard port."""
+        assert Settings().database.url == DEFAULT_DATABASE_URL
+        assert ":5433/" in Settings().database.url
+
+    def test_blank_env_value_falls_back_to_the_default(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A leftover `DATABASE_URL=` must not yield an empty connection string.
+
+        Regression: the Supabase-era .env shipped a blank DATABASE_URL, which silently
+        overrode the code default and produced an empty URL that failed far from the
+        cause.
+        """
+        monkeypatch.setenv("DATABASE_URL", "")
+
+        assert DatabaseSettings().url == DEFAULT_DATABASE_URL
+
+    def test_explicit_value_wins(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("DATABASE_URL", "postgresql+asyncpg://u:p@db.example:5432/prod")
+
+        assert DatabaseSettings().url == "postgresql+asyncpg://u:p@db.example:5432/prod"
+
+    def test_sync_url_swaps_the_driver_for_alembic(self) -> None:
+        """Alembic runs migrations synchronously, so asyncpg has to become psycopg."""
+        settings = DatabaseSettings()
+
+        assert "+asyncpg" in settings.url
+        assert "+psycopg" in settings.sync_url
+        # Everything except the driver must be identical, or the two would drift.
+        assert settings.sync_url.replace("+psycopg", "+asyncpg") == settings.url
+
+    def test_url_is_a_secret(self) -> None:
+        """The URL carries credentials, so it must not appear in reprs or logs."""
+        settings = DatabaseSettings(database_url=SecretStr("postgresql+asyncpg://u:hunter2@h/d"))
+
+        assert "hunter2" not in repr(settings)
+        assert "hunter2" not in settings.model_dump_json()
+
+    def test_production_rejects_the_development_default(self) -> None:
+        """The dangerous case is not "unset" — it is "never overridden".
+
+        DATABASE_URL always resolves, so a production deploy that forgot to set it would
+        start cleanly and talk to localhost:5433. That must be reported as missing.
+        """
+        assert "DATABASE_URL" in Settings().missing_required_for_production()
+
+    def test_production_accepts_an_overridden_url(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("DATABASE_URL", "postgresql+asyncpg://u:p@prod.internal:5432/grandmate")
+
+        assert "DATABASE_URL" not in Settings().missing_required_for_production()
+
+
+def test_bind_address_defaults_are_loopback_and_the_project_port() -> None:
+    """Regression: `API_PORT` existed but nothing read it, so the server bound 8000.
+
+    The entrypoint in `app/__main__.py` is what closes that gap; this asserts the values
+    it reads.
+    """
+    app_settings = Settings().app
+
+    assert app_settings.api_host == "127.0.0.1"
+    assert app_settings.api_port == 7575
+
+
+def test_bind_address_is_overridable_from_the_environment(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Containers set API_HOST=0.0.0.0; without this the published port reaches nothing."""
+    monkeypatch.setenv("API_HOST", "0.0.0.0")
+    monkeypatch.setenv("API_PORT", "9001")
+
+    app_settings = Settings().app
+
+    assert app_settings.api_host == "0.0.0.0"
+    assert app_settings.api_port == 9001
 
 
 def test_cors_origins_parse_from_comma_separated_string() -> None:
@@ -68,13 +156,6 @@ def test_cors_origins_parse_from_comma_separated_string() -> None:
     settings.app.cors_allowed_origins = "http://a.test, http://b.test ,"
 
     assert settings.app.cors_origins_list == ["http://a.test", "http://b.test"]
-
-
-def test_lichess_scopes_parse_and_stay_minimal() -> None:
-    """Minimal scopes by default. Widening them is a deliberate act, not a default."""
-    scopes = Settings().identity.lichess_scopes_list
-
-    assert scopes == ["email:read", "preference:read"]
 
 
 def test_blank_env_value_means_unset_for_optional_fields(

@@ -7,10 +7,10 @@ Vite + React 19 + TypeScript + Tailwind v4 + shadcn/ui.
 ```bash
 cp .env.example .env
 npm install
-npm run dev        # http://localhost:5173
+npm run dev        # http://localhost:3535
 ```
 
-Requires the backend on `http://localhost:8000` (configurable via `VITE_API_BASE_URL`).
+Requires the backend on `http://localhost:7575` (configurable via `VITE_API_BASE_URL`).
 
 ## Layout
 

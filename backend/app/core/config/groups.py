@@ -34,6 +34,29 @@ def _empty_string_as_none(value: object) -> object:
 # An optional integer that accepts a blank .env entry as "unset".
 OptionalInt = Annotated[int | None, BeforeValidator(_empty_string_as_none)]
 
+# Local development database. Port 5433 rather than 5432 so a developer's existing
+# Postgres keeps the standard port (ADR-0015).
+DEFAULT_DATABASE_URL = "postgresql+asyncpg://grandmate:grandmate@localhost:5433/grandmate"
+
+
+def _blank_falls_back_to_default(value: object) -> object:
+    """Treat a blank ``DATABASE_URL`` in ``.env`` as "not set", so the default applies.
+
+    Without this, a leftover ``DATABASE_URL=`` line silently produces an *empty*
+    connection string rather than falling back — which fails later, far from the cause,
+    as an unhelpful driver error. Same reasoning as ``_empty_string_as_none``: ``.env``
+    cannot express "unset" except by being blank.
+    """
+    if isinstance(value, str) and not value.strip():
+        return DEFAULT_DATABASE_URL
+    if isinstance(value, SecretStr) and not value.get_secret_value().strip():
+        return DEFAULT_DATABASE_URL
+    return value
+
+
+# A connection URL where a blank .env entry means "use the default".
+DatabaseUrl = Annotated[SecretStr, BeforeValidator(_blank_falls_back_to_default)]
+
 # Resolve .env relative to the backend package root rather than the process working
 # directory, so `uv run` from any directory picks up the same file.
 BACKEND_ROOT = Path(__file__).resolve().parents[3]
@@ -53,8 +76,12 @@ class AppSettings(BaseSettings):
 
     app_env: Literal["development", "test", "production"] = "development"
     log_level: str = "INFO"
-    api_port: int = 8000
-    cors_allowed_origins: str = "http://localhost:5173"
+    # Bind address for the dev server entrypoint (`python -m app`). Loopback by default so
+    # a development machine does not expose the API to its network; containers override it
+    # to 0.0.0.0, which is required for published ports to reach the process.
+    api_host: str = "127.0.0.1"
+    api_port: int = 7575
+    cors_allowed_origins: str = "http://localhost:3535"
 
     @property
     def cors_origins_list(self) -> list[str]:
@@ -66,35 +93,68 @@ class AppSettings(BaseSettings):
         return self.app_env == "production"
 
 
-class SupabaseSettings(BaseSettings):
-    """Supabase connection details. Populated by the owner at Phase 2."""
+class DatabaseSettings(BaseSettings):
+    """Postgres connection and pool sizing (ADR-0015).
 
-    model_config = _BASE_CONFIG
+    MVP runs plain Postgres 17 with pgvector in one container. Supabase is deferred to
+    Phase 17, and because Supabase *is* Postgres, adopting it later changes this URL and
+    nothing else.
 
-    supabase_url: str = ""
-    supabase_anon_key: SecretStr = SecretStr("")
-    supabase_service_role_key: SecretStr = SecretStr("")
-    database_url: SecretStr = SecretStr("")
-
-
-class IdentitySettings(BaseSettings):
-    """Lichess OAuth and session token settings (ADR-0007).
-
-    Lichess is a public OAuth client: there is no client secret, and ``client_id`` is a
-    self-chosen constant. Only the session signing secret is sensitive here.
+    The default points at port 5433, not 5432: a developer with a local Postgres already
+    running should not have to stop it to work on this project.
     """
 
     model_config = _BASE_CONFIG
 
-    lichess_client_id: str = "grandmate-v2"
-    lichess_redirect_uri: str = "http://localhost:5173/auth/callback"
-    lichess_scopes: str = "email:read,preference:read"
-    session_jwt_secret: SecretStr = SecretStr("")
-    session_ttl_seconds: int = 604_800
+    database_url: DatabaseUrl = SecretStr(DEFAULT_DATABASE_URL)
+    # Sized for a single dev machine. Revisited at Phase 17 against real concurrency.
+    db_pool_size: int = 5
+    db_max_overflow: int = 10
+    db_echo_sql: bool = False
 
     @property
-    def lichess_scopes_list(self) -> list[str]:
-        return [scope.strip() for scope in self.lichess_scopes.split(",") if scope.strip()]
+    def url(self) -> str:
+        """The connection URL. Kept behind a property so the secret is read deliberately."""
+        return self.database_url.get_secret_value()
+
+    @property
+    def sync_url(self) -> str:
+        """Synchronous driver URL, for Alembic migrations.
+
+        Alembic runs migrations synchronously, so the asyncpg driver in the application
+        URL has to be swapped for psycopg. Deriving it here keeps one URL in ``.env``
+        rather than two that could drift apart.
+        """
+        return self.url.replace("+asyncpg", "+psycopg")
+
+
+class StorageSettings(BaseSettings):
+    """Object storage for uploaded PGNs and generated reports (ADR-0015).
+
+    MVP writes to the local filesystem behind a ``StorageBackend`` interface. Swapping to
+    S3, R2, or Supabase Storage later means writing one adapter, with no change to
+    calling code.
+    """
+
+    model_config = _BASE_CONFIG
+
+    storage_backend: Literal["local"] = "local"
+    storage_local_path: str = ".storage"
+
+
+class IdentitySettings(BaseSettings):
+    """Session token settings for MVP username-claim login (ADR-0014).
+
+    Real Lichess OAuth2 PKCE (ADR-0007) is deferred; there is no client id, redirect URI,
+    or scope list to configure until that lands, since login goes through
+    ``PlatformClient`` instead of an OAuth exchange. Only the session signing secret is
+    sensitive here.
+    """
+
+    model_config = _BASE_CONFIG
+
+    session_jwt_secret: SecretStr = SecretStr("")
+    session_ttl_seconds: int = 604_800
 
 
 class EngineSettings(BaseSettings):
@@ -232,6 +292,7 @@ class EvaluationSettings(BaseSettings):
 __all__ = [
     "AgentSettings",
     "AppSettings",
+    "DatabaseSettings",
     "DevInsightSettings",
     "EngineSettings",
     "EvaluationSettings",
@@ -239,5 +300,5 @@ __all__ = [
     "IngestionSettings",
     "LLMSettings",
     "RetrievalSettings",
-    "SupabaseSettings",
+    "StorageSettings",
 ]

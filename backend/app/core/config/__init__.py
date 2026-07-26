@@ -1,21 +1,27 @@
 """Configuration package. Import ``get_settings`` from here, not from submodules."""
 
 from app.core.config.groups import (
+    DEFAULT_DATABASE_URL,
     AgentSettings,
     AppSettings,
+    DatabaseSettings,
+    DevInsightSettings,
     EngineSettings,
     EvaluationSettings,
     IdentitySettings,
     IngestionSettings,
     LLMSettings,
     RetrievalSettings,
-    SupabaseSettings,
+    StorageSettings,
 )
 from app.core.config.settings import Settings, get_settings
 
 __all__ = [
+    "DEFAULT_DATABASE_URL",
     "AgentSettings",
     "AppSettings",
+    "DatabaseSettings",
+    "DevInsightSettings",
     "EngineSettings",
     "EvaluationSettings",
     "IdentitySettings",
@@ -23,6 +29,6 @@ __all__ = [
     "LLMSettings",
     "RetrievalSettings",
     "Settings",
-    "SupabaseSettings",
+    "StorageSettings",
     "get_settings",
 ]

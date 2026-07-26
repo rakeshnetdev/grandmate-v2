@@ -38,7 +38,7 @@ describe('apiClient.get', () => {
 
     await apiClient.get('/thing', schema);
 
-    expect(fetchMock).toHaveBeenCalledWith('http://localhost:8000/thing', expect.anything());
+    expect(fetchMock).toHaveBeenCalledWith('http://localhost:7575/thing', expect.anything());
   });
 
   it('throws ApiError with the status code on a non-2xx response', async () => {

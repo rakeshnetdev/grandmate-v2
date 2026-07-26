@@ -36,6 +36,7 @@ Phase 0 documentation set. Start here.
 | [0011](adr/0011-persona-and-role-separation.md) | Persona and role are orthogonal | Accepted |
 | [0012](adr/0012-cross-profile-viewing-permissions.md) | Self dashboard, separate page for others | Accepted |
 | [0013](adr/0013-developer-insight-tracing.md) | Developer insight via out-of-band tracing | Accepted |
+| [0015](adr/0015-postgres-for-mvp-supabase-deferred.md) | Plain Postgres + pgvector for MVP, Supabase deferred | Accepted |
 
 ## Phase reports
 

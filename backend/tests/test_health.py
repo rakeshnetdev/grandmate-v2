@@ -48,7 +48,9 @@ def test_readiness_reports_missing_config_in_production() -> None:
     assert response.status_code == 503
     body = response.json()
     assert body["status"] == "not_ready"
-    assert "SUPABASE_URL" in body["missing_configuration"]
+    # DATABASE_URL appears because it still holds the development default, which in
+    # production means "never overridden" rather than "set" — see ADR-0015.
+    assert "DATABASE_URL" in body["missing_configuration"]
     assert "OPENAI_API_KEY" in body["missing_configuration"]
 
 

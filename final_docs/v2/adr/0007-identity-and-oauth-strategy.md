@@ -1,8 +1,9 @@
 # ADR-0007 — Lichess OAuth Login, Chess.com by Username
 
-- **Status**: Proposed — pending owner sign-off (deviates from the approved plan)
+- **Status**: Accepted — direction retained; Lichess PKCE *implementation timing* deferred
+  by ADR-0014, which Phase 2 implements instead
 - **Date**: 2026-07-25
-- **Phase**: 0, implemented in Phase 2
+- **Phase**: 0, direction implemented in Phase 2 via ADR-0014's simplified login
 - **Deciders**: Project owner
 
 ## Context
