@@ -1,0 +1,83 @@
+[Event "Edge case: variations (RAV)"]
+[Site "GrandMate fixtures"]
+[Date "2026.01.01"]
+[Round "1"]
+[White "Alpha"]
+[Black "Beta"]
+[Result "1-0"]
+
+1. e4 e5 2. Nf3 (2. Bc4 Nc6 3. Qh5 Nf6 4. Qxf7#) 2... Nc6 3. Bb5 a6 4. Ba4 Nf6
+5. O-O Be7 1-0
+
+[Event "Edge case: comments"]
+[Site "GrandMate fixtures"]
+[Date "2026.01.02"]
+[Round "1"]
+[White "Alpha"]
+[Black "Beta"]
+[Result "0-1"]
+
+1. d4 {A solid start.} d5 2. c4 {The Queen's Gambit.} e6 3. Nc3 Nf6
+{Developing naturally.} 4. Bg5 Be7 0-1
+
+[Event "Edge case: NAGs"]
+[Site "GrandMate fixtures"]
+[Date "2026.01.03"]
+[Round "1"]
+[White "Alpha"]
+[Black "Beta"]
+[Result "1/2-1/2"]
+
+1. e4 $1 e5 2. Nf3 $6 Nc6 3. Bb5 $1 a6 4. Ba4 Nf6 5. O-O $10 1/2-1/2
+
+[Event "Edge case: minimal headers"]
+[White "Alpha"]
+[Black "Beta"]
+[Result "*"]
+
+1. e4 e5 2. Nf3 *
+
+[Event "Edge case: aborted game"]
+[Site "GrandMate fixtures"]
+[Date "2026.01.05"]
+[Round "1"]
+[White "Alpha"]
+[Black "Beta"]
+[Result "*"]
+
+1. e4 *
+
+[Event "Edge case: non-standard time control"]
+[Site "GrandMate fixtures"]
+[Date "2026.01.06"]
+[Round "1"]
+[White "Alpha"]
+[Black "Beta"]
+[Result "1-0"]
+[TimeControl "40/7200:1800+30"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Bxc6 dxc6 1-0
+
+[Event "Edge case: bullet time control with clock annotations"]
+[Site "GrandMate fixtures"]
+[Date "2026.01.07"]
+[Round "1"]
+[White "Alpha"]
+[Black "Beta"]
+[Result "1-0"]
+[TimeControl "60"]
+
+1. e4 {[%clk 0:01:00]} e5 {[%clk 0:00:59]} 2. Nf3 {[%clk 0:00:59]}
+Nc6 {[%clk 0:00:58]} 3. Bb5 {[%clk 0:00:58]} 1-0
+
+[Event "Edge case: nested variations with comments and NAGs"]
+[Site "GrandMate fixtures"]
+[Date "2026.01.08"]
+[Round "1"]
+[White "Alpha"]
+[Black "Beta"]
+[Result "1-0"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 $6 {Ruy Lopez, dubious per this annotation}
+(3. Bc4 Bc5 (3... Nf6 4. Ng5 d5 5. exd5 Na5) 4. c3 Nf6) 3... a6 4. Ba4 Nf6
+5. O-O 1-0

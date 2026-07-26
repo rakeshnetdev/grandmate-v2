@@ -85,11 +85,15 @@ view-another-player page.
   a game back to the import job that created it. A game outlives its job — deleting a job
   record must not delete the games it produced — hence `SET NULL` rather than `CASCADE`.
 
-`focus_color` and `opponent_name` are nullable and **unpopulated by Phase 3**: PGN header
-tags (`White`/`Black`) are stored raw in `headers`, but resolving which side the profile
-played is Phase 4's header-normalisation policy, not raw ingestion. The columns exist now
-so Phase 4 does not need a schema-reshaping migration — the same precedent as
-`ProfileRelationship` in Phase 2.
+`focus_color` and `opponent_name` are populated by **Phase 4's header-normalisation
+policy** (`app/domain/games/normalization.py`): exactly one of the PGN's `White`/`Black`
+header names matches a platform username linked to the profile (`profile_sources`, any
+verification state — see the module docstring for why verified-only would leave the
+feature dead code today). No match, or both matching, leaves both fields `null` rather
+than guessing. `canonicalized_at` and `parse_error` (Phase 4 additions, not in the
+original draft) track the Phase 3/4 boundary explicitly: a game can be successfully
+ingested and stored but not yet — or never — canonicalized, and that state must be
+queryable, not inferred from the absence of `game_moves` rows.
 
 | Column | Type | Notes |
 |--------|------|-------|
@@ -100,26 +104,32 @@ so Phase 4 does not need a schema-reshaping migration — the same precedent as
 | `source_game_ref` | text null | Platform game id |
 | `content_hash` | text | Dedup key over normalised movetext |
 | `headers` | jsonb | Raw PGN headers |
-| `focus_color` | enum null | `white` \| `black` — populated starting Phase 4 |
-| `opponent_name` | text null | Populated starting Phase 4 |
+| `focus_color` | enum null | `white` \| `black` — resolved by Phase 4, may stay null |
+| `opponent_name` | text null | Resolved by Phase 4, may stay null |
 | `time_control` | text null | |
 | `played_at` | timestamptz null | |
 | `raw_pgn_path` | text | Local `StorageBackend` path (Supabase deferred, ADR-0015) |
+| `canonicalized_at` | timestamptz null | Phase 4 addition. Set once replay succeeds |
+| `parse_error` | jsonb null | Phase 4 addition. `{reason, detail}` when replay fails |
 
 Unique constraint on `(profile_id, content_hash)` — this is what makes re-import
 idempotent across upload, Lichess, and Chess.com.
 
 ### `game_moves`
+**Implemented in Phase 4.** One row per ply, written only on successful canonicalization
+— a canonicalization failure leaves zero rows for that game, not partial ones.
+
 | Column | Type | Notes |
 |--------|------|-------|
-| `game_id` | uuid FK | |
+| `game_id` | uuid FK, `ON DELETE CASCADE` | |
 | `ply` | int | Zero-indexed |
 | `san` / `uci` | text | |
 | `fen_before` / `fen_after` | text | |
 | `epd_after` | text | Indexed; opening lookup key |
-| `clock_ms` | int null | Where the source provides it |
+| `clock_ms` | int null | Parsed from PGN `[%clk ...]` annotations where present |
 
-Primary key `(game_id, ply)`.
+Primary key `(game_id, ply)`, no surrogate id — a move record has no identity independent
+of its game and sequence position.
 
 ### `game_analysis`
 One row per game per analysis version, so re-analysis under new settings is additive

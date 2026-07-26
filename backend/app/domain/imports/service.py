@@ -1,4 +1,4 @@
-"""Ingestion orchestration: parse, dedup, persist, report.
+"""Ingestion orchestration: parse, dedup, persist, canonicalize, report.
 
 Processing runs synchronously within the request. That is a deliberate choice for Phase
 3's scope — manual upload/paste of a handful of games parses in well under a second, so
@@ -6,6 +6,10 @@ there is nothing to gain from a background task except two database sessions to 
 consistent in tests. The `jobs` table and polling endpoint exist so this is additive, not
 a breaking change, once Phase 9's Lichess/Chess.com imports need real async work: only the
 call site moves from inline to a worker, the schema and API contract stay the same.
+
+Phase 4 folds canonicalization (`GameParsingService`) into the same request, per the same
+reasoning: a `Game` row is not just stored, it comes out already fully parsed — move list,
+FEN/EPD, and (where the header names match a linked platform username) focus side.
 """
 
 from __future__ import annotations
@@ -18,6 +22,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.base import utc_now
 from app.db.models import Game, GameSource, Job, JobKind, JobStatus
+from app.domain.games import GameParsingService
 from app.domain.imports.parsing import ParsedGame, RejectedGame, RejectionReason, parse_pgn_text
 from app.integrations.storage import StorageBackend
 
@@ -53,6 +58,7 @@ class ImportService:
     def __init__(self, session: AsyncSession, storage: StorageBackend) -> None:
         self._session = session
         self._storage = storage
+        self._game_parser = GameParsingService(session, storage)
 
     async def ingest(
         self, profile_id: uuid.UUID, sources: list[SourceText], *, max_games: int
@@ -116,20 +122,24 @@ class ImportService:
 
                 await self._storage.put(
                     _storage_key(profile_id, parsed.content_hash),
-                    source.text.encode("utf-8"),
+                    parsed.pgn_text.encode("utf-8"),
                     content_type="application/x-chess-pgn",
                 )
-                self._session.add(
-                    Game(
-                        profile_id=profile_id,
-                        job_id=job.id,
-                        source=GameSource.UPLOAD,
-                        content_hash=parsed.content_hash,
-                        headers=parsed.headers,
-                        played_at=None,
-                        raw_pgn_path=_storage_key(profile_id, parsed.content_hash),
-                    )
+                game = Game(
+                    profile_id=profile_id,
+                    job_id=job.id,
+                    source=GameSource.UPLOAD,
+                    content_hash=parsed.content_hash,
+                    headers=parsed.headers,
+                    played_at=None,
+                    raw_pgn_path=_storage_key(profile_id, parsed.content_hash),
                 )
+                self._session.add(game)
+                await self._session.flush()
+                # Canonicalization (Phase 4), same request per the owner's confirmed
+                # decision — no new job kind for MVP. A canonicalization failure does not
+                # un-import the game; see GameParsingService.canonicalize's own docstring.
+                await self._game_parser.canonicalize(game)
                 imported += 1
 
         job.status = JobStatus.DONE

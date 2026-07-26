@@ -51,6 +51,7 @@ EXPECTED_TABLES = {
     "audit_events",
     "jobs",
     "games",
+    "game_moves",
 }
 
 EXPECTED_ENUMS = {

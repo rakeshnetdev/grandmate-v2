@@ -86,6 +86,14 @@ added: games with variations, comments, NAGs, malformed headers, aborted games, 
 non-standard time controls.
 → `changes/0001-reuse-ledger.md`
 
+**Amended in Phase 4**: the owner asked for a smaller MVP fixture footprint after seeing
+the full collections committed (7.5MB, 10,594 games). Trimmed to the first 75 games of
+each collection (150 total) plus the 8 curated edge cases — small enough to run in the
+default test suite with no separate slow tier. The full-corpus run performed once before
+trimming found one real data artifact (a zero-move forfeit record) and established a
+99.99% canonicalization accuracy baseline; those findings are recorded in the Phase 4
+report rather than re-verified against 10k+ games on every change.
+
 ### D-010 — Engine analysis budget · Locked
 Baseline analysis depth is **12**, read from `ENGINE_DEPTH`. Tiered policy approved: a
 shallow sweep across all plies at the baseline depth, then a deeper pass only on candidate

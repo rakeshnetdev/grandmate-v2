@@ -52,6 +52,28 @@ class TestValidGames:
 
         assert first.content_hash == second.content_hash
 
+    def test_each_games_pgn_text_is_scoped_to_itself_not_the_whole_batch(self) -> None:
+        """Regression: storing the whole source text under every game's key left every
+        game in a multi-game file pointing at the same blob, with no way to tell which
+        game was which. Each `ParsedGame.pgn_text` must contain only its own game."""
+        result = parse_pgn_text(VALID_GAME + "\n" + OTHER_VALID_GAME)
+
+        alice_game = next(g for g in result.parsed if g.headers["White"] == "Alice")
+        carol_game = next(g for g in result.parsed if g.headers["White"] == "Carol")
+
+        assert "Carol" not in alice_game.pgn_text
+        assert "Alice" not in carol_game.pgn_text
+        assert "Bb5" in alice_game.pgn_text
+        assert "c4" in carol_game.pgn_text
+
+    def test_pgn_text_round_trips_through_the_parser(self) -> None:
+        parsed = parse_pgn_text(VALID_GAME).parsed[0]
+
+        reparsed = parse_pgn_text(parsed.pgn_text).parsed[0]
+
+        assert reparsed.moves_uci == parsed.moves_uci
+        assert reparsed.content_hash == parsed.content_hash
+
     def test_content_hash_ignores_comments_and_clock_annotations(self) -> None:
         """Same moves, same result, same players — must hash identically even when a
         different export tool adds commentary."""

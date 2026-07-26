@@ -24,8 +24,9 @@ evaluated and not used
 
 | Item | Reference path | v2 destination | Phase | Status | Notes |
 |------|---------------|----------------|-------|--------|-------|
-| Carlsen PGN collection (7,818 games) | `backend/data/pgn/Carlsen.pgn` | `backend/tests/fixtures/pgn/` | 4 | Planned | Volume and realistic master play. Does not cover edge cases. |
-| Praggnanandhaa PGN collection (2,775 games) | `backend/data/pgn/Praggnanandhaa.pgn` | `backend/tests/fixtures/pgn/` | 4 | Planned | Same. |
+| Carlsen PGN collection (75 of 7,818 games) | `backend/data/pgn/Carlsen.pgn` | `backend/tests/fixtures/pgn/` | 4 | Ported (trimmed) | Volume and realistic master play. Does not cover edge cases — see `edge_cases.pgn` below. Trimmed from the full 7,818-game file to the first 75 per the owner's request to keep MVP fixture footprint small — see D-009 amendment in `decisions-log.md`. Runs in the default test suite; no separate slow tier. |
+| Praggnanandhaa PGN collection (75 of 2,775 games) | `backend/data/pgn/Praggnanandhaa.pgn` | `backend/tests/fixtures/pgn/` | 4 | Ported (trimmed) | Same trimming, same reason. |
+| Curated edge-case PGN set (8 games: RAV variations, comments, NAGs, minimal/missing headers, aborted games, non-standard time controls, `%clk` annotations) | — (new, not reused) | `backend/tests/fixtures/pgn/edge_cases.pgn` | 4 | Ported | Self-authored per D-009's instruction to add a curated edge-case set; no external source. |
 | Tactical motif notes | `backend/data/corpus/strategies/tactics.md` | `corpus/tactics/` | 7 | Planned | Good quality prose, one motif per section. Seeds the `tactics` bucket and the taxonomy in `glossary.md`. Needs provenance and licence review. |
 | Concept notes (tactics) | `backend/data/corpus/rules/concept_notes_tactics.md` | — | 7 | **Rejected** | Byte-identical duplicate of `tactics.md`. Ingesting both would double-weight the same content in retrieval. |
 | FIDE Laws of Chess PDF | `backend/data/corpus/rules/FIDE - LawsOfChess.pdf` | `corpus/rules/` | 7 | Planned | Authoritative. Verify the edition and re-download from FIDE rather than trusting the vendored copy. |
