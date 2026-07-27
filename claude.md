@@ -249,6 +249,17 @@ Claude must then stop and ask the user to approve or request changes. No next-ph
 
 ## Testing Requirements
 
+**MVP scope discipline.** This project builds an MVP first and scales later — it is not
+building a production-hardened system on the first pass. Test coverage must be
+proportionate to that: enough to trust the phase's core logic and catch real regressions,
+not exhaustive permutation coverage. As a rough guide, one focused unit (a function, a
+service method, a route) needs the happy path plus the one or two edge cases that would
+actually bite in practice — not a test per theoretically-possible branch. If a phase's
+test count is climbing past what its own scope obviously calls for, that is a signal to
+stop and ask whether the *scope* has quietly grown beyond MVP needs, not a reason to add
+more tests to match. When genuinely unsure whether a case is worth a test, ask rather than
+defaulting to "add it to be safe."
+
 Each implemented phase must include a suitable test mix:
 
 ### Unit tests

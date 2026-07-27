@@ -132,31 +132,39 @@ Primary key `(game_id, ply)`, no surrogate id — a move record has no identity 
 of its game and sequence position.
 
 ### `game_analysis`
-One row per game per analysis version, so re-analysis under new settings is additive
-rather than destructive.
+**Implemented in Phase 5.** One row per game per analysis version, so re-analysis under
+new settings is additive rather than destructive.
 
 | Column | Type | Notes |
 |--------|------|-------|
 | `id` | uuid PK | |
-| `game_id` | uuid FK | |
-| `analysis_version` | text | Engine + policy + detector version |
+| `game_id` | uuid FK, `ON DELETE CASCADE` | |
+| `analysis_version` | text | e.g. `sf-d12-dd18-t50.100.300` — depth + threshold fingerprint |
 | `engine_depth` | int | Recorded, not assumed |
-| `summary` | jsonb | Accuracy, counts by classification |
+| `summary` | jsonb | `{total_moves, counts: {best,good,inaccuracy,mistake,blunder}, accuracy, critical_moments}` |
 | `completed_at` | timestamptz | |
 
 ### `move_evaluations`
+**Implemented in Phase 5.** Primary key `(game_analysis_id, ply)`, no surrogate id — same
+reasoning as `game_moves`.
+
 | Column | Type | Notes |
 |--------|------|-------|
-| `game_analysis_id` | uuid FK | |
+| `game_analysis_id` | uuid FK, `ON DELETE CASCADE` | |
 | `ply` | int | |
 | `eval_cp` | int null | Null when mate score present |
 | `mate_in` | int null | |
-| `best_move_uci` | text | |
+| `best_move_uci` | text null | Null only when the position has no legal moves |
 | `pv` | text[] | |
-| `classification` | enum | See glossary |
-| `eval_swing_cp` | int | |
-| `is_critical_moment` | boolean | |
-| `deep_analyzed` | boolean | Whether the tiered deep pass ran here |
+| `classification` | enum | `best` \| `good` \| `inaccuracy` \| `mistake` \| `blunder` |
+| `eval_swing_cp` | int | Centipawn loss for the move played, mover's own frame, always >= 0 |
+| `is_critical_moment` | boolean | Shallow-depth finding; not recomputed after deepening |
+| `deep_analyzed` | boolean | True if *either* endpoint of this ply's own swing (its `eval_before` or `eval_after` position) was re-evaluated at `ENGINE_DEEP_DEPTH` — a deepened position feeds two plies at once, so both report it |
+
+`jobs.game_id` (nullable FK → `games`, `ON DELETE CASCADE`) is a Phase 5 addition beyond
+this document's original `jobs` sketch: which game an `ENGINE_ANALYSIS` job targets.
+`CASCADE` here, not `SET NULL` like `games.job_id` — an analysis job has no meaning once
+its game is gone, where a game outlives the import job that created it.
 
 ### `game_openings`
 | Column | Type | Notes |
@@ -286,10 +294,15 @@ Phase 3's manual upload processes **synchronously within the request** — parsi
 handful of pasted/uploaded games is sub-second, so there is nothing to gain from a
 background task except two database sessions to keep consistent in tests. Every job Phase
 3 creates is already `done` (or `failed`) by the time `POST /imports` returns, but
-`GET /imports/{id}` still polls correctly. Phase 9's real external-API imports are the
-first caller that will need genuine async processing; moving the call from inline to a
-background task or worker at that point changes nothing about this schema or the API
-contract.
+`GET /imports/{id}` still polls correctly.
+
+**Phase 5 is the first real async caller.** Benchmarked at ~7s/game (shallow sweep +
+deep pass on critical moments, real Stockfish), engine analysis cannot stay inline —
+`ImportService` only creates a `pending ENGINE_ANALYSIS` job per canonicalized game; the
+route dispatches `domain.analysis.run_pending_analysis_jobs` as a `BackgroundTasks`
+callback after the response is sent, bounded by `ENGINE_MAX_CONCURRENT_GAMES`. This
+confirms the schema held: no migration was needed to add the new `kind`, only a new
+enum value and the `game_id` column below.
 
 ### `audit_events`
 `id`, `actor_user_id`, `action`, `subject_type`, `subject_id`, `metadata` jsonb,

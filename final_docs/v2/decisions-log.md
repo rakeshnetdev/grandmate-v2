@@ -170,6 +170,22 @@ Three implementation defaults proposed and confirmed with the owner before codin
   `(profile_id, content_hash)`. Catches the same game re-exported with different
   comments/clock annotations; a raw-text hash would not.
 
+### D-019 — Phase 5 engine analysis dispatch · Locked
+Two decisions confirmed with the owner before coding, after benchmarking real Stockfish
+timing on the target machine (depth 12 ~46ms/position, depth 18 ~1.06s/position, ~7s/game
+including the deep pass):
+
+- **Trigger**: automatic background job, not inline with import (unlike Phases 3–4) and
+  not a manual-only trigger. `ImportService` queues a `pending ENGINE_ANALYSIS` job per
+  canonicalized game; the route dispatches it via `BackgroundTasks` after the response is
+  sent, using the existing `jobs` table's `kind` discriminator — no new table.
+- **Concurrency**: bounded, not sequential — `ENGINE_MAX_CONCURRENT_GAMES` (default 4)
+  caps how many games' analysis jobs run at once, each in its own single-threaded
+  Stockfish process (`ENGINE_THREADS` stays 1 for determinism; parallelism is at the game
+  level, not the thread level, per the existing `EngineSettings` rationale). Reduces a
+  60-game batch's background completion time from ~7 minutes sequential to ~1.75 minutes
+  at 4-way concurrency.
+
 ---
 
 ## Open questions raised back to the owner

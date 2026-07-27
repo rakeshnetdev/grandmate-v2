@@ -7,6 +7,12 @@ background thread — see that file's docstring for why the loop match matters h
 
 Login is real (platform lookup stubbed, same as auth tests) so every request carries a
 genuine session cookie and a genuine self profile, rather than a fabricated one.
+
+`run_pending_analysis_jobs` is stubbed the same way: `BackgroundTasks` execute inline
+before `httpx.ASGITransport` returns control to the test, so an unstubbed call here would
+mean every route test pays for real Stockfish analysis (~7s/game) and needs a real engine
+session factory bound to this test's isolated transaction — neither of which these
+HTTP-layer tests are about. Real engine behaviour is covered in `test_analysis_*.py`.
 """
 
 from __future__ import annotations
@@ -52,6 +58,16 @@ def _stub_platform_lookup(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(PlatformClient, "fetch_user", _fake_fetch_user)
 
 
+@pytest.fixture(autouse=True)
+def _stub_analysis_dispatch(monkeypatch: pytest.MonkeyPatch) -> None:
+    """No-op: these tests check the import HTTP contract, not engine analysis."""
+
+    async def _noop(*args, **kwargs) -> None:  # type: ignore[no-untyped-def]
+        return None
+
+    monkeypatch.setattr("app.api.routes.imports.run_pending_analysis_jobs", _noop)
+
+
 @pytest.fixture
 def import_settings() -> Settings:
     settings = Settings()
@@ -64,6 +80,10 @@ async def import_client(
     import_settings: Settings, db_session: AsyncSession, tmp_path
 ) -> AsyncIterator[httpx.AsyncClient]:
     app = create_app(import_settings)
+    # Normally set by the lifespan, which never runs against this transport. The route
+    # reads it to pass to the (stubbed, see above) analysis dispatcher — never actually
+    # used to open a connection here, since the stub ignores it.
+    app.state.db_session_factory = None
 
     async def _override_db_session() -> AsyncIterator[AsyncSession]:
         yield db_session

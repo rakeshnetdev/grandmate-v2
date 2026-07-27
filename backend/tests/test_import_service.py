@@ -56,15 +56,17 @@ class TestIngest:
         profile = await _make_profile(db_session)
         service = ImportService(db_session, storage)
 
-        job = await service.ingest(
+        result = await service.ingest(
             profile.id, [SourceText(text=GAME_A, label="a.pgn")], max_games=10
         )
+        job = result.job
 
         assert job.status == JobStatus.DONE
         assert job.progress["imported"] == 1
         assert job.progress["duplicates"] == 0
         assert job.progress["rejected"] == []
         assert job.completed_at is not None
+        assert len(result.analysis_job_ids) == 1
 
         games = (await db_session.execute(select(Game))).scalars().all()
         assert len(games) == 1
@@ -80,11 +82,12 @@ class TestIngest:
         profile = await _make_profile(db_session)
         service = ImportService(db_session, storage)
 
-        job = await service.ingest(
+        result = await service.ingest(
             profile.id, [SourceText(text=GAME_A + "\n" + GAME_B, label="batch.pgn")], max_games=10
         )
 
-        assert job.progress["imported"] == 2
+        assert result.job.progress["imported"] == 2
+        assert len(result.analysis_job_ids) == 2
 
     async def test_each_games_stored_pgn_contains_only_that_game(
         self, db_session: AsyncSession, storage: LocalStorage
@@ -112,14 +115,16 @@ class TestIngest:
         service = ImportService(db_session, storage)
 
         await service.ingest(profile.id, [SourceText(text=GAME_A, label="a.pgn")], max_games=10)
-        second_job = await service.ingest(
+        second_result = await service.ingest(
             profile.id, [SourceText(text=GAME_A, label="a-again.pgn")], max_games=10
         )
+        second_job = second_result.job
 
         assert second_job.status == JobStatus.DONE
         assert second_job.progress["imported"] == 0
         assert second_job.progress["duplicates"] == 1
         assert second_job.progress["rejected"][0]["reason"] == "duplicate_game"
+        assert second_result.analysis_job_ids == []
 
     async def test_malformed_game_is_reported_but_does_not_fail_the_job(
         self, db_session: AsyncSession, storage: LocalStorage
@@ -128,11 +133,12 @@ class TestIngest:
         service = ImportService(db_session, storage)
         malformed = GAME_A.replace("3. Bb5 1-0", "3. Qxd8 1-0")
 
-        job = await service.ingest(
+        result = await service.ingest(
             profile.id,
             [SourceText(text=malformed + "\n" + GAME_B, label="mixed.pgn")],
             max_games=10,
         )
+        job = result.job
 
         assert job.status == JobStatus.DONE
         assert job.progress["imported"] == 1
@@ -160,12 +166,12 @@ class TestIngest:
         service = ImportService(db_session, storage)
 
         await service.ingest(profile_a.id, [SourceText(text=GAME_A, label="a.pgn")], max_games=10)
-        job_b = await service.ingest(
+        result_b = await service.ingest(
             profile_b.id, [SourceText(text=GAME_A, label="a.pgn")], max_games=10
         )
 
-        assert job_b.progress["imported"] == 1
-        assert job_b.progress["duplicates"] == 0
+        assert result_b.job.progress["imported"] == 1
+        assert result_b.job.progress["duplicates"] == 0
 
 
 class TestJobLookup:
@@ -175,7 +181,10 @@ class TestJobLookup:
         owner = await _make_profile(db_session)
         stranger = await _make_profile(db_session)
         service = ImportService(db_session, storage)
-        job = await service.ingest(owner.id, [SourceText(text=GAME_A, label="a.pgn")], max_games=10)
+        result = await service.ingest(
+            owner.id, [SourceText(text=GAME_A, label="a.pgn")], max_games=10
+        )
+        job = result.job
 
         assert (await service.get_job(job.id, owner.id)) is not None
         assert (await service.get_job(job.id, stranger.id)) is None
@@ -197,4 +206,4 @@ class TestJobLookup:
 
         jobs = await service.list_jobs(profile.id)
 
-        assert [job.id for job in jobs] == [second.id, first.id]
+        assert [job.id for job in jobs] == [second.job.id, first.job.id]

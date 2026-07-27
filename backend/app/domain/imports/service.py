@@ -10,12 +10,19 @@ call site moves from inline to a worker, the schema and API contract stay the sa
 Phase 4 folds canonicalization (`GameParsingService`) into the same request, per the same
 reasoning: a `Game` row is not just stored, it comes out already fully parsed — move list,
 FEN/EPD, and (where the header names match a linked platform username) focus side.
+
+Phase 5's engine analysis does **not** join that list. Benchmarked at ~7s/game on real
+hardware, a batch import would turn a sub-second request into minutes — confirmed with
+the owner, `ingest()` only creates a pending `ENGINE_ANALYSIS` job per successfully
+canonicalized game. The caller (the route) is responsible for dispatching
+`domain.analysis.run_pending_analysis_jobs` as a background task after the response is
+sent; this module only ever creates the job rows.
 """
 
 from __future__ import annotations
 
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -48,6 +55,19 @@ class SourceText:
     label: str
 
 
+@dataclass(frozen=True)
+class ImportResult:
+    """What `ingest()` produced: the import job itself, and the analysis jobs it queued.
+
+    `analysis_job_ids` is what the route hands to the background dispatcher — kept
+    separate from `job.progress` (a JSON bag meant for display) so the caller has typed,
+    direct access without parsing anything back out.
+    """
+
+    job: Job
+    analysis_job_ids: list[uuid.UUID] = field(default_factory=list)
+
+
 def _storage_key(profile_id: uuid.UUID, content_hash: str) -> str:
     return f"pgn/{profile_id}/{content_hash}.pgn"
 
@@ -62,7 +82,7 @@ class ImportService:
 
     async def ingest(
         self, profile_id: uuid.UUID, sources: list[SourceText], *, max_games: int
-    ) -> Job:
+    ) -> ImportResult:
         """Parse and persist every game across ``sources`` for ``profile_id``.
 
         Raises :class:`TooManyGamesError` before writing anything if the combined game
@@ -93,6 +113,7 @@ class ImportService:
         imported = 0
         duplicates = 0
         rejected_report: list[dict[str, object]] = []
+        analysis_job_ids: list[uuid.UUID] = []
 
         for source, parsed_games, rejections in parsed_by_source:
             for rejection in rejections:
@@ -136,11 +157,27 @@ class ImportService:
                 )
                 self._session.add(game)
                 await self._session.flush()
-                # Canonicalization (Phase 4), same request per the owner's confirmed
-                # decision — no new job kind for MVP. A canonicalization failure does not
-                # un-import the game; see GameParsingService.canonicalize's own docstring.
+                # Canonicalization (Phase 4), same request — fast enough to stay inline.
+                # A canonicalization failure does not un-import the game; see
+                # GameParsingService.canonicalize's own docstring.
                 await self._game_parser.canonicalize(game)
                 imported += 1
+
+                if game.canonicalized_at is not None:
+                    # Engine analysis (Phase 5) does NOT join canonicalization inline —
+                    # benchmarked far too slow for a synchronous request. Queue it; the
+                    # route dispatches domain.analysis.run_pending_analysis_jobs as a
+                    # background task after this response is sent. No job is queued for
+                    # a game that failed canonicalization — there are no moves to analyse.
+                    analysis_job = Job(
+                        kind=JobKind.ENGINE_ANALYSIS,
+                        profile_id=profile_id,
+                        game_id=game.id,
+                        status=JobStatus.PENDING,
+                    )
+                    self._session.add(analysis_job)
+                    await self._session.flush()
+                    analysis_job_ids.append(analysis_job.id)
 
         job.status = JobStatus.DONE
         job.progress = {
@@ -151,7 +188,7 @@ class ImportService:
         }
         job.completed_at = utc_now()
         await self._session.flush()
-        return job
+        return ImportResult(job=job, analysis_job_ids=analysis_job_ids)
 
     async def _already_imported(self, profile_id: uuid.UUID, content_hash: str) -> bool:
         result = await self._session.execute(
@@ -160,17 +197,28 @@ class ImportService:
         return result.scalar_one_or_none() is not None
 
     async def get_job(self, job_id: uuid.UUID, profile_id: uuid.UUID) -> Job | None:
-        """Scoped to ``profile_id`` so one profile can never poll another's job."""
+        """Scoped to ``profile_id`` so one profile can never poll another's job.
+
+        Filtered to ``PGN_IMPORT`` — Phase 5's ``ENGINE_ANALYSIS`` jobs share this same
+        table by design, but polling them is `domain.analysis`'s surface
+        (`/api/v1/analysis/jobs/{id}`), not `/api/v1/imports/{id}`. Mixing kinds into one
+        listing would mean this route showing job types it has nothing to do with.
+        """
         result = await self._session.execute(
-            select(Job).where(Job.id == job_id, Job.profile_id == profile_id)
+            select(Job).where(
+                Job.id == job_id, Job.profile_id == profile_id, Job.kind == JobKind.PGN_IMPORT
+            )
         )
         return result.scalar_one_or_none()
 
     async def list_jobs(self, profile_id: uuid.UUID) -> list[Job]:
+        """``PGN_IMPORT`` jobs only — see `get_job` for why."""
         result = await self._session.execute(
-            select(Job).where(Job.profile_id == profile_id).order_by(Job.created_at.desc())
+            select(Job)
+            .where(Job.profile_id == profile_id, Job.kind == JobKind.PGN_IMPORT)
+            .order_by(Job.created_at.desc())
         )
         return list(result.scalars().all())
 
 
-__all__ = ["ImportService", "SourceText", "TooManyGamesError"]
+__all__ = ["ImportResult", "ImportService", "SourceText", "TooManyGamesError"]
