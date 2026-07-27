@@ -7,15 +7,38 @@ mocks standing in for either.
 
 from __future__ import annotations
 
+import uuid
 from pathlib import Path
 
 import pytest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import PatternSettings
 from app.db.models import Game, GameSource, JobStatus, Profile, ProfileKind, User
-from app.domain.imports import ImportService, SourceText, TooManyGamesError
+from app.domain.imports import ImportResult, ImportService, SourceText, TooManyGamesError
+from app.domain.patterns import load_opening_index
 from app.integrations.storage import LocalStorage
+
+# Built once for the whole module: real vendored dataset, no reason to reparse it per
+# test. Phase 6's opening lookup and pattern settings are call-time `ingest()` arguments
+# (see ImportService.ingest's own docstring for why), so every test needs them threaded
+# through — `_ingest` below is what keeps that out of every individual test body.
+_PATTERN_SETTINGS = PatternSettings()
+_OPENING_INDEX = load_opening_index(_PATTERN_SETTINGS)
+
+
+async def _ingest(
+    service: ImportService, profile_id: uuid.UUID, sources: list[SourceText], *, max_games: int
+) -> ImportResult:
+    return await service.ingest(
+        profile_id,
+        sources,
+        max_games=max_games,
+        opening_index=_OPENING_INDEX,
+        pattern_settings=_PATTERN_SETTINGS,
+    )
+
 
 GAME_A = """[Event "Test"]
 [White "Alice"]
@@ -56,8 +79,8 @@ class TestIngest:
         profile = await _make_profile(db_session)
         service = ImportService(db_session, storage)
 
-        result = await service.ingest(
-            profile.id, [SourceText(text=GAME_A, label="a.pgn")], max_games=10
+        result = await _ingest(
+            service, profile.id, [SourceText(text=GAME_A, label="a.pgn")], max_games=10
         )
         job = result.job
 
@@ -82,8 +105,11 @@ class TestIngest:
         profile = await _make_profile(db_session)
         service = ImportService(db_session, storage)
 
-        result = await service.ingest(
-            profile.id, [SourceText(text=GAME_A + "\n" + GAME_B, label="batch.pgn")], max_games=10
+        result = await _ingest(
+            service,
+            profile.id,
+            [SourceText(text=GAME_A + "\n" + GAME_B, label="batch.pgn")],
+            max_games=10,
         )
 
         assert result.job.progress["imported"] == 2
@@ -98,8 +124,11 @@ class TestIngest:
         profile = await _make_profile(db_session)
         service = ImportService(db_session, storage)
 
-        await service.ingest(
-            profile.id, [SourceText(text=GAME_A + "\n" + GAME_B, label="batch.pgn")], max_games=10
+        await _ingest(
+            service,
+            profile.id,
+            [SourceText(text=GAME_A + "\n" + GAME_B, label="batch.pgn")],
+            max_games=10,
         )
 
         games = (await db_session.execute(select(Game).order_by(Game.created_at))).scalars().all()
@@ -114,9 +143,9 @@ class TestIngest:
         profile = await _make_profile(db_session)
         service = ImportService(db_session, storage)
 
-        await service.ingest(profile.id, [SourceText(text=GAME_A, label="a.pgn")], max_games=10)
-        second_result = await service.ingest(
-            profile.id, [SourceText(text=GAME_A, label="a-again.pgn")], max_games=10
+        await _ingest(service, profile.id, [SourceText(text=GAME_A, label="a.pgn")], max_games=10)
+        second_result = await _ingest(
+            service, profile.id, [SourceText(text=GAME_A, label="a-again.pgn")], max_games=10
         )
         second_job = second_result.job
 
@@ -133,7 +162,8 @@ class TestIngest:
         service = ImportService(db_session, storage)
         malformed = GAME_A.replace("3. Bb5 1-0", "3. Qxd8 1-0")
 
-        result = await service.ingest(
+        result = await _ingest(
+            service,
             profile.id,
             [SourceText(text=malformed + "\n" + GAME_B, label="mixed.pgn")],
             max_games=10,
@@ -153,7 +183,9 @@ class TestIngest:
         batch = "\n".join([GAME_A, GAME_B] * 3)  # 6 games
 
         with pytest.raises(TooManyGamesError):
-            await service.ingest(profile.id, [SourceText(text=batch, label="big.pgn")], max_games=5)
+            await _ingest(
+                service, profile.id, [SourceText(text=batch, label="big.pgn")], max_games=5
+            )
 
         games = (await db_session.execute(select(Game))).scalars().all()
         assert games == []
@@ -165,9 +197,9 @@ class TestIngest:
         profile_b = await _make_profile(db_session)
         service = ImportService(db_session, storage)
 
-        await service.ingest(profile_a.id, [SourceText(text=GAME_A, label="a.pgn")], max_games=10)
-        result_b = await service.ingest(
-            profile_b.id, [SourceText(text=GAME_A, label="a.pgn")], max_games=10
+        await _ingest(service, profile_a.id, [SourceText(text=GAME_A, label="a.pgn")], max_games=10)
+        result_b = await _ingest(
+            service, profile_b.id, [SourceText(text=GAME_A, label="a.pgn")], max_games=10
         )
 
         assert result_b.job.progress["imported"] == 1
@@ -181,8 +213,8 @@ class TestJobLookup:
         owner = await _make_profile(db_session)
         stranger = await _make_profile(db_session)
         service = ImportService(db_session, storage)
-        result = await service.ingest(
-            owner.id, [SourceText(text=GAME_A, label="a.pgn")], max_games=10
+        result = await _ingest(
+            service, owner.id, [SourceText(text=GAME_A, label="a.pgn")], max_games=10
         )
         job = result.job
 
@@ -196,12 +228,12 @@ class TestJobLookup:
         other = await _make_profile(db_session)
         service = ImportService(db_session, storage)
 
-        await service.ingest(other.id, [SourceText(text=GAME_A, label="a.pgn")], max_games=10)
-        first = await service.ingest(
-            profile.id, [SourceText(text=GAME_A, label="a.pgn")], max_games=10
+        await _ingest(service, other.id, [SourceText(text=GAME_A, label="a.pgn")], max_games=10)
+        first = await _ingest(
+            service, profile.id, [SourceText(text=GAME_A, label="a.pgn")], max_games=10
         )
-        second = await service.ingest(
-            profile.id, [SourceText(text=GAME_B, label="b.pgn")], max_games=10
+        second = await _ingest(
+            service, profile.id, [SourceText(text=GAME_B, label="b.pgn")], max_games=10
         )
 
         jobs = await service.list_jobs(profile.id)

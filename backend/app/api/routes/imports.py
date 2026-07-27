@@ -31,6 +31,7 @@ from fastapi import (
 
 from app.api.dependencies.auth import CurrentLoginDep
 from app.api.dependencies.db import DbSessionDep
+from app.api.dependencies.patterns import OpeningIndexDep
 from app.api.dependencies.settings import SettingsDep
 from app.api.dependencies.storage import StorageDep
 from app.db.models import Job
@@ -61,6 +62,7 @@ async def create_import(
     session: DbSessionDep,
     settings: SettingsDep,
     storage: StorageDep,
+    opening_index: OpeningIndexDep,
     pgn_text: str | None = Form(default=None),
     files: list[UploadFile] = File(default=[]),
 ) -> JobSummary:
@@ -97,7 +99,11 @@ async def create_import(
     service = ImportService(session, storage)
     try:
         result = await service.ingest(
-            current.profile.id, sources, max_games=settings.ingestion.max_games_per_import
+            current.profile.id,
+            sources,
+            max_games=settings.ingestion.max_games_per_import,
+            opening_index=opening_index,
+            pattern_settings=settings.patterns,
         )
     except TooManyGamesError as exc:
         raise HTTPException(

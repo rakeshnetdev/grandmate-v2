@@ -17,6 +17,12 @@ the owner, `ingest()` only creates a pending `ENGINE_ANALYSIS` job per successfu
 canonicalized game. The caller (the route) is responsible for dispatching
 `domain.analysis.run_pending_analysis_jobs` as a background task after the response is
 sent; this module only ever creates the job rows.
+
+Phase 6's opening lookup *does* join this request, unlike engine analysis: it is a hash
+lookup over already-computed EPDs (`GameMove.epd_after`), not a slow external call, so
+there is nothing to gain from deferring it — see `app/db/models/patterns.py` for the
+full reasoning on why opening detection and tactical/strategic detection have different
+trigger points.
 """
 
 from __future__ import annotations
@@ -27,10 +33,12 @@ from dataclasses import dataclass, field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import PatternSettings
 from app.db.base import utc_now
 from app.db.models import Game, GameSource, Job, JobKind, JobStatus
 from app.domain.games import GameParsingService
 from app.domain.imports.parsing import ParsedGame, RejectedGame, RejectionReason, parse_pgn_text
+from app.domain.patterns import OpeningIndex, PatternDetectionService
 from app.integrations.storage import StorageBackend
 
 
@@ -81,13 +89,24 @@ class ImportService:
         self._game_parser = GameParsingService(session, storage)
 
     async def ingest(
-        self, profile_id: uuid.UUID, sources: list[SourceText], *, max_games: int
+        self,
+        profile_id: uuid.UUID,
+        sources: list[SourceText],
+        *,
+        max_games: int,
+        opening_index: OpeningIndex,
+        pattern_settings: PatternSettings,
     ) -> ImportResult:
         """Parse and persist every game across ``sources`` for ``profile_id``.
 
         Raises :class:`TooManyGamesError` before writing anything if the combined game
         count exceeds ``max_games`` — the caller maps that to a 422.
+
+        ``opening_index``/``pattern_settings`` are call-time parameters, not constructor
+        state, same reasoning as ``max_games``: they belong to *this operation*, not to
+        every use of this service — ``get_job``/``list_jobs`` have no need of them.
         """
+        pattern_service = PatternDetectionService(self._session, pattern_settings)
         job = Job(kind=JobKind.PGN_IMPORT, profile_id=profile_id, status=JobStatus.PROCESSING)
         self._session.add(job)
         await self._session.flush()
@@ -164,6 +183,13 @@ class ImportService:
                 imported += 1
 
                 if game.canonicalized_at is not None:
+                    # Opening lookup (Phase 6) also stays inline — a hash lookup over
+                    # EPDs already produced by canonicalization, not a slow external
+                    # call, so there is no reason to defer it the way engine analysis is
+                    # deferred below. No opening match is not an error; most positions
+                    # in most games are outside any named opening line.
+                    await pattern_service.detect_opening(game, opening_index)
+
                     # Engine analysis (Phase 5) does NOT join canonicalization inline —
                     # benchmarked far too slow for a synchronous request. Queue it; the
                     # route dispatches domain.analysis.run_pending_analysis_jobs as a

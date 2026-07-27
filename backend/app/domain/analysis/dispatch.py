@@ -10,6 +10,13 @@ Concurrency is bounded per `ENGINE_MAX_CONCURRENT_GAMES` — confirmed with the 
 benchmarking real per-game analysis time (~7s sequential on this machine). One Stockfish
 process per concurrently-running game; `ENGINE_THREADS` stays 1 for determinism, per
 `EngineSettings`.
+
+Phase 6 addition: once `AnalysisService.analyze_game` succeeds, `_process_one_job` also
+runs `PatternDetectionService.detect_patterns` over the resulting `GameAnalysis` before
+marking the job `DONE` — motif/theme detection needs a completed analysis run to exist
+(`app/db/models/patterns.py`), and is pure computation over already-fetched data rather
+than another slow external call, so it rides along here instead of getting its own job
+kind and its own bounded-concurrency dispatcher.
 """
 
 from __future__ import annotations
@@ -26,6 +33,7 @@ from app.db.base import utc_now
 from app.db.models import Job, JobStatus
 from app.db.session import session_scope
 from app.domain.analysis.service import AnalysisService
+from app.domain.patterns import PatternDetectionService
 from app.integrations.engine import EngineAdapter, EngineError, build_engine
 
 logger = get_logger(__name__)
@@ -76,7 +84,7 @@ async def _process_one_job(
     try:
         await engine.start()
         service = AnalysisService(session, engine, settings.engine)
-        await service.analyze_game(job.game_id)
+        analysis = await service.analyze_game(job.game_id)
     except EngineError as exc:
         job.status = JobStatus.FAILED
         job.error = {"reason": "engine_error", "detail": str(exc)}
@@ -93,6 +101,16 @@ async def _process_one_job(
         return
     finally:
         await engine.quit()
+
+    try:
+        # Phase 6: tactical/strategic findings ride on this analysis run rather than
+        # getting a job kind of their own — see PatternDetectionService's docstring.
+        # Deliberately broad except: this is enrichment on top of an already-successful
+        # GameAnalysis, so a bug in a detector must not turn a good analysis run into a
+        # FAILED job and discard it.
+        await PatternDetectionService(session, settings.patterns).detect_patterns(analysis)
+    except Exception as exc:
+        logger.warning("pattern_detection_failed", job_id=str(job_id), reason=str(exc))
 
     job.status = JobStatus.DONE
     job.completed_at = utc_now()

@@ -12,13 +12,16 @@ from __future__ import annotations
 import enum
 import uuid
 from datetime import datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, PrimaryKeyConstraint, String
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin, pg_enum
+
+if TYPE_CHECKING:
+    from app.db.models.patterns import MotifFinding, StrategicThemeFinding
 
 
 class MoveClassification(enum.StrEnum):
@@ -48,6 +51,14 @@ class GameAnalysis(Base, UUIDPrimaryKeyMixin, TimestampMixin):
 
     evaluations: Mapped[list[MoveEvaluation]] = relationship(
         back_populates="analysis", cascade="all, delete-orphan", order_by="MoveEvaluation.ply"
+    )
+    # Phase 6: tactical/strategic findings ride on this analysis run — see
+    # app/db/models/patterns.py for why they key off game_analysis_id rather than game_id.
+    motif_findings: Mapped[list[MotifFinding]] = relationship(
+        cascade="all, delete-orphan", order_by="MotifFinding.ply"
+    )
+    theme_findings: Mapped[list[StrategicThemeFinding]] = relationship(
+        cascade="all, delete-orphan", order_by="StrategicThemeFinding.ply"
     )
 
 
