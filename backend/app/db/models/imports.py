@@ -28,6 +28,7 @@ class JobKind(enum.StrEnum):
     """What a job does. Extended as later phases add their own long-running work."""
 
     PGN_IMPORT = "pgn_import"
+    ENGINE_ANALYSIS = "engine_analysis"
 
 
 class JobStatus(enum.StrEnum):
@@ -63,8 +64,17 @@ class Job(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     # that don't fail the whole job live in `progress`, not here.
     error: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Phase 5 addition: which game an ENGINE_ANALYSIS job targets. Null for PGN_IMPORT jobs
+    # (those cover many games, tracked the other way via Game.job_id). CASCADE, not
+    # SET NULL like Game.job_id — an analysis job has no meaning once its game is gone,
+    # where a game outlives the import job that created it.
+    game_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("games.id", ondelete="CASCADE"), nullable=True, index=True
+    )
 
-    games: Mapped[list[Game]] = relationship(back_populates="job")
+    # `foreign_keys` disambiguates: two FKs now connect jobs and games
+    # (games.job_id -> jobs.id for imports, jobs.game_id -> games.id for analysis).
+    games: Mapped[list[Game]] = relationship(back_populates="job", foreign_keys="Game.job_id")
 
 
 __all__ = ["Job", "JobKind", "JobStatus"]

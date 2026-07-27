@@ -52,6 +52,8 @@ EXPECTED_TABLES = {
     "jobs",
     "games",
     "game_moves",
+    "game_analysis",
+    "move_evaluations",
 }
 
 EXPECTED_ENUMS = {
@@ -64,6 +66,7 @@ EXPECTED_ENUMS = {
     "job_kind",
     "job_status",
     "game_color",
+    "move_classification",
 }
 
 

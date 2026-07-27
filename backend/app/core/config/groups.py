@@ -164,6 +164,13 @@ class EngineSettings(BaseSettings):
     reproducible across runs because thread scheduling perturbs the search, and Phase 5
     requires identical classifications on repeated runs. Throughput comes from analysing
     several games in parallel workers, not several threads per position.
+
+    That reproducibility guarantee is between independent, freshly-started engine
+    processes — which is what every analysis job actually gets (`dispatch.py` starts one
+    engine per job). It does **not** extend to re-querying the identical position twice
+    on one already-warm engine: the hash table carries state between calls, and a repeat
+    query can return a slightly different eval/PV as a result. Verified in
+    `tests/test_engine_stockfish.py`.
     """
 
     model_config = _BASE_CONFIG
@@ -174,6 +181,10 @@ class EngineSettings(BaseSettings):
     engine_threads: int = 1
     engine_hash_mb: int = 128
     engine_timeout_s: int = 30
+    # How many games' analysis jobs run at once in the background. Parallelism lives here,
+    # one Stockfish process per game, rather than in engine_threads — see the class
+    # docstring for why.
+    engine_max_concurrent_games: int = 4
 
     inaccuracy_cp: int = 50
     mistake_cp: int = 100

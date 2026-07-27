@@ -86,7 +86,9 @@ class Game(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     # the taxonomy. Null while canonicalization hasn't run or has succeeded.
     parse_error: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
 
-    job: Mapped[Job | None] = relationship(back_populates="games")
+    # `foreign_keys` disambiguates: two FKs now connect jobs and games (this one,
+    # games.job_id -> jobs.id, plus jobs.game_id -> games.id for Phase 5 analysis jobs).
+    job: Mapped[Job | None] = relationship(back_populates="games", foreign_keys=[job_id])
     moves: Mapped[list[GameMove]] = relationship(
         back_populates="game", cascade="all, delete-orphan", order_by="GameMove.ply"
     )

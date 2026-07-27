@@ -61,6 +61,7 @@ there is no client id, redirect URI, or scope list to configure yet.
 | `ENGINE_THREADS` | `1` | Determinism requires pinning this |
 | `ENGINE_HASH_MB` | `128` | |
 | `ENGINE_TIMEOUT_S` | `30` | Per position |
+| `ENGINE_MAX_CONCURRENT_GAMES` | `4` | Background analysis jobs run at once (Phase 5) |
 | `INACCURACY_CP` | `50` | |
 | `MISTAKE_CP` | `100` | |
 | `BLUNDER_CP` | `300` | |
@@ -68,6 +69,10 @@ there is no client id, redirect URI, or scope list to configure yet.
 
 `ENGINE_THREADS=1` is not arbitrary. Multi-threaded Stockfish is non-deterministic across
 runs, and the Phase 5 exit criteria require reproducible classifications.
+`ENGINE_MAX_CONCURRENT_GAMES` is where parallelism lives instead: several single-threaded
+Stockfish processes running different games at once, confirmed with the owner in Phase 5
+after benchmarking real per-game analysis time (~7s sequential per game at this machine's
+speed).
 
 ### LLM
 | Key | Default | Notes |
