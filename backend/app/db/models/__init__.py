@@ -21,6 +21,13 @@ from app.db.models.identity import (
     UserIdentity,
 )
 from app.db.models.imports import Job, JobKind, JobStatus
+from app.db.models.patterns import (
+    MotifFinding,
+    MotifType,
+    OpeningMatch,
+    StrategicThemeFinding,
+    StrategicThemeType,
+)
 
 __all__ = [
     "AuditAction",
@@ -34,14 +41,19 @@ __all__ = [
     "Job",
     "JobKind",
     "JobStatus",
+    "MotifFinding",
+    "MotifType",
     "MoveClassification",
     "MoveEvaluation",
+    "OpeningMatch",
     "Persona",
     "Profile",
     "ProfileKind",
     "ProfileRelationship",
     "ProfileSource",
     "RelationshipRole",
+    "StrategicThemeFinding",
+    "StrategicThemeType",
     "User",
     "UserIdentity",
 ]

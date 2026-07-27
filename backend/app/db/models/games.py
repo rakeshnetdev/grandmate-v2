@@ -31,6 +31,7 @@ from app.db.models.identity import GameSource
 
 if TYPE_CHECKING:
     from app.db.models.imports import Job
+    from app.db.models.patterns import OpeningMatch
 
 
 class GameColor(enum.StrEnum):
@@ -92,6 +93,10 @@ class Game(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     moves: Mapped[list[GameMove]] = relationship(
         back_populates="game", cascade="all, delete-orphan", order_by="GameMove.ply"
     )
+    # Phase 6: at most one opening match per game, computed inline at canonicalization —
+    # see app/db/models/patterns.py for why this keys off game_id rather than
+    # game_analysis_id like the tactics/strategy findings.
+    opening: Mapped[OpeningMatch | None] = relationship(cascade="all, delete-orphan", uselist=False)
 
 
 class GameMove(Base):

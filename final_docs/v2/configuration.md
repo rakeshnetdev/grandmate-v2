@@ -74,6 +74,26 @@ Stockfish processes running different games at once, confirmed with the owner in
 after benchmarking real per-game analysis time (~7s sequential per game at this machine's
 speed).
 
+### Pattern intelligence (Phase 6)
+| Key | Default | Notes |
+|-----|---------|-------|
+| `OPENINGS_DATA_DIR` | `data/openings/dist` | Directory holding `all.tsv`, the vendored, cross-volume-deduplicated Lichess dataset, EPD-keyed (D-011, ADR-0009) |
+| `MOTIF_HANGING_PIECE_MIN_VALUE_CP` | `300` | Below this, a hanging piece is common/intentional (e.g. a pawn) and not flagged |
+| `MOTIF_FORK_MIN_TARGET_VALUE_CP` | `300` | Minimum value of a forked piece to count as a target |
+| `THEME_OPENING_PHASE_PLY_CUTOFF` | `20` | Where "the opening" ends, for development-lag purposes |
+| `THEME_BAD_BISHOP_MIN_FIXED_PAWNS` | `3` | Own fixed pawns on the bishop's colour needed to call it "bad" |
+| `THEME_PASSED_PAWN_PERSIST_PLIES` | `4` | A passed pawn must survive this long to count as "created" |
+| `THEME_PIECE_ACTIVITY_WINDOW_PLIES` | `10` | Averaging window for the mobility-differential theme |
+| `THEME_SPACE_ADVANTAGE_MIN_RANK_DIFFERENTIAL` | `2` | Minimum sustained advancement differential |
+| `THEME_TIME_TROUBLE_CLOCK_MS_THRESHOLD` | `30000` | Clock remaining under which a position is "time trouble" |
+| `THEME_TIME_TROUBLE_ACCURACY_DROP_PCT` | `20.0` | Accuracy drop, time-trouble phase vs. rest of game, to call it a "collapse" |
+| `PATTERN_MIN_CONFIDENCE_TO_PERSIST` | `0.0` | Findings below this confidence are computed but not stored |
+
+Piece values used for material comparisons (pawn/knight/bishop/rook/queen) are **not**
+configuration — they are standard chess facts, not a product policy, and live as a
+documented constant in `domain/patterns`. Rule 11 targets policy thresholds ("how much is
+enough to flag"), not universal domain facts.
+
 ### LLM
 | Key | Default | Notes |
 |-----|---------|-------|

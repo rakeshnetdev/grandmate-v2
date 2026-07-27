@@ -26,6 +26,7 @@ from app.core.config.groups import (
     IdentitySettings,
     IngestionSettings,
     LLMSettings,
+    PatternSettings,
     RetrievalSettings,
     StorageSettings,
 )
@@ -44,6 +45,7 @@ class Settings(BaseModel):
     storage: StorageSettings = Field(default_factory=StorageSettings)
     identity: IdentitySettings = Field(default_factory=IdentitySettings)
     engine: EngineSettings = Field(default_factory=EngineSettings)
+    patterns: PatternSettings = Field(default_factory=PatternSettings)
     llm: LLMSettings = Field(default_factory=LLMSettings)
     retrieval: RetrievalSettings = Field(default_factory=RetrievalSettings)
     agents: AgentSettings = Field(default_factory=AgentSettings)

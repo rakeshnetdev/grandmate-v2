@@ -20,6 +20,7 @@ from app.core.config import Settings, get_settings
 from app.core.devinsight import TraceStore
 from app.core.logging import configure_logging, get_logger
 from app.db.session import create_engine, create_session_factory
+from app.domain.patterns import load_opening_index
 from app.integrations.storage import build_storage
 
 logger = get_logger(__name__)
@@ -49,6 +50,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.db_engine = engine
     app.state.db_session_factory = create_session_factory(engine)
     app.state.storage = build_storage(settings.storage)
+    # Parsed once at startup, not per request — see OpeningIndexDep's docstring. A
+    # missing/malformed vendored dataset fails startup loudly (OpeningDatasetError),
+    # same "fail fast, not on first request" principle as the production config check
+    # above, just unconditional since this data is required in every environment.
+    app.state.opening_index = load_opening_index(settings.patterns)
 
     logger.info(
         "application_started",
@@ -57,6 +63,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         engine_depth=settings.engine.engine_depth,
         llm_model=settings.llm.llm_model,
         dev_insight=settings.dev_insight_active,
+        opening_index_size=len(app.state.opening_index),
     )
     yield
     await engine.dispose()

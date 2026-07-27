@@ -17,6 +17,12 @@ htmlcov/
 *.egg-info/
 dist/
 build/
+# Exception: dist/ above is meant for Python package build output, but it also matches
+# backend/data/openings/dist/ — the *committed*, vendored-and-regenerated Lichess opening
+# TSVs that domain/patterns actually loads at runtime (see PROVENANCE.md). Not a build
+# artifact; must stay tracked.
+!backend/data/openings/dist/
+!backend/data/openings/dist/*.tsv
 
 # Node
 node_modules/

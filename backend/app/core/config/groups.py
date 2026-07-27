@@ -288,6 +288,57 @@ class DevInsightSettings(BaseSettings):
     dev_insight_max_spans_per_trace: int = 200
 
 
+class PatternSettings(BaseSettings):
+    """Opening lookup and tactical/strategic detector policy (Phase 6, D-011/D-012, ADR-0009).
+
+    Thresholds here are the difference between "flag it" and "stay quiet" for a detector,
+    which is exactly the kind of policy call rule 11 requires in configuration rather than
+    as a literal buried in a detector module. Piece values (pawn/knight/bishop/rook/queen)
+    are *not* here — those are standard chess facts, not a product policy, and live as a
+    documented constant in ``domain/patterns``.
+    """
+
+    model_config = _BASE_CONFIG
+
+    # Resolved relative to BACKEND_ROOT by the opening-index loader, so `uv run` from any
+    # directory finds the vendored dataset the same way `.env` itself is resolved. The
+    # loader reads "<dir>/all.tsv" specifically — see data/openings/PROVENANCE.md for why
+    # that file, not the five per-ECO-volume ones alongside it, is the validated source.
+    openings_data_dir: str = "data/openings/dist"
+
+    # Motifs: a hanging piece or fork target below this value is real but rarely
+    # coaching-worthy (a hanging pawn is common and often intentional). 300cp is a
+    # minor piece — the smallest target worth flagging by default.
+    motif_hanging_piece_min_value_cp: int = 300
+    motif_fork_min_target_value_cp: int = 300
+
+    # Strategic themes, each a span-of-plies judgement call rather than a single-position
+    # fact, so each gets its own explicit cutoff:
+    # "Past the opening" for development-lag purposes. 20 plies = 10 full moves.
+    theme_opening_phase_ply_cutoff: int = 20
+    # A bishop needs at least this many of its own fixed pawns on its colour to be "bad".
+    theme_bad_bishop_min_fixed_pawns: int = 3
+    # A passed pawn must survive this many plies to count as "created" rather than a
+    # one-move blip immediately traded off.
+    theme_passed_pawn_persist_plies: int = 4
+    # Window for averaging mobility differential — one ply's activity swing is noise, a
+    # sustained one across this many plies is a pattern.
+    theme_piece_activity_window_plies: int = 10
+    # Minimum sustained rank advancement differential to call it a space advantage.
+    theme_space_advantage_min_rank_differential: int = 2
+    # Clock remaining (ms) below which a position counts as "time trouble".
+    theme_time_trouble_clock_ms_threshold: int = 30_000
+    # Accuracy-percentage-point drop, time-trouble phase vs. the rest of the game, to call
+    # it a "collapse" rather than ordinary variance.
+    theme_time_trouble_accuracy_drop_pct: float = 20.0
+
+    # Findings below this confidence are still computed (visible to evaluation/review) but
+    # not persisted to the findings tables — a floor against flooding coaching output with
+    # noise, same principle as D-013's memory-write confidence floor. 0.0 stores everything;
+    # raise once real precision/recall data justifies it.
+    pattern_min_confidence_to_persist: float = 0.0
+
+
 class EvaluationSettings(BaseSettings):
     """RAGAS thresholds and the score-ledger location (see evaluation-strategy.md)."""
 
@@ -310,6 +361,7 @@ __all__ = [
     "IdentitySettings",
     "IngestionSettings",
     "LLMSettings",
+    "PatternSettings",
     "RetrievalSettings",
     "StorageSettings",
 ]

@@ -11,6 +11,7 @@ from app.core.config.groups import (
     IdentitySettings,
     IngestionSettings,
     LLMSettings,
+    PatternSettings,
     RetrievalSettings,
     StorageSettings,
 )
@@ -27,6 +28,7 @@ __all__ = [
     "IdentitySettings",
     "IngestionSettings",
     "LLMSettings",
+    "PatternSettings",
     "RetrievalSettings",
     "Settings",
     "StorageSettings",

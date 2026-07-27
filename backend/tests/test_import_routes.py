@@ -28,6 +28,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.dependencies.db import get_db_session
 from app.api.dependencies.storage import get_storage
 from app.core.config import Settings
+from app.domain.patterns import load_opening_index
 from app.integrations.platforms import PlatformClient, PlatformUser
 from app.integrations.storage import LocalStorage
 from app.main import create_app
@@ -84,6 +85,10 @@ async def import_client(
     # reads it to pass to the (stubbed, see above) analysis dispatcher — never actually
     # used to open a connection here, since the stub ignores it.
     app.state.db_session_factory = None
+    # Also normally set by the lifespan (Phase 6). Real here, not stubbed — opening
+    # lookup runs inline in `ImportService.ingest`, not through a dispatcher these tests
+    # stub out, so the route genuinely needs a working index to exercise the real path.
+    app.state.opening_index = load_opening_index(import_settings.patterns)
 
     async def _override_db_session() -> AsyncIterator[AsyncSession]:
         yield db_session

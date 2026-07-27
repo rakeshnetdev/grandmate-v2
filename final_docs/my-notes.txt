@@ -19,4 +19,5 @@ Phase 2:
 
  This project is agentic RAG along with it should use concepts like (RAG, multi-RAG, MCP, evals, synthetic dataset/goldensset, finetuning, agents, mult-agents,langgraph..etc)
 
- 
+ 1. Q-1 — you wrote "gpt-40-min"; I implemented gpt-4o-mini. Confirm? ok, that was sspelling mistake
+2. Q-4 — a value for LLM_DAILY_TOKEN_CEILING. Currently blank, meaning no ceiling. that should be ok. do we know how many tokens are we using pre request? Have a proper logging to view in developer_insight (to track logs, agent calls, workflow navigations, it was implemented in my sibling project. Be careful anything doing to track should not introduce latency or)
