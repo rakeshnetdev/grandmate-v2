@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
-from app.api.routes import analysis, auth, dev, health, imports, patterns
+from app.api.routes import analysis, auth, dev, games, health, imports, patterns
 
 API_V1_PREFIX = "/api/v1"
 
@@ -35,6 +35,7 @@ def build_v1_router(*, include_dev_routes: bool = False) -> APIRouter:
     router = APIRouter(prefix=API_V1_PREFIX)
     router.include_router(auth.router)
     router.include_router(imports.router)
+    router.include_router(games.router)
     router.include_router(analysis.router)
     router.include_router(patterns.router)
 

@@ -53,6 +53,23 @@ export function HomePage() {
             </p>
           </CardContent>
         </Card>
+
+        {user && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Your games</CardTitle>
+              <CardDescription>Engine analysis, opening, and tactical findings</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                <Link to="/games" className="font-medium text-primary underline">
+                  See analysis for a game you've imported
+                </Link>
+                .
+              </p>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );

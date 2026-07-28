@@ -8,6 +8,8 @@
 import { createBrowserRouter } from 'react-router-dom';
 
 import { RootLayout } from '@/app/layouts/RootLayout';
+import { GameDetailPage } from '@/pages/GameDetailPage';
+import { GamesPage } from '@/pages/GamesPage';
 import { HomePage } from '@/pages/HomePage';
 import { ImportsPage } from '@/pages/ImportsPage';
 import { LoginPage } from '@/pages/LoginPage';
@@ -21,6 +23,8 @@ export const routes = [
       { index: true, element: <HomePage /> },
       { path: 'login', element: <LoginPage /> },
       { path: 'imports', element: <ImportsPage /> },
+      { path: 'games', element: <GamesPage /> },
+      { path: 'games/:gameId', element: <GameDetailPage /> },
       // Phase 9:  { path: 'players/:profileId', element: <PlayerPage /> }
       { path: '*', element: <NotFoundPage /> },
     ],

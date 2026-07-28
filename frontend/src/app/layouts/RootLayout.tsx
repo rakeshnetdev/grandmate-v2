@@ -17,6 +17,12 @@ export function RootLayout() {
             GrandMate
           </Link>
           <nav className="flex items-center gap-4 text-sm text-muted-foreground">
+            <Link to="/imports" className="hover:text-foreground">
+              Import
+            </Link>
+            <Link to="/games" className="hover:text-foreground">
+              Games
+            </Link>
             <UserMenu />
           </nav>
         </div>
