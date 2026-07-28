@@ -8,6 +8,7 @@ from app.domain.games.parsing import (
     CanonicalMove,
     canonicalize_pgn,
 )
+from app.domain.games.queries import get_game, list_games
 from app.domain.games.service import GameParsingService
 
 __all__ = [
@@ -18,5 +19,7 @@ __all__ = [
     "FocusResolution",
     "GameParsingService",
     "canonicalize_pgn",
+    "get_game",
+    "list_games",
     "resolve_focus",
 ]

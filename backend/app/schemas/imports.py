@@ -37,13 +37,4 @@ class JobSummary(BaseModel):
     completed_at: datetime | None
 
 
-class GameSummary(BaseModel):
-    id: uuid.UUID
-    source: str
-    content_hash: str
-    headers: dict[str, str]
-    played_at: datetime | None
-    created_at: datetime
-
-
-__all__ = ["GameSummary", "JobProgress", "JobSummary", "RejectedGameSummary"]
+__all__ = ["JobProgress", "JobSummary", "RejectedGameSummary"]
