@@ -85,18 +85,48 @@ export type GamePatterns = z.infer<typeof gamePatternsSchema>;
 
 const gameListSchema = z.array(gameSummarySchema);
 
-export function fetchGames(signal?: AbortSignal): Promise<GameSummary[]> {
-  return apiClient.get('/api/v1/games', gameListSchema, signal);
+/** Appends `?profile_id=` when viewing a profile other than the caller's own SELF
+ * profile (Phase 8b) — `undefined` means "use the server's default", not "no profile". */
+function withProfileParam(path: string, profileId: string | undefined): string {
+  return profileId ? `${path}?profile_id=${profileId}` : path;
 }
 
-export function fetchGame(gameId: string, signal?: AbortSignal): Promise<GameSummary> {
-  return apiClient.get(`/api/v1/games/${gameId}`, gameSummarySchema, signal);
+export function fetchGames(profileId?: string, signal?: AbortSignal): Promise<GameSummary[]> {
+  return apiClient.get(withProfileParam('/api/v1/games', profileId), gameListSchema, signal);
 }
 
-export function fetchGameAnalysis(gameId: string, signal?: AbortSignal): Promise<GameAnalysis> {
-  return apiClient.get(`/api/v1/analysis/games/${gameId}`, gameAnalysisSchema, signal);
+export function fetchGame(
+  gameId: string,
+  profileId?: string,
+  signal?: AbortSignal,
+): Promise<GameSummary> {
+  return apiClient.get(
+    withProfileParam(`/api/v1/games/${gameId}`, profileId),
+    gameSummarySchema,
+    signal,
+  );
 }
 
-export function fetchGamePatterns(gameId: string, signal?: AbortSignal): Promise<GamePatterns> {
-  return apiClient.get(`/api/v1/patterns/games/${gameId}`, gamePatternsSchema, signal);
+export function fetchGameAnalysis(
+  gameId: string,
+  profileId?: string,
+  signal?: AbortSignal,
+): Promise<GameAnalysis> {
+  return apiClient.get(
+    withProfileParam(`/api/v1/analysis/games/${gameId}`, profileId),
+    gameAnalysisSchema,
+    signal,
+  );
+}
+
+export function fetchGamePatterns(
+  gameId: string,
+  profileId?: string,
+  signal?: AbortSignal,
+): Promise<GamePatterns> {
+  return apiClient.get(
+    withProfileParam(`/api/v1/patterns/games/${gameId}`, profileId),
+    gamePatternsSchema,
+    signal,
+  );
 }

@@ -993,6 +993,7 @@ Move from per-game insight to player development insight.
 
 ### Deliverables
 - last N game windows (10 / 30 / 60)
+- Start with 10 games to decrease the complexity
 - recurring weakness detection
 - opening-family performance summaries
 - tactical and strategic trend reports
@@ -1018,6 +1019,48 @@ Move from per-game insight to player development insight.
 
 ### Exit criteria
 - profile analytics stable and explainable
+- sign-off required
+
+---
+
+## Phase 8b — Private Study Profiles for Unowned PGNs (new)
+
+Checkpoint added during Phase 8 testing, not in the original plan: importing arbitrary
+PGNs (games the logged-in user isn't part of, or games loaded purely to learn from) into
+the same profile as the user's own games silently corrupted that profile's Phase 8
+metrics. See D-021 and ADR-0016.
+
+### Goal
+Own games and studied-but-unowned games never mix in the same aggregate metrics, without
+requiring a manual "which dashboard is this for" choice at upload time.
+
+### Deliverables
+- a second, always-present profile per account (`kind = opponent`, "Study games"),
+  created alongside `SELF` at first login
+- automatic, per-game import routing: a parsed game's header names are checked against
+  the account's linked platform username(s) before persisting; a match routes to `SELF`,
+  no match routes to the study profile — a single batch may split across both
+- `GET /api/v1/profiles` — list the caller's own profiles
+- `profile_id` query param (ownership-checked) on `games`, `analysis`, `patterns`, and
+  `analytics` routes, defaulting to `SELF`
+- a profile toggle ("My games" / "Study games") on the games list and dashboard pages
+- the study profile runs the full Phase 5–8 pipeline — not a restricted view (D-021)
+
+### Tasks
+- move Phase 4's header-matching check earlier so it can pick an import target, not just
+  resolve `focus_color` after the fact
+- lazy/eager study-profile creation in `AuthService`
+- ownership-scoped profile resolution added to existing routes
+- frontend profile toggle, reused by the games list, game detail, and dashboard pages
+
+### Testing
+- import routing: own-username match vs. no match, within a single mixed batch
+- cross-profile isolation: a study-profile game never appears in `SELF`'s aggregates or
+  vice versa
+- ownership check: a `profile_id` the caller doesn't own is rejected, not just filtered
+
+### Exit criteria
+- a profile's aggregate metrics only ever reflect games that profile actually owns
 - sign-off required
 
 ---

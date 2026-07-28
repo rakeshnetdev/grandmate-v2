@@ -10,26 +10,11 @@
  * canonical-moves route out of scope. Best-move suggestions are shown in UCI form
  * (`e2e4`) for the same reason.
  */
+import { CLASSIFICATION_CLASS, CLASSIFICATION_LABEL } from '@/shared/lib/classification';
 import { cn } from '@/shared/lib/utils';
 
 import type { GameAnalysis, GamePatterns, MoveEvaluation } from '../api/games';
 import { useGame, useGameAnalysis, useGamePatterns } from '../hooks/useGames';
-
-const CLASSIFICATION_LABEL: Record<MoveEvaluation['classification'], string> = {
-  best: 'Best',
-  good: 'Good',
-  inaccuracy: 'Inaccuracy',
-  mistake: 'Mistake',
-  blunder: 'Blunder',
-};
-
-const CLASSIFICATION_CLASS: Record<MoveEvaluation['classification'], string> = {
-  best: 'text-green-600 dark:text-green-500',
-  good: 'text-emerald-600 dark:text-emerald-500',
-  inaccuracy: 'text-yellow-600 dark:text-yellow-500',
-  mistake: 'text-orange-600 dark:text-orange-500',
-  blunder: 'text-destructive',
-};
 
 // `ply` is 0-indexed from `canonicalize_pgn` (`enumerate(game.mainline())`), so ply 0 is
 // White's first move, not Black's — see `domain/games/parsing.py`.
@@ -131,12 +116,15 @@ function PatternsSummary({ patterns }: { patterns: GamePatterns }) {
 
 interface GameAnalysisViewProps {
   gameId: string;
+  /** `undefined` means the caller's own SELF profile (Phase 8b) — pass a study
+   * profile's id to view a game imported there instead. */
+  profileId?: string;
 }
 
-export function GameAnalysisView({ gameId }: GameAnalysisViewProps) {
-  const { data: game } = useGame(gameId);
-  const { data: analysis, isLoading: analysisLoading } = useGameAnalysis(gameId);
-  const { data: patterns } = useGamePatterns(gameId, { enabled: Boolean(analysis) });
+export function GameAnalysisView({ gameId, profileId }: GameAnalysisViewProps) {
+  const { data: game } = useGame(gameId, profileId);
+  const { data: analysis, isLoading: analysisLoading } = useGameAnalysis(gameId, profileId);
+  const { data: patterns } = useGamePatterns(gameId, profileId, { enabled: Boolean(analysis) });
 
   if (game && game.canonicalized_at === null) {
     return (

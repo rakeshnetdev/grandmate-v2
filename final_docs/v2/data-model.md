@@ -45,6 +45,15 @@ several profiles, and an observed opponent has a profile but no account.
 
 A user's own profile is created automatically at first login with `kind = 'self'`.
 
+**Phase 8b**: a second profile, `kind = 'opponent'`, `display_name = 'Study games'`, is
+also created automatically at first login — a private, single-account bucket for PGNs
+the user imports but isn't part of (see ADR-0016). This is a different usage of
+`opponent` than the original sketch above ("an observed opponent has a profile but no
+account," implying a profile a coach might view via `profile_relationships`): the study
+profile is never linked via `profile_relationships` and is never visible to anyone but
+its owner. If the two usages become confusing in practice, splitting a distinct `study`
+kind out is an additive migration, not a redesign.
+
 ### `profile_sources`
 Links a profile to platform accounts. A profile may have both.
 

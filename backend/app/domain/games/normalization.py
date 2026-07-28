@@ -57,4 +57,21 @@ def resolve_focus(*, white: str, black: str, linked_usernames: list[str]) -> Foc
     return FocusResolution(focus_color=None, opponent_name=None)
 
 
-__all__ = ["FocusResolution", "resolve_focus"]
+def matches_any_linked_username(*, white: str, black: str, linked_usernames: list[str]) -> bool:
+    """Whether *either* side's name matches one of the linked usernames — used by Phase
+    8b's import routing to decide "is this the account's own game at all", which is a
+    different question from `resolve_focus`'s "which side did they play".
+
+    Deliberately not built on top of `resolve_focus`: that function collapses "no side
+    matched" and "both sides matched" (self-play, or two linked accounts colliding on a
+    generic name) into the same `focus_color=None` result, because for *its* purpose
+    (which side to label) both cases are equally unanswerable. For routing, they are not
+    equivalent — an ambiguous self-play game is still the account's own game and must not
+    be routed to the study profile, while a genuine no-match import (neither side's name
+    means anything to this account) is exactly the case that belongs there.
+    """
+    normalized_links = {_normalize(u) for u in linked_usernames}
+    return _normalize(white) in normalized_links or _normalize(black) in normalized_links
+
+
+__all__ = ["FocusResolution", "matches_any_linked_username", "resolve_focus"]

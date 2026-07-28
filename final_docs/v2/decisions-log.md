@@ -186,6 +186,37 @@ including the deep pass):
   60-game batch's background completion time from ~7 minutes sequential to ~1.75 minutes
   at 4-way concurrency.
 
+### D-020 — Phase 8 aggregation mechanics · Locked
+Three decisions confirmed with the owner before coding:
+
+- **Recurring weakness definition**: a motif/theme that recurs, on the player's own
+  side, at a mistake-or-worse cost where that's checkable, above a configurable
+  occurrence rate (`ANALYTICS_WEAKNESS_MIN_OCCURRENCE_RATE`, default 0.3). Reuses Phase
+  6's existing taxonomy; no new categories invented. Implementation turned up that motif
+  vs. theme "side" polarity is not uniform (most motifs mean the mover benefited, one —
+  `HANGING_PIECE` — means the mover blundered; most themes mean bad-for-that-side, four
+  are achievements) — documented in `domain/analytics/metrics.py` and confirmed correct
+  by live verification, not just unit tests.
+- **Compute trigger**: on demand, recomputed and re-persisted as a new versioned
+  `ProfileAggregateSnapshot` row on every dashboard request, not a background job.
+  Aggregation only reads already-computed per-game data, so this is cheap — same
+  reasoning Phase 3 originally used for inline ingestion.
+- **Small-sample guard**: 5 games minimum (`ANALYTICS_MIN_GAMES_FOR_TREND`) before
+  trends/weaknesses are asserted rather than caveated with `sufficient_sample = false`.
+→ `final_docs/v2/phase-reports/phase-08-multi-game-aggregation.md`
+
+### D-021 — Phase 8b: private study profile for unowned PGNs · Locked
+Every account gets a second, always-present profile (`kind = opponent`, "Study games"),
+created alongside `SELF` at first login. Import routing between the two is automatic and
+per-game: a parsed game's `White`/`Black` headers are checked against the account's
+linked platform username(s) before persisting — a match routes to `SELF`, no match routes
+to the study profile. The study profile runs the full Phase 5–8 pipeline (not a
+restricted per-game-only view) and is never shared — no `profile_relationships` row is
+ever created for it. This narrows, but does not reopen, ADR-0012's deferral of analysing
+arbitrary opponents: that deferral is about cross-*account* viewing exposure, which this
+decision does not create.
+→ ADR-0016
+
 ---
 
 ## Open questions raised back to the owner

@@ -3,6 +3,7 @@
 from app.core.config.groups import (
     DEFAULT_DATABASE_URL,
     AgentSettings,
+    AnalyticsSettings,
     AppSettings,
     DatabaseSettings,
     DevInsightSettings,
@@ -20,6 +21,7 @@ from app.core.config.settings import Settings, get_settings
 __all__ = [
     "DEFAULT_DATABASE_URL",
     "AgentSettings",
+    "AnalyticsSettings",
     "AppSettings",
     "DatabaseSettings",
     "DevInsightSettings",

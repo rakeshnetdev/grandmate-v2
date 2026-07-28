@@ -23,6 +23,9 @@ export function RootLayout() {
             <Link to="/games" className="hover:text-foreground">
               Games
             </Link>
+            <Link to="/dashboard" className="hover:text-foreground">
+              Dashboard
+            </Link>
             <UserMenu />
           </nav>
         </div>
