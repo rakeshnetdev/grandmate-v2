@@ -21,7 +21,7 @@ from app.core.devinsight import TraceStore
 from app.core.logging import configure_logging, get_logger
 from app.db.session import create_engine, create_session_factory
 from app.domain.patterns import load_opening_index
-from app.integrations.llm import build_llm_provider
+from app.integrations.llm import build_embedding_provider, build_llm_provider
 from app.integrations.storage import build_storage
 
 logger = get_logger(__name__)
@@ -61,6 +61,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # completion call, not every route, matching development's permissive posture noted
     # above (see UnconfiguredLLMProvider's own docstring for why this matters).
     app.state.llm_provider = build_llm_provider(settings.llm)
+    # Same reasoning, same stand-in shape, for the embedding provider Phase 10's chat
+    # tools (`search_knowledge`, `search_analysis`) need on every graph invocation.
+    app.state.embedding_provider = build_embedding_provider(settings.llm, settings.retrieval)
 
     logger.info(
         "application_started",
@@ -73,6 +76,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     )
     yield
     await app.state.llm_provider.aclose()
+    await app.state.embedding_provider.aclose()
     await engine.dispose()
     logger.info("application_stopped")
 

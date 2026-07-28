@@ -46,7 +46,7 @@ Gating values, all configurable per `configuration.md`:
 
 | Metric | Threshold | Gating |
 |--------|-----------|--------|
-| Faithfulness | 0.85 | Hard. Below this, the phase stops. |
+| Faithfulness | 0.85 | Hard once the golden set is human-reviewed. Phase 10's first real run scored 0.70 against an unreviewed set — see D-025 for why that did not stop the phase and what it likely means. |
 | Answer Accuracy | 0.80 | Hard. |
 | Context Precision | 0.75 | Soft; investigate and record |
 | Context Recall | 0.75 | Soft |

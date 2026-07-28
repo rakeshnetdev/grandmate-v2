@@ -8,6 +8,7 @@ property, not a preference.
 from __future__ import annotations
 
 from fastapi.testclient import TestClient
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.middleware import TRACE_HEADER
 from app.core.config import Settings
@@ -183,23 +184,59 @@ def test_dev_routes_do_not_leak_between_app_instances() -> None:
     assert prod_client.get("/api/v1/dev/traces").status_code == 404
 
 
-def test_graph_nodes_emit_spans(client: TestClient) -> None:
-    """Instrumentation is written unconditionally at call sites; verify it lands."""
+async def test_graph_nodes_emit_spans(settings: Settings, db_session: AsyncSession) -> None:
+    """Instrumentation is written unconditionally at call sites; verify it lands.
+
+    Phase 10 replaced the Phase 1 skeleton graph with the real chat graph — see
+    `tests/test_chat_graph.py` for chat-behaviour coverage; this test's only concern is
+    that `SpanKind.GRAPH_NODE` spans actually land, same as it always was.
+    """
+    import uuid
+
+    from langgraph.checkpoint.memory import MemorySaver
+
     from app.core.devinsight import TraceRecorder, bind_recorder, reset_recorder
-    from app.orchestration.graphs.skeleton import build_skeleton_graph
+    from app.domain.llm_usage import LLMBudgetTracker
+    from app.domain.patterns import OpeningIndex
+    from app.integrations.llm import build_embedding_provider
+    from app.orchestration.graphs.chat import ChatGraphDeps, build_chat_graph
+    from app.orchestration.tools import ToolContext
+    from tests.fake_llm import FakeLLMProvider
+
+    llm = FakeLLMProvider(
+        responses=[
+            '{"intent": "explain"}',
+            '{"answer": "A test answer.", "citations": []}',
+        ]
+    )
+    deps = ChatGraphDeps(
+        llm=llm,
+        llm_settings=settings.llm,
+        agent_settings=settings.agents,
+        budget=LLMBudgetTracker(db_session, settings.llm),
+        tool_context=ToolContext(
+            session=db_session,
+            profile_id=uuid.uuid4(),
+            settings=settings,
+            embedding_provider=build_embedding_provider(settings.llm, settings.retrieval),
+            opening_index=OpeningIndex({}),
+        ),
+    )
+    graph = build_chat_graph(deps, MemorySaver())
 
     recorder = TraceRecorder("graph-test")
     token = bind_recorder(recorder)
     try:
-        build_skeleton_graph().invoke({"question": "why?", "persona": "coach"})
+        await graph.ainvoke(
+            {"question": "why?", "persona": "coach"},
+            config={"configurable": {"thread_id": "test-thread"}},
+        )
     finally:
         reset_recorder(token)
 
     trace = recorder.finish()
     node_spans = [s for s in trace.spans if s.kind is SpanKind.GRAPH_NODE]
-    assert [s.name for s in node_spans] == [
-        "classify_intent",
-        "gather_context",
-        "compose_answer",
-    ]
+    assert [s.name for s in node_spans] == ["classify_intent"]
+    agent_spans = [s for s in trace.spans if s.kind is SpanKind.AGENT]
+    assert [s.name for s in agent_spans] == ["run_agent"]
     assert trace.status is SpanStatus.OK

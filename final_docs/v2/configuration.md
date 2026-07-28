@@ -141,11 +141,14 @@ Coach has no cap (`persona-matrix.md` states it as unbounded), so there is no
 corresponding setting.
 
 ### Agents
+Declared at Phase 1, enforced starting Phase 10 — the chat agent loop
+(`orchestration/graphs/chat.py`) is the first thing that actually reads these.
+
 | Key | Default | Notes |
 |-----|---------|-------|
-| `AGENT_MAX_STEPS` | `8` | Loop protection |
-| `AGENT_MAX_TOOL_CALLS` | `12` | |
-| `AGENT_TOKEN_BUDGET` | `20000` | Per conversation turn |
+| `AGENT_MAX_STEPS` | `8` | Loop protection — bounds tool-calling iterations plus answer attempts combined, one chat turn |
+| `AGENT_MAX_TOOL_CALLS` | `12` | Per turn; a call past this returns an error result to the model rather than dispatching |
+| `AGENT_TOKEN_BUDGET` | `20000` | Per turn; exceeding it stops the loop and falls back to a deterministic answer, same as exhausting `LLM_DAILY_TOKEN_CEILING` mid-turn |
 
 ### Ingestion
 | Key | Default | Notes |

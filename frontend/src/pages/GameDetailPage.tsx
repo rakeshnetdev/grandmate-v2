@@ -23,6 +23,10 @@ export function GameDetailPage() {
   const white = game?.headers.White ?? '…';
   const black = game?.headers.Black ?? '…';
   const backLink = profileId ? `/games?profile=${profileId}` : '/games';
+  const chatParams = new URLSearchParams({
+    game: gameId,
+    ...(profileId && { profile: profileId }),
+  });
 
   return (
     <div className="space-y-6">
@@ -42,6 +46,13 @@ export function GameDetailPage() {
           <GameAnalysisView gameId={gameId} profileId={profileId} />
         </CardContent>
       </Card>
+
+      <Link
+        to={`/chat?${chatParams.toString()}`}
+        className="text-sm text-muted-foreground underline"
+      >
+        Ask about this game →
+      </Link>
 
       <Card>
         <CardHeader>

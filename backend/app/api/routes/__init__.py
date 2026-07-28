@@ -14,6 +14,7 @@ from app.api.routes import (
     analysis,
     analytics,
     auth,
+    chat,
     dev,
     games,
     health,
@@ -52,6 +53,7 @@ def build_v1_router(*, include_dev_routes: bool = False) -> APIRouter:
     router.include_router(patterns.router)
     router.include_router(analytics.router)
     router.include_router(reports.router)
+    router.include_router(chat.router)
 
     if include_dev_routes:
         router.include_router(dev.router)

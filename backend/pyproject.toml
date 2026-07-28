@@ -15,6 +15,9 @@ dependencies = [
     # before Phase 10 depends on it.
     "langgraph>=0.2",
     "langchain-core>=0.3",
+    # Postgres-backed checkpointer for Phase 10's chat threads (ADR-0005 short-term
+    # store). Uses psycopg (already a dependency for Alembic), not asyncpg.
+    "langgraph-checkpoint-postgres>=3.1.0",
     # Database. asyncpg for the application, psycopg for Alembic's synchronous
     # migration runner — see DatabaseSettings.sync_url.
     "sqlalchemy[asyncio]>=2.0",
@@ -68,6 +71,13 @@ dev = [
     # this at runtime, not just at import time -- it isn't declared as one of ragas's
     # own dependencies.
     "rapidfuzz>=3.0",
+    # Phase 10's answer-quality harness needs LLM-judged metrics (Faithfulness,
+    # ResponseRelevancy), unlike Phase 7's non-LLM retrieval metrics — ragas's judge/
+    # embeddings wrappers are built around langchain, so this is how our own
+    # `OpenAIChatProvider`/`OpenAIEmbeddingProvider` settings get handed to ragas rather
+    # than duplicating API-key wiring. Already a transitive dependency; declared
+    # directly since the harness imports it, not just something the graph includes.
+    "langchain-openai>=0.2",
 ]
 
 [build-system]

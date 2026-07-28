@@ -13,7 +13,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.db.models import Game, GameAnalysis, Job, JobKind, JobStatus
+from app.db.models import Game, GameAnalysis, GameMove, Job, JobKind, JobStatus
 
 
 async def get_analysis_job(
@@ -70,4 +70,19 @@ async def create_retry_job(
     return job
 
 
-__all__ = ["create_retry_job", "get_analysis_job", "get_latest_analysis"]
+async def get_moves(
+    session: AsyncSession, game_id: uuid.UUID, profile_id: uuid.UUID
+) -> list[GameMove]:
+    """A game's canonical moves, ply-ordered — scoped the same way as
+    `get_latest_analysis` (Phase 10's `get_game_analysis` tool pairs the two to attach
+    SAN move text to each ply's evaluation)."""
+    result = await session.execute(
+        select(GameMove)
+        .join(Game, Game.id == GameMove.game_id)
+        .where(GameMove.game_id == game_id, Game.profile_id == profile_id)
+        .order_by(GameMove.ply)
+    )
+    return list(result.scalars().all())
+
+
+__all__ = ["create_retry_job", "get_analysis_job", "get_latest_analysis", "get_moves"]
