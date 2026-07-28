@@ -29,6 +29,21 @@ dependencies = [
     "python-chess>=1.999",
     # Required by FastAPI/Starlette to parse multipart form + file uploads (imports).
     "python-multipart>=0.0.12",
+    # Retrieval (Phase 7, ADR-0008). openai: embeddings only here — chat completion
+    # lands in Phase 9/10 behind the same LLMProvider protocol. pgvector: SQLAlchemy
+    # Vector column type over the pgvector extension already running in Postgres.
+    # rank-bm25: in-memory sparse retrieval, the simplest option that is fully testable
+    # at MVP corpus scale (see RetrievalSettings/rag-architecture.md for the rationale;
+    # swappable for Postgres full-text search later if the corpus outgrows it).
+    # pypdf: text extraction for the vendored FIDE Laws of Chess PDF (rules bucket).
+    "openai>=1.50",
+    "pgvector>=0.3",
+    "rank-bm25>=0.2",
+    "pypdf>=5.0",
+    # Token counting for chunking (domain/knowledge/chunking.py). Already a transitive
+    # dependency of openai/langchain-openai; declared directly since app code imports
+    # it, not just something the transitive graph happens to include.
+    "tiktoken>=0.7",
 ]
 
 [project.optional-dependencies]
@@ -43,6 +58,16 @@ dev = [
     # Property tests for move-replay consistency (Phase 4), sampled over real corpus games
     # rather than from-scratch legal-game generation, which python-chess has no strategy for.
     "hypothesis>=6.100",
+    # RAGAS retrieval evaluation harness (Phase 7). Dev-only: it drives the evals/
+    # harness and CI checks, never imported from application code.
+    # Pinned below 0.4: ragas 0.4.3 has a broken top-level import
+    # (langchain_community.chat_models.vertexai, removed upstream — ragas issues #2741,
+    # #2745). Revisit the ceiling once ragas ships a fix.
+    "ragas>=0.2,<0.4",
+    # ragas's default non-LLM string-distance measure (NonLLMStringSimilarity) requires
+    # this at runtime, not just at import time -- it isn't declared as one of ragas's
+    # own dependencies.
+    "rapidfuzz>=3.0",
 ]
 
 [build-system]
@@ -90,11 +115,29 @@ ignore = [
 "tests/*" = ["S101"]
 
 [tool.mypy]
-python_version = "3.11"
+# Kept at 3.12, not 3.11 (the project's `requires-python` floor), as of Phase 7: numpy
+# — a transitive dependency of ragas, never imported by `app/` itself — ships bundled
+# stubs using PEP 695 syntax that mypy can only parse at `python_version >= "3.12"`.
+# This governs mypy's parser/stdlib-typeshed target only; Ruff's own `target-version =
+# "py311"` (see `[tool.ruff]`) is what actually guards our source against 3.12+-only
+# syntax that would break on the 3.11 floor, so this bump doesn't weaken that check.
+python_version = "3.12"
 strict = true
 warn_unreachable = true
 plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]
 module = ["langgraph.*", "langchain_core.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = [
+    "langchain.*",
+    "langchain_community.*",
+    "langchain_text_splitters.*",
+    "pandas.*",
+    "ragas.*",
+    "datasets.*",
+    "rank_bm25.*",
+]
 ignore_missing_imports = true

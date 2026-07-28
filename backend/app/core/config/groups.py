@@ -240,6 +240,13 @@ class RetrievalSettings(BaseSettings):
     # sparse scores against each other, which drifts as the corpus grows.
     retrieval_fusion_k: int = 60
     retrieval_min_score: float = 0.0
+    # Resolved relative to BACKEND_ROOT by the knowledge ingestion pipeline, same
+    # convention as PatternSettings.openings_data_dir.
+    corpus_data_dir: str = "data/corpus"
+    # BM25 (Okapi) parameters for the sparse retriever. Standard textbook defaults —
+    # k1 controls term-frequency saturation, b controls length normalisation.
+    retrieval_bm25_k1: float = 1.5
+    retrieval_bm25_b: float = 0.75
 
 
 class AgentSettings(BaseSettings):

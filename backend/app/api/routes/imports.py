@@ -111,8 +111,14 @@ async def create_import(
         ) from exc
 
     if result.analysis_job_ids:
-        # Runs after this response is sent. Its own session, not this request's — the
-        # request's session closes as soon as the response goes out.
+        # Commit explicitly, here, before scheduling the background task. The
+        # background task opens its own session (see dispatch.py) and looks up these
+        # job rows by id — if that lookup can run before this session's write is
+        # durable, it silently finds nothing and no-ops (Phase 5 defect, fixed here).
+        # Relying on DbSessionDep's own post-yield commit was not a strong enough
+        # guarantee of ordering relative to BackgroundTasks; committing here removes
+        # the ambiguity outright.
+        await session.commit()
         background_tasks.add_task(
             run_pending_analysis_jobs,
             result.analysis_job_ids,

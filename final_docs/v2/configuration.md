@@ -115,6 +115,9 @@ enough to flag"), not universal domain facts.
 | `RETRIEVAL_TOP_K` | `8` | |
 | `RETRIEVAL_FUSION_K` | `60` | Reciprocal rank fusion constant |
 | `RETRIEVAL_MIN_SCORE` | `0.0` | |
+| `CORPUS_DATA_DIR` | `data/corpus` | Curated source documents, chunked and embedded at ingestion (Phase 7) |
+| `RETRIEVAL_BM25_K1` | `1.5` | BM25 term-frequency saturation |
+| `RETRIEVAL_BM25_B` | `0.75` | BM25 length normalisation |
 
 ### Agents
 | Key | Default | Notes |

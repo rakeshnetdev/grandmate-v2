@@ -87,6 +87,14 @@ def db_schema() -> Iterator[str]:
 
     engine = create_sync_engine(sync_url, poolclass=NullPool)
 
+    # `create_all` builds tables straight from `Base.metadata`, bypassing Alembic
+    # entirely — so, unlike a real deployment, nothing here has already run the
+    # `CREATE EXTENSION IF NOT EXISTS vector` statement the knowledge-corpus migration
+    # carries (Phase 7). Without it, every `Vector(...)` column fails with
+    # `type "vector" does not exist` the moment `create_all` reaches it.
+    with engine.begin() as connection:
+        connection.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
+
     Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)
 
@@ -116,10 +124,20 @@ async def db_session(db_engine: AsyncEngine) -> AsyncIterator[AsyncSession]:
 
     Each test sees a clean database without paying to recreate the schema, and no test
     can leak rows into another.
+
+    ``join_transaction_mode="create_savepoint"`` matters as of Phase 7: routes that call
+    ``session.commit()`` directly (the fix for the Phase 5 background-job race) would
+    otherwise commit *this* connection's outer transaction the moment a route under test
+    does that — ending the "always rolled back" guarantee mid-test. In savepoint mode, an
+    inner ``session.commit()`` only releases a SAVEPOINT and a new one opens immediately;
+    the outer transaction started by ``connection.begin()`` below is never touched, so
+    rollback at teardown still discards everything regardless of what routes commit.
     """
     async with db_engine.connect() as connection:
         transaction = await connection.begin()
-        session = AsyncSession(bind=connection, expire_on_commit=False)
+        session = AsyncSession(
+            bind=connection, expire_on_commit=False, join_transaction_mode="create_savepoint"
+        )
         try:
             yield session
         finally:
