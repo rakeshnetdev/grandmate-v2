@@ -21,6 +21,7 @@ from app.core.devinsight import TraceStore
 from app.core.logging import configure_logging, get_logger
 from app.db.session import create_engine, create_session_factory
 from app.domain.patterns import load_opening_index
+from app.integrations.llm import build_llm_provider
 from app.integrations.storage import build_storage
 
 logger = get_logger(__name__)
@@ -55,6 +56,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # same "fail fast, not on first request" principle as the production config check
     # above, just unconditional since this data is required in every environment.
     app.state.opening_index = load_opening_index(settings.patterns)
+    # `build_llm_provider` returns a stand-in when OPENAI_API_KEY is blank, so startup
+    # never depends on a key existing — an unconfigured key only fails the first actual
+    # completion call, not every route, matching development's permissive posture noted
+    # above (see UnconfiguredLLMProvider's own docstring for why this matters).
+    app.state.llm_provider = build_llm_provider(settings.llm)
 
     logger.info(
         "application_started",
@@ -66,6 +72,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         opening_index_size=len(app.state.opening_index),
     )
     yield
+    await app.state.llm_provider.aclose()
     await engine.dispose()
     logger.info("application_stopped")
 

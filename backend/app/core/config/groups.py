@@ -384,6 +384,29 @@ class AnalyticsSettings(BaseSettings):
     time_control_rapid_max_s: int = 1500
 
 
+class ReportSettings(BaseSettings):
+    """Persona report generation policy (Phase 9, `persona-matrix.md`).
+
+    Only the *numeric* parts of the matrix live here — how many findings a persona sees,
+    and how confident a finding must be before the kid persona is shown it at all. The
+    qualitative parts (whether centipawn values appear, tone, wording) are the matrix's
+    own structural rules and stay in `domain/reports` code, the same split rule 11 already
+    draws elsewhere (e.g. `PatternSettings`'s thresholds vs. `MotifType`'s fixed taxonomy).
+    Coach has no cap — `persona-matrix.md` states it as "Unbounded" — so there is no
+    setting for it; a settings field with no ceiling to express would be a magic
+    non-value, not configuration.
+    """
+
+    model_config = _BASE_CONFIG
+
+    report_self_learner_max_findings: int = 5
+    report_kid_max_findings: int = 3
+    # Below this confidence, a finding is not merely under-detailed for the kid persona —
+    # per persona-matrix.md's safety rules, it is suppressed entirely. A young player
+    # acting on a false pattern is a real harm, not a cosmetic simplification choice.
+    report_kid_min_confidence_to_show: float = 0.6
+
+
 class EvaluationSettings(BaseSettings):
     """RAGAS thresholds and the score-ledger location (see evaluation-strategy.md)."""
 
@@ -408,6 +431,7 @@ __all__ = [
     "IngestionSettings",
     "LLMSettings",
     "PatternSettings",
+    "ReportSettings",
     "RetrievalSettings",
     "StorageSettings",
 ]

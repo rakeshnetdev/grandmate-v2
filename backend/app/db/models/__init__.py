@@ -28,6 +28,7 @@ from app.db.models.knowledge import (
     KnowledgeChunk,
     KnowledgeDocument,
 )
+from app.db.models.llm_usage import LLMUsageDaily
 from app.db.models.patterns import (
     MotifFinding,
     MotifType,
@@ -35,6 +36,7 @@ from app.db.models.patterns import (
     StrategicThemeFinding,
     StrategicThemeType,
 )
+from app.db.models.reports import GameReport, ReportSource
 
 __all__ = [
     "AnalysisKnowledgeChunk",
@@ -45,6 +47,7 @@ __all__ = [
     "GameAnalysis",
     "GameColor",
     "GameMove",
+    "GameReport",
     "GameSource",
     "Job",
     "JobKind",
@@ -52,6 +55,7 @@ __all__ = [
     "KnowledgeBucket",
     "KnowledgeChunk",
     "KnowledgeDocument",
+    "LLMUsageDaily",
     "MotifFinding",
     "MotifType",
     "MoveClassification",
@@ -64,6 +68,7 @@ __all__ = [
     "ProfileRelationship",
     "ProfileSource",
     "RelationshipRole",
+    "ReportSource",
     "StrategicThemeFinding",
     "StrategicThemeType",
     "User",

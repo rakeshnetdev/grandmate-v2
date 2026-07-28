@@ -20,6 +20,7 @@ from app.api.routes import (
     imports,
     patterns,
     profiles,
+    reports,
 )
 
 API_V1_PREFIX = "/api/v1"
@@ -50,6 +51,7 @@ def build_v1_router(*, include_dev_routes: bool = False) -> APIRouter:
     router.include_router(analysis.router)
     router.include_router(patterns.router)
     router.include_router(analytics.router)
+    router.include_router(reports.router)
 
     if include_dev_routes:
         router.include_router(dev.router)

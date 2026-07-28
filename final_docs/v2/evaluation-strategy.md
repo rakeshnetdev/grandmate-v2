@@ -53,6 +53,7 @@ Gating values, all configurable per `configuration.md`:
 | Illegal move rate | 0.00 | Hard. Any illegal move in a delivered answer is a failure. |
 | Cross-profile leak rate | 0.00 | Hard. Non-negotiable. |
 | Persona fact-set divergence | 0.00 | Hard. |
+| Kid persona safety violation rate | 0.00 | Hard (added at Phase 9 implementation — not in the original plan; persona-matrix.md's kid safety rules had no scored metric until the report-generation critic gave something concrete to score). |
 
 The three zero-tolerance metrics are zero-tolerance for different reasons: illegal moves
 destroy credibility, leaks are a privacy breach, and persona divergence means the core

@@ -23,6 +23,11 @@ from app.db.models import (
     StrategicThemeFinding,
     StrategicThemeType,
 )
+from app.domain.patterns.polarity import (
+    SELF_INFLICTED_MOTIFS,
+    is_players_own_motif,
+    is_players_own_theme,
+)
 
 Outcome = Literal["win", "draw", "loss", "unknown"]
 TimeControlBucket = Literal["bullet", "blitz", "rapid", "classical", "unknown"]
@@ -227,35 +232,6 @@ def time_control_segmentation(
     return sorted(stats, key=lambda s: s.games, reverse=True)
 
 
-# Motifs are always recorded against the *mover's* side (see `MotifFinding`'s docstring
-# and `PatternDetectionService` — `side = board_before.turn` at that ply, for every
-# motif). What that means for the mover differs by motif though: creating a
-# fork/pin/skewer/discovered-attack/etc. is a tactical *win* for the mover, so a finding
-# is "the player's problem" when the *opponent* is the one who has it. HANGING_PIECE is
-# the one exception — it is defined as the mover leaving their own piece hanging, a
-# self-inflicted blunder, so there "the player's problem" means the player *is* the
-# mover. Getting this backwards would silently tell a player their own successful forks
-# are a weakness, or miss that they keep getting forked.
-_SELF_INFLICTED_MOTIFS = frozenset({MotifType.HANGING_PIECE})
-
-# Themes are recorded per side directly from what's true of that side's own position
-# (each detector under domain/patterns/themes/ is called once per side and returns a
-# finding when *that side* has the property). But not every theme is bad news for the
-# side it describes: PASSED_PAWN_CREATION, OPEN_FILE_CONTROL, CENTRE_CONTROL, and
-# SPACE_ADVANTAGE are achievements, not weaknesses. Only these six describe a genuine
-# structural problem for the side they belong to.
-_WEAKNESS_THEMES = frozenset(
-    {
-        StrategicThemeType.WEAK_KING_SAFETY,
-        StrategicThemeType.PAWN_STRUCTURE_DAMAGE,
-        StrategicThemeType.PIECE_ACTIVITY_IMBALANCE,
-        StrategicThemeType.BAD_BISHOP,
-        StrategicThemeType.DEVELOPMENT_LAG,
-        StrategicThemeType.TIME_TROUBLE_COLLAPSE,
-    }
-)
-
-
 @dataclass(frozen=True)
 class WeaknessStats:
     kind: Literal["motif", "theme"]
@@ -288,26 +264,26 @@ def recurring_weaknesses(
     theme_game_counts: Counter[StrategicThemeType] = Counter()
 
     for g in evaluable:
+        # Narrows `GameColor | None` for the type checker — `evaluable`'s own filter
+        # already guarantees this at runtime.
+        assert g.game.focus_color is not None
         focus = g.game.focus_color
         classification_by_ply = {mv.ply: mv.classification.value for mv in g.analysis.evaluations}
 
         motifs_this_game: set[MotifType] = set()
         for finding in g.motifs:
-            if finding.motif in _SELF_INFLICTED_MOTIFS:
-                if finding.side != focus:
-                    continue
-                if classification_by_ply.get(finding.ply) not in _MISTAKE_OR_WORSE:
-                    continue
-            else:
-                if finding.side == focus:
-                    continue
+            if not is_players_own_motif(finding, focus):
+                continue
+            if (
+                finding.motif in SELF_INFLICTED_MOTIFS
+                and classification_by_ply.get(finding.ply) not in _MISTAKE_OR_WORSE
+            ):
+                continue
             motifs_this_game.add(finding.motif)
         motif_game_counts.update(motifs_this_game)
 
         themes_this_game = {
-            finding.theme
-            for finding in g.themes
-            if finding.side == focus and finding.theme in _WEAKNESS_THEMES
+            finding.theme for finding in g.themes if is_players_own_theme(finding, focus)
         }
         theme_game_counts.update(themes_this_game)
 
