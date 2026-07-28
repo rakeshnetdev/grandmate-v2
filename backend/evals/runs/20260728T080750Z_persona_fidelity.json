@@ -1,0 +1,117 @@
+{
+  "dataset_path": "/Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/evals/datasets/golden/persona_fidelity.jsonl",
+  "dataset_version": "v1-2026-07-28",
+  "harness_version": "phase-9-v1",
+  "model": "gpt-4o-mini",
+  "reviewed_scenario_count": 0,
+  "total_scenario_count": 5,
+  "timestamp": "2026-07-28T08:07:50.083396+00:00",
+  "results": {
+    "grounded_rate": 0.8666666666666667,
+    "fact_invariance_rate": 1.0,
+    "kid_safety_rate": 1.0,
+    "n_scenarios": 5
+  },
+  "per_scenario": [
+    {
+      "scenario_id": "clean_game",
+      "personas": {
+        "self_learner": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "coach": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "kid": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": true
+        }
+      }
+    },
+    {
+      "scenario_id": "one_blunder",
+      "personas": {
+        "self_learner": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "coach": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "kid": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": true
+        }
+      }
+    },
+    {
+      "scenario_id": "many_findings",
+      "personas": {
+        "self_learner": {
+          "grounded": false,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "coach": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "kid": {
+          "grounded": false,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": true
+        }
+      }
+    },
+    {
+      "scenario_id": "tactics_low_confidence",
+      "personas": {
+        "self_learner": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "coach": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "kid": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": true
+        }
+      }
+    },
+    {
+      "scenario_id": "no_findings",
+      "personas": {
+        "self_learner": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "coach": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "kid": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": true
+        }
+      }
+    }
+  ]
+}

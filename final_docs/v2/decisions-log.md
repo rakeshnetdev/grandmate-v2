@@ -217,16 +217,56 @@ arbitrary opponents: that deferral is about cross-*account* viewing exposure, wh
 decision does not create.
 → ADR-0016
 
+### D-022 — LLM daily spend ceiling · Locked (Q-4 resolved)
+`LLM_DAILY_TOKEN_CEILING` (blank/uncapped since Phase 1, deferred as Q-4) is enforced
+starting Phase 9, the first phase that makes a real completion spend — embeddings
+(Phase 7) never needed it. Default `500,000` tokens/day, an MVP starting point (worst
+case a few tens of cents/day at `gpt-4o-mini` pricing), not a load-tested production
+figure. Enforcement is a soft-overflow, hard-stop-next guard (`LLMBudgetTracker`): a call
+already in flight is allowed to finish, but the next one is refused before it starts,
+falling back to the deterministic report rather than erroring — see D-023.
+→ `final_docs/v2/phase-reports/phase-09-persona-layer-report-generation.md`
+
+### D-023 — Phase 9 report generation mechanics · Locked
+Three decisions confirmed with the owner before coding:
+
+- **Scope**: per-game reports only. Profile-level (aggregate) persona reports over
+  Phase 8's trend data are not part of this phase — a smaller surface lets the
+  grounding/critic pattern get proven before extending it.
+- **Critic failure handling**: one retry on an ungrounded LLM response, then fall back to
+  a deterministic, facts-only report — never an error surfaced to the reader. The
+  fallback is not a degraded state; `persona-matrix.md`'s invariant ("a persona changes
+  how a finding is said, never whether it is true") holds exactly as well for a plain
+  fact listing as for LLM prose.
+- **Persistence**: reports are stored and versioned (`GameReport`, keyed by
+  `analysis_version`), the same pattern `GameAnalysis` and `ProfileAggregateSnapshot`
+  already use — avoids re-paying LLM cost per view and keeps old reports reproducible.
+
+Live verification against a real `gpt-4o-mini` call confirmed the safety design is not
+theoretical: the kid persona's stricter constraints (no centipawn values, exactly one
+recommendation) were not met on either attempt for a real game, and the system correctly
+fell back to the deterministic summary rather than show an ungrounded report to a child,
+while the self-learner and coach personas produced real, well-grounded LLM prose for the
+same game in the same run.
+→ `final_docs/v2/phase-reports/phase-09-persona-layer-report-generation.md`
+
+### D-024 — Kid persona age bands · Deferred (Q-5 resolved)
+Stays a single kid persona covering the whole "roughly 8-14" range `persona-matrix.md`
+already specifies — matches D-002's locked MVP persona scope (exactly self-learner,
+coach, kid). Splitting into age bands (e.g. 8-10 / 11-14) is real additional scope — new
+matrix rows, prompts, critic rules, tests — deferred until real usage data motivates it,
+not built speculatively now.
+
 ---
 
 ## Open questions raised back to the owner
 
 Recorded here so they are not lost between phases.
 
-| # | Question | Needed by |
-|---|----------|-----------|
-| Q-1 | Confirm `gpt-4o-mini` is the intended model (the request read "gpt-40-min") | Phase 1 |
-| Q-2 | Supabase local project details and service role key | Phase 2 |
-| Q-3 | Should email/password be offered as a fallback login for users with neither platform account? | Phase 2 |
-| Q-4 | Is there a monthly LLM spend ceiling to encode as a hard guardrail? | Phase 1 |
-| Q-5 | Should the kid persona have an age band, which affects reading level targets? | Phase 9 |
+| # | Question | Needed by | Status |
+|---|----------|-----------|--------|
+| Q-1 | Confirm `gpt-4o-mini` is the intended model (the request read "gpt-40-min") | Phase 1 | Resolved — D-001 era, confirmed |
+| Q-2 | Supabase local project details and service role key | Phase 2 | Superseded — ADR-0015, plain Postgres for MVP |
+| Q-3 | Should email/password be offered as a fallback login for users with neither platform account? | Phase 2 | Open |
+| Q-4 | Is there a monthly LLM spend ceiling to encode as a hard guardrail? | Phase 1 | Resolved — D-022 |
+| Q-5 | Should the kid persona have an age band, which affects reading level targets? | Phase 9 | Resolved — D-024, deferred |

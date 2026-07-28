@@ -13,6 +13,7 @@ from app.core.config.groups import (
     IngestionSettings,
     LLMSettings,
     PatternSettings,
+    ReportSettings,
     RetrievalSettings,
     StorageSettings,
 )
@@ -31,6 +32,7 @@ __all__ = [
     "IngestionSettings",
     "LLMSettings",
     "PatternSettings",
+    "ReportSettings",
     "RetrievalSettings",
     "Settings",
     "StorageSettings",

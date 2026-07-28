@@ -103,7 +103,7 @@ enough to flag"), not universal domain facts.
 | `LLM_TEMPERATURE` | `0.2` | Low; this is an explanation system |
 | `LLM_MAX_TOKENS` | `2000` | |
 | `LLM_REQUEST_TIMEOUT_S` | `60` | |
-| `LLM_DAILY_TOKEN_CEILING` | — | Hard guardrail; value pending Q-4 |
+| `LLM_DAILY_TOKEN_CEILING` | `500000` | Hard guardrail (Phase 9, D-022 — Q-4 resolved). Soft-overflow, hard-stop-next: an in-flight call finishes, the next one falls back to the deterministic report instead. Blank = uncapped |
 
 ### Embeddings and retrieval
 | Key | Default | Notes |
@@ -129,6 +129,16 @@ enough to flag"), not universal domain facts.
 | `TIME_CONTROL_BULLET_MAX_S` | `180` | Estimated game duration (`base + 40*increment`) ceiling for the bullet bucket |
 | `TIME_CONTROL_BLITZ_MAX_S` | `480` | Same, blitz |
 | `TIME_CONTROL_RAPID_MAX_S` | `1500` | Same, rapid; above this is classical |
+
+### Persona reports (Phase 9, `persona-matrix.md`)
+| Key | Default | Notes |
+|-----|---------|-------|
+| `REPORT_SELF_LEARNER_MAX_FINDINGS` | `5` | Self-learner persona's finding cap |
+| `REPORT_KID_MAX_FINDINGS` | `3` | Kid persona's finding cap |
+| `REPORT_KID_MIN_CONFIDENCE_TO_SHOW` | `0.6` | Below this, a finding is suppressed entirely for the kid persona, not softened — persona-matrix.md's safety rules |
+
+Coach has no cap (`persona-matrix.md` states it as unbounded), so there is no
+corresponding setting.
 
 ### Agents
 | Key | Default | Notes |
@@ -182,8 +192,9 @@ Nothing secret appears here. If a value needs protecting, it belongs behind the 
 
 | Moment | Action needed |
 |--------|--------------|
-| Phase 1, backend scaffold lands | Add `OPENAI_API_KEY` to `backend/.env`; confirm `gpt-4o-mini`; set `LLM_DAILY_TOKEN_CEILING` |
+| Phase 1, backend scaffold lands | Add `OPENAI_API_KEY` to `backend/.env`; confirm `gpt-4o-mini` |
 | Phase 2 | `docker compose up -d postgres` (ADR-0015); set `SESSION_JWT_SECRET` to a random string |
+| Phase 9, first real completion spend | `LLM_DAILY_TOKEN_CEILING` set — D-022, default `500000`, adjust if the real spend rate warrants it |
 | Before any private-data feature | Implement real Lichess OAuth2 PKCE (ADR-0007/ADR-0014) |
 
 Claude will prompt at each of these points rather than proceeding with broken defaults.

@@ -29,12 +29,18 @@ class CompletionRequest(BaseModel):
     ``model`` is optional so callers normally inherit the configured default and only
     override deliberately — for example, the evaluation harness pointing a judge at a
     different model than the one being judged.
+
+    ``response_format`` is optional and provider-interpreted (OpenAI's adapter maps
+    ``"json_object"`` to its own ``response_format`` parameter). Added for Phase 9's
+    report generation, which needs syntactically-guaranteed JSON so the grounding critic
+    has something structured to validate rather than free text to pattern-match.
     """
 
     messages: list[Message]
     model: str | None = None
     temperature: float | None = None
     max_tokens: int | None = None
+    response_format: str | None = None
 
 
 class TokenUsage(BaseModel):

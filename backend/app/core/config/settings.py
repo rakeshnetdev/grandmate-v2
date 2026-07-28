@@ -28,6 +28,7 @@ from app.core.config.groups import (
     IngestionSettings,
     LLMSettings,
     PatternSettings,
+    ReportSettings,
     RetrievalSettings,
     StorageSettings,
 )
@@ -52,6 +53,7 @@ class Settings(BaseModel):
     agents: AgentSettings = Field(default_factory=AgentSettings)
     ingestion: IngestionSettings = Field(default_factory=IngestionSettings)
     analytics: AnalyticsSettings = Field(default_factory=AnalyticsSettings)
+    reports: ReportSettings = Field(default_factory=ReportSettings)
     evaluation: EvaluationSettings = Field(default_factory=EvaluationSettings)
     dev_insight: DevInsightSettings = Field(default_factory=DevInsightSettings)
 

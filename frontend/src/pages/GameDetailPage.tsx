@@ -7,6 +7,7 @@
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 
 import { GameAnalysisView, useGame } from '@/features/games';
+import { PersonaReportPanel } from '@/features/reports';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
 
 export function GameDetailPage() {
@@ -39,6 +40,15 @@ export function GameDetailPage() {
         </CardHeader>
         <CardContent>
           <GameAnalysisView gameId={gameId} profileId={profileId} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Report</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <PersonaReportPanel gameId={gameId} profileId={profileId} />
         </CardContent>
       </Card>
     </div>
