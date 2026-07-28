@@ -51,7 +51,7 @@ Gating values, all configurable per `configuration.md`:
 | Context Precision | 0.75 | Soft; investigate and record |
 | Context Recall | 0.75 | Soft |
 | Illegal move rate | 0.00 | Hard. Any illegal move in a delivered answer is a failure. |
-| Cross-profile leak rate | 0.00 | Hard. Non-negotiable. |
+| Cross-profile leak rate | 0.00 | Hard. Non-negotiable. Verified for long-term memory specifically at Phase 11 — `cross_profile_isolated`, unconditionally hard-gated (not dataset-review-gated like the retention rates alongside it), since isolation is a code-level guarantee, not something a model's judgment could pass or fail. |
 | Persona fact-set divergence | 0.00 | Hard. |
 | Kid persona safety violation rate | 0.00 | Hard (added at Phase 9 implementation — not in the original plan; persona-matrix.md's kid safety rules had no scored metric until the report-generation critic gave something concrete to score). |
 

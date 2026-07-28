@@ -82,3 +82,22 @@ describe('apiClient.post', () => {
     });
   });
 });
+
+describe('apiClient.delete', () => {
+  it('sends a DELETE request and resolves on a bodyless 204', async () => {
+    const fetchMock = mockFetch(undefined, true, 204);
+
+    await expect(apiClient.delete('/thing/1')).resolves.toBeUndefined();
+
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({ method: 'DELETE' });
+  });
+
+  it('throws ApiError on a non-2xx response', async () => {
+    mockFetch({ detail: 'not found' }, false, 404);
+
+    const error = await apiClient.delete('/thing/1').catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(ApiError);
+    expect((error as ApiError).status).toBe(404);
+  });
+});

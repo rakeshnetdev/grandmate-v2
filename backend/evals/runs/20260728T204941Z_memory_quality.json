@@ -1,0 +1,77 @@
+{
+  "dataset_path": "/Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/evals/datasets/golden/memory_retention.jsonl",
+  "dataset_version": "v1-2026-07-28",
+  "harness_version": "phase-11-v1",
+  "model": "gpt-4o-mini",
+  "reviewed_scenario_count": 0,
+  "total_scenario_count": 10,
+  "timestamp": "2026-07-28T20:49:41.960302+00:00",
+  "results": {
+    "retention_true_positive_rate": 1.0,
+    "retention_true_negative_rate": 1.0,
+    "staleness_resolved": true,
+    "cross_profile_isolated": true
+  },
+  "per_scenario": [
+    {
+      "scenario_id": "explicit-goal-endgames",
+      "should_remember": true,
+      "correct": true,
+      "extracted_kind": "goal"
+    },
+    {
+      "scenario_id": "explicit-preference-engine-line",
+      "should_remember": true,
+      "correct": true,
+      "extracted_kind": "preference"
+    },
+    {
+      "scenario_id": "confirmed-recurring-finding-time-trouble",
+      "should_remember": true,
+      "correct": true,
+      "extracted_kind": "recurring_finding"
+    },
+    {
+      "scenario_id": "small-talk-no-durable-content",
+      "should_remember": false,
+      "correct": true,
+      "extracted_kind": null
+    },
+    {
+      "scenario_id": "vague-passing-remark",
+      "should_remember": false,
+      "correct": true,
+      "extracted_kind": null
+    },
+    {
+      "scenario_id": "explicit-preference-short-answers",
+      "should_remember": true,
+      "correct": true,
+      "extracted_kind": "preference"
+    },
+    {
+      "scenario_id": "general-question-no-personal-statement",
+      "should_remember": false,
+      "correct": true,
+      "extracted_kind": null
+    },
+    {
+      "scenario_id": "restated-goal-supersedes",
+      "should_remember": true,
+      "correct": true,
+      "extracted_kind": "goal"
+    },
+    {
+      "scenario_id": "confirmed-recurring-finding-king-safety",
+      "should_remember": true,
+      "correct": true,
+      "extracted_kind": "recurring_finding"
+    },
+    {
+      "scenario_id": "never-extract-from-assistant-words-alone",
+      "should_remember": false,
+      "correct": true,
+      "extracted_kind": null
+    }
+  ]
+}

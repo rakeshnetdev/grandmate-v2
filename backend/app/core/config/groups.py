@@ -419,6 +419,22 @@ class ReportSettings(BaseSettings):
     report_kid_min_confidence_to_show: float = 0.6
 
 
+class MemorySettings(BaseSettings):
+    """Long-term memory write policy (Phase 11, ADR-0005, D-013, D-026).
+
+    The confidence floor is the entire enforcement mechanism for ADR-0005's "only
+    durable facts persist" principle — set high enough that an offhand remark doesn't
+    become a permanent memory, but not so high that genuine preferences/goals never
+    clear it. Silent, confidence-gated writes were confirmed with the owner (D-026)
+    specifically because this floor, not a confirmation prompt, is what stands between a
+    real preference and chat noise.
+    """
+
+    model_config = _BASE_CONFIG
+
+    memory_write_confidence_floor: float = 0.7
+
+
 class EvaluationSettings(BaseSettings):
     """RAGAS thresholds and the score-ledger location (see evaluation-strategy.md)."""
 
@@ -442,6 +458,7 @@ __all__ = [
     "IdentitySettings",
     "IngestionSettings",
     "LLMSettings",
+    "MemorySettings",
     "PatternSettings",
     "ReportSettings",
     "RetrievalSettings",

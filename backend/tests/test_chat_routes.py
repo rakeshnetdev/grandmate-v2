@@ -29,6 +29,8 @@ from app.main import create_app
 from tests.fake_llm import FakeLLMProvider
 
 _DIRECT_ANSWER = '{"answer": "A grounded answer.", "citations": []}'
+# Every completed turn runs a `write_memory` extraction call after its answer.
+_NO_MEMORIES = '{"memories": []}'
 
 
 async def _fake_fetch_user(self: PlatformClient, provider, username: str) -> PlatformUser:  # type: ignore[no-untyped-def]
@@ -61,7 +63,7 @@ async def chat_client(
     app.dependency_overrides[get_storage] = lambda: LocalStorage(tmp_path)
     # A generous, reusable script: intent + answer pairs for several turns across a test.
     app.dependency_overrides[get_llm_provider] = lambda: FakeLLMProvider(
-        responses=['{"intent": "explain"}', _DIRECT_ANSWER] * 5
+        responses=['{"intent": "explain"}', _DIRECT_ANSWER, _NO_MEMORIES] * 5
     )
     # No tool call is scripted in any test here, so the embedding provider is never
     # actually invoked — the stand-in just needs to exist for dependency resolution.

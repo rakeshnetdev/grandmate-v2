@@ -1,10 +1,11 @@
-"""Chat orchestration (Phase 10).
+"""Chat orchestration (Phase 10; +long-term memory Phase 11).
 
 Thin by design: thread bookkeeping (`chat_threads`, the identity/listing row) lives
-here; the actual agent — intent routing, tool calling, the grounding guardrail — lives in
-`orchestration/graphs/chat.py`. This service's job is wiring the two together with the
-request-scoped resources the graph needs (the DB session, a fresh checkpointer, a tool
-context bound to the caller's profile) and nothing more.
+here; the actual agent — intent routing, tool calling, the grounding guardrail, memory
+extraction — lives in `orchestration/graphs/chat.py`. This service's job is wiring the
+two together with the request-scoped resources the graph needs (the DB session, a fresh
+checkpointer and store, a tool context and memory service bound to the caller's profile)
+and nothing more.
 """
 
 from __future__ import annotations
@@ -20,10 +21,12 @@ from app.db.base import utc_now
 from app.db.models import ChatThread, Persona
 from app.domain.chat.queries import get_owned_thread, list_threads_for_profile
 from app.domain.llm_usage import LLMBudgetTracker
+from app.domain.memory import MemoryService
 from app.domain.patterns import OpeningIndex
 from app.integrations.llm.base import EmbeddingProvider, LLMProvider
 from app.orchestration.checkpointer import open_checkpointer
 from app.orchestration.graphs.chat import ChatGraphDeps, build_chat_graph
+from app.orchestration.store import open_store
 from app.orchestration.tools import ToolContext
 
 # A thread with no title yet is titled from the first message it receives, truncated —
@@ -74,26 +77,31 @@ class ChatService:
         if thread is None:
             return None
 
-        deps = ChatGraphDeps(
-            llm=self._llm,
-            llm_settings=self._settings.llm,
-            agent_settings=self._settings.agents,
-            budget=LLMBudgetTracker(self._session, self._settings.llm),
-            tool_context=ToolContext(
-                session=self._session,
-                profile_id=profile_id,
-                settings=self._settings,
-                embedding_provider=self._embedding_provider,
-                opening_index=self._opening_index,
-            ),
-        )
-
-        async with open_checkpointer(self._settings.database) as checkpointer:
+        async with (
+            open_checkpointer(self._settings.database) as checkpointer,
+            open_store(self._settings.database) as store,
+        ):
+            deps = ChatGraphDeps(
+                llm=self._llm,
+                llm_settings=self._settings.llm,
+                agent_settings=self._settings.agents,
+                budget=LLMBudgetTracker(self._session, self._settings.llm),
+                tool_context=ToolContext(
+                    session=self._session,
+                    profile_id=profile_id,
+                    settings=self._settings,
+                    embedding_provider=self._embedding_provider,
+                    opening_index=self._opening_index,
+                    store=store,
+                ),
+                memory=MemoryService(self._session, store, self._settings.memory),
+            )
             graph = build_chat_graph(deps, checkpointer)
             result = await graph.ainvoke(
                 {
                     "question": question,
                     "profile_id": str(profile_id),
+                    "thread_id": str(thread.id),
                     "active_game_id": (
                         str(thread.active_game_id) if thread.active_game_id else None
                     ),
