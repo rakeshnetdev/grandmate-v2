@@ -21,6 +21,12 @@ from app.db.models.identity import (
     UserIdentity,
 )
 from app.db.models.imports import Job, JobKind, JobStatus
+from app.db.models.knowledge import (
+    AnalysisKnowledgeChunk,
+    KnowledgeBucket,
+    KnowledgeChunk,
+    KnowledgeDocument,
+)
 from app.db.models.patterns import (
     MotifFinding,
     MotifType,
@@ -30,6 +36,7 @@ from app.db.models.patterns import (
 )
 
 __all__ = [
+    "AnalysisKnowledgeChunk",
     "AuditAction",
     "AuditEvent",
     "AuthProvider",
@@ -41,6 +48,9 @@ __all__ = [
     "Job",
     "JobKind",
     "JobStatus",
+    "KnowledgeBucket",
+    "KnowledgeChunk",
+    "KnowledgeDocument",
     "MotifFinding",
     "MotifType",
     "MoveClassification",

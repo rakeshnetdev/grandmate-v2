@@ -103,6 +103,9 @@ async def retry_game_analysis(
     if job is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Game not found")
 
+    # Commit explicitly before scheduling the background task — see the matching
+    # comment in imports.py's create_import for why (Phase 5 defect, fixed here).
+    await session.commit()
     background_tasks.add_task(
         _run_pending_analysis_jobs,
         [job.id],
