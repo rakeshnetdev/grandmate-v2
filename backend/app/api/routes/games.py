@@ -15,8 +15,8 @@ import uuid
 
 from fastapi import APIRouter, HTTPException, status
 
-from app.api.dependencies.auth import CurrentLoginDep
 from app.api.dependencies.db import DbSessionDep
+from app.api.dependencies.profile_scope import ScopedProfileIdDep
 from app.db.models import Game
 from app.domain.games import get_game, list_games
 from app.schemas.games import GameSummary
@@ -36,18 +36,19 @@ def _to_summary(game: Game) -> GameSummary:
 
 
 @router.get("", response_model=list[GameSummary])
-async def list_my_games(current: CurrentLoginDep, session: DbSessionDep) -> list[GameSummary]:
-    """The caller's own imported games, most recent first."""
-    games = await list_games(session, current.profile.id)
+async def list_my_games(profile_id: ScopedProfileIdDep, session: DbSessionDep) -> list[GameSummary]:
+    """Games in the requested profile (defaults to the caller's own SELF profile — see
+    `profile_id`'s Phase 8b dependency), most recent first."""
+    games = await list_games(session, profile_id)
     return [_to_summary(game) for game in games]
 
 
 @router.get("/{game_id}", response_model=GameSummary)
 async def get_my_game(
-    game_id: uuid.UUID, current: CurrentLoginDep, session: DbSessionDep
+    game_id: uuid.UUID, profile_id: ScopedProfileIdDep, session: DbSessionDep
 ) -> GameSummary:
-    """A single game the caller owns."""
-    game = await get_game(session, game_id, current.profile.id)
+    """A single game in the requested profile."""
+    game = await get_game(session, game_id, profile_id)
     if game is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Game not found")
     return _to_summary(game)

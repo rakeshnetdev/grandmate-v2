@@ -18,6 +18,7 @@ from pydantic import BaseModel, Field
 from app.core.config.groups import (
     DEFAULT_DATABASE_URL,
     AgentSettings,
+    AnalyticsSettings,
     AppSettings,
     DatabaseSettings,
     DevInsightSettings,
@@ -50,6 +51,7 @@ class Settings(BaseModel):
     retrieval: RetrievalSettings = Field(default_factory=RetrievalSettings)
     agents: AgentSettings = Field(default_factory=AgentSettings)
     ingestion: IngestionSettings = Field(default_factory=IngestionSettings)
+    analytics: AnalyticsSettings = Field(default_factory=AnalyticsSettings)
     evaluation: EvaluationSettings = Field(default_factory=EvaluationSettings)
     dev_insight: DevInsightSettings = Field(default_factory=DevInsightSettings)
 

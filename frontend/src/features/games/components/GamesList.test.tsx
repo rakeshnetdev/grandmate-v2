@@ -65,4 +65,37 @@ describe('GamesList', () => {
       '/games/game-2',
     ]);
   });
+
+  it('carries the profile id into both the fetch and the game links (Phase 8b)', async () => {
+    let requestedUrl = '';
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((input: RequestInfo | URL) => {
+        requestedUrl = typeof input === 'string' ? input : input.toString();
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () =>
+            Promise.resolve([
+              {
+                id: 'game-1',
+                source: 'upload',
+                headers: { White: 'Alice', Black: 'Bob', Result: '1-0' },
+                played_at: null,
+                canonicalized_at: '2026-07-27T00:00:00Z',
+                created_at: '2026-07-27T00:00:00Z',
+              },
+            ]),
+        });
+      }),
+    );
+
+    renderWithProviders(<GamesList profileId="study-1" />);
+
+    expect(await screen.findByRole('link')).toHaveAttribute(
+      'href',
+      '/games/game-1?profile=study-1',
+    );
+    expect(requestedUrl).toContain('profile_id=study-1');
+  });
 });

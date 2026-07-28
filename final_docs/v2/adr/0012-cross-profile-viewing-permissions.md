@@ -84,7 +84,15 @@ to tell them apart.
 - Phase 9: confirm which persona modes are offered on the observed-profile page
 - Post-MVP: consent model for analysing unlinked public profiles, alongside the analyst persona
 
+**Note (Phase 8b, 2026-07-27)**: the "arbitrary opponent" deferral above is about
+cross-*account* viewing — a real, potentially shared weakness assessment another viewer
+(coach, parent) could see via `profile_relationships`. ADR-0016 narrows a distinct,
+smaller gap this ADR didn't cover: a private, single-account "study" profile for PGNs the
+user imports to learn from, never visible to anyone but them and never linked via
+`profile_relationships`. This ADR's restriction on cross-account viewing is unchanged.
+
 ## References
 - `final_docs/v2/data-model.md` — `profile_relationships`
 - `final_docs/v2/persona-matrix.md` — deferred personas
 - Decision D-004
+- ADR-0016 — Private Study Profile for Unowned/Arbitrary PGN Analysis

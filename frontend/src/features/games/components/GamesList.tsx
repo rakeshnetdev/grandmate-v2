@@ -13,8 +13,13 @@ function opponentLine(headers: GameSummary['headers']): string {
   return `${white} vs ${black}${result}`;
 }
 
-export function GamesList() {
-  const { data: games, isLoading } = useGames();
+interface GamesListProps {
+  /** `undefined` means the caller's own SELF profile (Phase 8b). */
+  profileId?: string;
+}
+
+export function GamesList({ profileId }: GamesListProps) {
+  const { data: games, isLoading } = useGames(profileId);
 
   if (isLoading) {
     return <p className="text-sm text-muted-foreground">Loading games…</p>;
@@ -29,7 +34,7 @@ export function GamesList() {
       {games.map((game) => (
         <li key={game.id}>
           <Link
-            to={`/games/${game.id}`}
+            to={profileId ? `/games/${game.id}?profile=${profileId}` : `/games/${game.id}`}
             className="flex items-center justify-between gap-3 rounded-md border border-border p-4 hover:bg-accent"
           >
             <span className="text-sm font-medium">{opponentLine(game.headers)}</span>

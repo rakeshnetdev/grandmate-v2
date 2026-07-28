@@ -31,9 +31,17 @@ _OPENING_INDEX = load_opening_index(_PATTERN_SETTINGS)
 async def _ingest(
     service: ImportService, profile_id: uuid.UUID, sources: list[SourceText], *, max_games: int
 ) -> ImportResult:
+    """Ingests as ``profile_id`` with no linked usernames — Phase 8b's self-vs-study
+    routing (`ImportService._target_profile_id`) then keeps every game with the account
+    it was submitted for, same as pre-Phase-8b behaviour. ``study_profile_id`` is passed
+    as ``profile_id`` too and is provably never dereferenced under that routing rule; see
+    `test_import_service_profile_routing.py` for tests that actually exercise routing to
+    a *different* study profile."""
     return await service.ingest(
-        profile_id,
-        sources,
+        self_profile_id=profile_id,
+        study_profile_id=profile_id,
+        self_linked_usernames=[],
+        sources=sources,
         max_games=max_games,
         opening_index=_OPENING_INDEX,
         pattern_settings=_PATTERN_SETTINGS,

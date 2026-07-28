@@ -1,14 +1,19 @@
 /**
  * One game's analysis: engine evaluation, opening, and tactical/strategic findings.
+ *
+ * `profile` in the URL search params (Phase 8b) carries which profile this game belongs
+ * to, set by `GamesList`'s links — `undefined` means the caller's own SELF profile.
  */
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 
 import { GameAnalysisView, useGame } from '@/features/games';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
 
 export function GameDetailPage() {
   const { gameId } = useParams<{ gameId: string }>();
-  const { data: game } = useGame(gameId);
+  const [searchParams] = useSearchParams();
+  const profileId = searchParams.get('profile') ?? undefined;
+  const { data: game } = useGame(gameId, profileId);
 
   if (!gameId) {
     return null;
@@ -16,11 +21,12 @@ export function GameDetailPage() {
 
   const white = game?.headers.White ?? '…';
   const black = game?.headers.Black ?? '…';
+  const backLink = profileId ? `/games?profile=${profileId}` : '/games';
 
   return (
     <div className="space-y-6">
       <div>
-        <Link to="/games" className="text-sm text-muted-foreground underline">
+        <Link to={backLink} className="text-sm text-muted-foreground underline">
           ← Back to your games
         </Link>
       </div>
@@ -32,7 +38,7 @@ export function GameDetailPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <GameAnalysisView gameId={gameId} />
+          <GameAnalysisView gameId={gameId} profileId={profileId} />
         </CardContent>
       </Card>
     </div>

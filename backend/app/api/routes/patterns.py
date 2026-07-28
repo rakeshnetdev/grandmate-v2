@@ -13,8 +13,8 @@ import uuid
 
 from fastapi import APIRouter, HTTPException, status
 
-from app.api.dependencies.auth import CurrentLoginDep
 from app.api.dependencies.db import DbSessionDep
+from app.api.dependencies.profile_scope import ScopedProfileIdDep
 from app.db.models import Game
 from app.domain.patterns.queries import get_opening_match, get_pattern_findings
 from app.schemas.patterns import (
@@ -29,18 +29,19 @@ router = APIRouter(prefix="/patterns", tags=["patterns"])
 
 @router.get("/games/{game_id}", response_model=GamePatternsSummary)
 async def get_game_patterns(
-    game_id: uuid.UUID, current: CurrentLoginDep, session: DbSessionDep
+    game_id: uuid.UUID, profile_id: ScopedProfileIdDep, session: DbSessionDep
 ) -> GamePatternsSummary:
-    """Opening identification plus every tactical/strategic finding for a game the
-    caller owns. A 404 means the game itself isn't the caller's; an empty response body
-    otherwise (`opening: null`, empty finding lists) means detection hasn't found
-    anything to report yet, or found nothing at all — both normal outcomes."""
+    """Opening identification plus every tactical/strategic finding for a game in the
+    requested profile. A 404 means the game itself isn't in that profile; an empty
+    response body otherwise (`opening: null`, empty finding lists) means detection
+    hasn't found anything to report yet, or found nothing at all — both normal
+    outcomes."""
     game = await session.get(Game, game_id)
-    if game is None or game.profile_id != current.profile.id:
+    if game is None or game.profile_id != profile_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Game not found")
 
-    opening = await get_opening_match(session, game_id, current.profile.id)
-    findings = await get_pattern_findings(session, game_id, current.profile.id)
+    opening = await get_opening_match(session, game_id, profile_id)
+    findings = await get_pattern_findings(session, game_id, profile_id)
 
     return GamePatternsSummary(
         game_id=game_id,

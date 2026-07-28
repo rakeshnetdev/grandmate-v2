@@ -37,6 +37,7 @@ from app.api.dependencies.storage import StorageDep
 from app.db.models import Job
 from app.domain.analysis import run_pending_analysis_jobs
 from app.domain.imports import ImportService, SourceText, TooManyGamesError
+from app.domain.profiles import get_linked_usernames, get_or_create_study_profile
 from app.schemas.imports import JobSummary
 
 router = APIRouter(prefix="/imports", tags=["imports"])
@@ -96,11 +97,19 @@ async def create_import(
             detail="Provide pasted PGN text or at least one file",
         )
 
+    # Phase 8b (D-021, ADR-0016): each parsed game routes to the caller's own SELF
+    # profile or their study profile individually, based on whether its header names
+    # match a linked platform username — decided inside `ingest`, not here.
+    study_profile = await get_or_create_study_profile(session, current.user.id)
+    self_linked_usernames = await get_linked_usernames(session, current.profile.id)
+
     service = ImportService(session, storage)
     try:
         result = await service.ingest(
-            current.profile.id,
-            sources,
+            self_profile_id=current.profile.id,
+            study_profile_id=study_profile.id,
+            self_linked_usernames=self_linked_usernames,
+            sources=sources,
             max_games=settings.ingestion.max_games_per_import,
             opening_index=opening_index,
             pattern_settings=settings.patterns,

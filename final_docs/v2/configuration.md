@@ -119,6 +119,17 @@ enough to flag"), not universal domain facts.
 | `RETRIEVAL_BM25_K1` | `1.5` | BM25 term-frequency saturation |
 | `RETRIEVAL_BM25_B` | `0.75` | BM25 length normalisation |
 
+### Profile analytics (Phase 8)
+| Key | Default | Notes |
+|-----|---------|-------|
+| `ANALYTICS_WINDOW_SIZES` | `10,30,60` | Comma-separated; the only window sizes `/analytics/profile?window=` accepts |
+| `ANALYTICS_DEFAULT_WINDOW` | `10` | Used when `window` is omitted |
+| `ANALYTICS_MIN_GAMES_FOR_TREND` | `5` | Below this, trends/weaknesses are computed but flagged `sufficient_sample=False` rather than asserted |
+| `ANALYTICS_WEAKNESS_MIN_OCCURRENCE_RATE` | `0.3` | Share of a window's games a motif/theme must recur in (against the player) to count as a recurring weakness |
+| `TIME_CONTROL_BULLET_MAX_S` | `180` | Estimated game duration (`base + 40*increment`) ceiling for the bullet bucket |
+| `TIME_CONTROL_BLITZ_MAX_S` | `480` | Same, blitz |
+| `TIME_CONTROL_RAPID_MAX_S` | `1500` | Same, rapid; above this is classical |
+
 ### Agents
 | Key | Default | Notes |
 |-----|---------|-------|

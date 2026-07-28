@@ -12,8 +12,8 @@ import uuid
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Request, status
 
-from app.api.dependencies.auth import CurrentLoginDep
 from app.api.dependencies.db import DbSessionDep
+from app.api.dependencies.profile_scope import ScopedProfileIdDep
 from app.api.dependencies.settings import SettingsDep
 from app.db.models import GameAnalysis, Job
 from app.domain.analysis import create_retry_job, get_analysis_job, get_latest_analysis
@@ -62,10 +62,10 @@ def _to_analysis_summary(analysis: GameAnalysis) -> GameAnalysisSummary:
 
 @router.get("/jobs/{job_id}", response_model=AnalysisJobSummary)
 async def get_analysis_job_status(
-    job_id: uuid.UUID, current: CurrentLoginDep, session: DbSessionDep
+    job_id: uuid.UUID, profile_id: ScopedProfileIdDep, session: DbSessionDep
 ) -> AnalysisJobSummary:
-    """Poll an analysis job's status. Scoped to the caller's own profile."""
-    job = await get_analysis_job(session, job_id, current.profile.id)
+    """Poll an analysis job's status, scoped to the requested profile."""
+    job = await get_analysis_job(session, job_id, profile_id)
     if job is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Analysis job not found")
     return _to_job_summary(job)
@@ -73,10 +73,10 @@ async def get_analysis_job_status(
 
 @router.get("/games/{game_id}", response_model=GameAnalysisSummary)
 async def get_game_analysis(
-    game_id: uuid.UUID, current: CurrentLoginDep, session: DbSessionDep
+    game_id: uuid.UUID, profile_id: ScopedProfileIdDep, session: DbSessionDep
 ) -> GameAnalysisSummary:
-    """The most recent completed analysis for a game the caller owns."""
-    analysis = await get_latest_analysis(session, game_id, current.profile.id)
+    """The most recent completed analysis for a game in the requested profile."""
+    analysis = await get_latest_analysis(session, game_id, profile_id)
     if analysis is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -92,14 +92,14 @@ async def retry_game_analysis(
     game_id: uuid.UUID,
     request: Request,
     background_tasks: BackgroundTasks,
-    current: CurrentLoginDep,
+    profile_id: ScopedProfileIdDep,
     session: DbSessionDep,
     settings: SettingsDep,
 ) -> AnalysisJobSummary:
-    """Queue a fresh analysis run for a game the caller owns — e.g. after a prior run
-    failed (engine timeout, transient error). Does not touch prior runs; `GameAnalysis`
-    is versioned, so this adds one rather than replacing anything."""
-    job = await create_retry_job(session, game_id, current.profile.id)
+    """Queue a fresh analysis run for a game in the requested profile — e.g. after a
+    prior run failed (engine timeout, transient error). Does not touch prior runs;
+    `GameAnalysis` is versioned, so this adds one rather than replacing anything."""
+    job = await create_retry_job(session, game_id, profile_id)
     if job is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Game not found")
 

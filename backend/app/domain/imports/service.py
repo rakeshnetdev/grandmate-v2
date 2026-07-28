@@ -23,6 +23,16 @@ lookup over already-computed EPDs (`GameMove.epd_after`), not a slow external ca
 there is nothing to gain from deferring it — see `app/db/models/patterns.py` for the
 full reasoning on why opening detection and tactical/strategic detection have different
 trigger points.
+
+Phase 8b routes each parsed game to one of two profiles before it is ever written — the
+account's own `SELF` profile if either header name matches a linked platform username,
+otherwise its `OPPONENT`-kind study profile (D-021, ADR-0016). This runs the same
+`matches_any_linked_username` check Phase 4's `resolve_focus` is built on, just earlier:
+early enough to pick where the row lands, not just how to label it afterward.
+Canonicalization still re-resolves `focus_color`/`opponent_name` against whichever
+profile the game actually landed in — for a self-routed game this repeats the same
+match; for a study-routed game the study profile has no linked usernames of its own, so
+it trivially stays `None`, which is correct.
 """
 
 from __future__ import annotations
@@ -37,6 +47,7 @@ from app.core.config import PatternSettings
 from app.db.base import utc_now
 from app.db.models import Game, GameSource, Job, JobKind, JobStatus
 from app.domain.games import GameParsingService
+from app.domain.games.normalization import matches_any_linked_username
 from app.domain.imports.parsing import ParsedGame, RejectedGame, RejectionReason, parse_pgn_text
 from app.domain.patterns import OpeningIndex, PatternDetectionService
 from app.integrations.storage import StorageBackend
@@ -90,24 +101,33 @@ class ImportService:
 
     async def ingest(
         self,
-        profile_id: uuid.UUID,
-        sources: list[SourceText],
         *,
+        self_profile_id: uuid.UUID,
+        study_profile_id: uuid.UUID,
+        self_linked_usernames: list[str],
+        sources: list[SourceText],
         max_games: int,
         opening_index: OpeningIndex,
         pattern_settings: PatternSettings,
     ) -> ImportResult:
-        """Parse and persist every game across ``sources`` for ``profile_id``.
+        """Parse and persist every game across ``sources``, routing each one to
+        ``self_profile_id`` or ``study_profile_id`` individually (Phase 8b) — a single
+        batch may split across both.
 
         Raises :class:`TooManyGamesError` before writing anything if the combined game
         count exceeds ``max_games`` — the caller maps that to a 422.
 
-        ``opening_index``/``pattern_settings`` are call-time parameters, not constructor
-        state, same reasoning as ``max_games``: they belong to *this operation*, not to
-        every use of this service — ``get_job``/``list_jobs`` have no need of them.
+        ``opening_index``/``pattern_settings``/the profile arguments are call-time
+        parameters, not constructor state, same reasoning as ``max_games``: they belong
+        to *this operation*, not to every use of this service — ``get_job``/``list_jobs``
+        have no need of them.
+
+        The import ``Job`` row itself is recorded against ``self_profile_id`` regardless
+        of where individual games land — it tracks the account's request, not one
+        target profile's content.
         """
         pattern_service = PatternDetectionService(self._session, pattern_settings)
-        job = Job(kind=JobKind.PGN_IMPORT, profile_id=profile_id, status=JobStatus.PROCESSING)
+        job = Job(kind=JobKind.PGN_IMPORT, profile_id=self_profile_id, status=JobStatus.PROCESSING)
         self._session.add(job)
         await self._session.flush()
 
@@ -146,7 +166,14 @@ class ImportService:
                 )
 
             for local_index, parsed in enumerate(parsed_games):
-                is_duplicate = await self._already_imported(profile_id, parsed.content_hash)
+                target_profile_id = self._target_profile_id(
+                    parsed.headers,
+                    self_profile_id=self_profile_id,
+                    study_profile_id=study_profile_id,
+                    self_linked_usernames=self_linked_usernames,
+                )
+
+                is_duplicate = await self._already_imported(target_profile_id, parsed.content_hash)
                 if is_duplicate:
                     duplicates += 1
                     short_hash = parsed.content_hash[:12]
@@ -161,18 +188,18 @@ class ImportService:
                     continue
 
                 await self._storage.put(
-                    _storage_key(profile_id, parsed.content_hash),
+                    _storage_key(target_profile_id, parsed.content_hash),
                     parsed.pgn_text.encode("utf-8"),
                     content_type="application/x-chess-pgn",
                 )
                 game = Game(
-                    profile_id=profile_id,
+                    profile_id=target_profile_id,
                     job_id=job.id,
                     source=GameSource.UPLOAD,
                     content_hash=parsed.content_hash,
                     headers=parsed.headers,
                     played_at=None,
-                    raw_pgn_path=_storage_key(profile_id, parsed.content_hash),
+                    raw_pgn_path=_storage_key(target_profile_id, parsed.content_hash),
                 )
                 self._session.add(game)
                 await self._session.flush()
@@ -197,7 +224,7 @@ class ImportService:
                     # a game that failed canonicalization — there are no moves to analyse.
                     analysis_job = Job(
                         kind=JobKind.ENGINE_ANALYSIS,
-                        profile_id=profile_id,
+                        profile_id=target_profile_id,
                         game_id=game.id,
                         status=JobStatus.PENDING,
                     )
@@ -215,6 +242,30 @@ class ImportService:
         job.completed_at = utc_now()
         await self._session.flush()
         return ImportResult(job=job, analysis_job_ids=analysis_job_ids)
+
+    @staticmethod
+    def _target_profile_id(
+        headers: dict[str, str],
+        *,
+        self_profile_id: uuid.UUID,
+        study_profile_id: uuid.UUID,
+        self_linked_usernames: list[str],
+    ) -> uuid.UUID:
+        """Which profile this parsed game belongs to (D-021, ADR-0016).
+
+        An account with no linked usernames at all can't be checked against anything —
+        rather than treat "nothing to check" the same as "checked and it's not mine",
+        an unattributable game stays with the account's own profile, the same place it
+        would have landed before Phase 8b existed.
+        """
+        if not self_linked_usernames:
+            return self_profile_id
+        belongs_to_self = matches_any_linked_username(
+            white=headers.get("White", ""),
+            black=headers.get("Black", ""),
+            linked_usernames=self_linked_usernames,
+        )
+        return self_profile_id if belongs_to_self else study_profile_id
 
     async def _already_imported(self, profile_id: uuid.UUID, content_hash: str) -> bool:
         result = await self._session.execute(

@@ -37,6 +37,7 @@ Phase 0 documentation set. Start here.
 | [0012](adr/0012-cross-profile-viewing-permissions.md) | Self dashboard, separate page for others | Accepted |
 | [0013](adr/0013-developer-insight-tracing.md) | Developer insight via out-of-band tracing | Accepted |
 | [0015](adr/0015-postgres-for-mvp-supabase-deferred.md) | Plain Postgres + pgvector for MVP, Supabase deferred | Accepted |
+| [0016](adr/0016-private-study-profile-for-unowned-pgns.md) | Private study profile for unowned/arbitrary PGN analysis | Accepted |
 
 ## Phase reports
 

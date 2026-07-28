@@ -2,7 +2,7 @@
  * Landing page.
  *
  * Shows connectivity and, once logged in, the account that was created plus a way into
- * game ingestion. Phase 8 replaces the "Next" card with the real profile dashboard.
+ * game ingestion, single-game analysis, and the profile dashboard.
  */
 import { Link } from 'react-router-dom';
 
@@ -64,6 +64,23 @@ export function HomePage() {
               <p className="text-sm text-muted-foreground">
                 <Link to="/games" className="font-medium text-primary underline">
                   See analysis for a game you've imported
+                </Link>
+                .
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
+        {user && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Your dashboard</CardTitle>
+              <CardDescription>Phase 8 — trends across your recent games</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                <Link to="/dashboard" className="font-medium text-primary underline">
+                  See recurring weaknesses and progress
                 </Link>
                 .
               </p>

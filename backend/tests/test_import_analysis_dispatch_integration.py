@@ -53,8 +53,12 @@ pytestmark = pytest.mark.skipif(
     reason="Stockfish not installed at EngineSettings().stockfish_path",
 )
 
+# White is "magnus" to match `live_client`'s login username — Phase 8b routes an
+# imported game to the account's own SELF profile only if a header name matches a linked
+# username (see `domain/imports/service.py`), and the final assertion below queries
+# `/analysis/games/{id}` with no `profile_id`, which defaults to SELF.
 GAME = """[Event "Test"]
-[White "Alice"]
+[White "magnus"]
 [Black "Bob"]
 [Result "1-0"]
 

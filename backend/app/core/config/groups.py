@@ -346,6 +346,44 @@ class PatternSettings(BaseSettings):
     pattern_min_confidence_to_persist: float = 0.0
 
 
+class AnalyticsSettings(BaseSettings):
+    """Multi-game aggregation policy (Phase 8).
+
+    `window_sizes` and `default_window` are configuration rather than a hardcoded
+    `{10, 30, 60}` set, per rule 11 — the owner's own scope note ("start with 10 games to
+    decrease the complexity") is exactly the kind of product decision that belongs here,
+    not buried as a literal in a route.
+    """
+
+    model_config = _BASE_CONFIG
+
+    analytics_window_sizes: str = "10,30,60"
+    analytics_default_window: int = 10
+
+    @property
+    def window_sizes_list(self) -> list[int]:
+        """Parsed, ordered window sizes a caller may request."""
+        return [
+            int(size.strip()) for size in self.analytics_window_sizes.split(",") if size.strip()
+        ]
+
+    # Below this many analyzed games in a window, trend deltas and recurring-weakness
+    # claims are computed but flagged `sufficient_sample=False` rather than asserted —
+    # an accuracy "trend" from 2 games is noise, not signal.
+    analytics_min_games_for_trend: int = 5
+
+    # A motif/theme counts as a "recurring weakness" once it appears, on the player's own
+    # side and at a mistake-or-worse ply, in at least this share of the window's games.
+    analytics_weakness_min_occurrence_rate: float = 0.3
+
+    # Estimated-game-duration thresholds (seconds) for bucketing a PGN TimeControl header
+    # into bullet/blitz/rapid/classical — the standard "base + 40 * increment" estimate,
+    # same buckets Lichess and Chess.com use, so a profile's segmentation reads familiar.
+    time_control_bullet_max_s: int = 180
+    time_control_blitz_max_s: int = 480
+    time_control_rapid_max_s: int = 1500
+
+
 class EvaluationSettings(BaseSettings):
     """RAGAS thresholds and the score-ledger location (see evaluation-strategy.md)."""
 
@@ -360,6 +398,7 @@ class EvaluationSettings(BaseSettings):
 
 __all__ = [
     "AgentSettings",
+    "AnalyticsSettings",
     "AppSettings",
     "DatabaseSettings",
     "DevInsightSettings",

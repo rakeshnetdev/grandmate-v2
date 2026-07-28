@@ -103,10 +103,15 @@ class AuthService:
         return result.scalar_one_or_none()
 
     async def _create_account(self, platform_user: PlatformUser) -> LoginResult:
-        """First login: user, identity, self profile, and a game source, together.
+        """First login: user, identity, self profile, study profile, and a game source,
+        together.
 
-        The profile and source are created here rather than lazily so that every user has
-        somewhere for their games to land from the moment they exist.
+        The self profile and source are created here rather than lazily so that every
+        user has somewhere for their own games to land from the moment they exist. The
+        study profile (Phase 8b, D-021, ADR-0016) is created the same way and for the
+        same reason — a private, single-account bucket for PGNs the user imports but
+        isn't part of, so aggregation never mixes the two. It gets no `ProfileSource`:
+        unlike `SELF`, it isn't tied to a platform username at all.
         """
         user = User(last_login_at=utc_now())
         self._session.add(user)
@@ -126,7 +131,12 @@ class AuthService:
             kind=ProfileKind.SELF,
             display_name=platform_user.username,
         )
-        self._session.add_all([identity, profile])
+        study_profile = Profile(
+            owner_user_id=user.id,
+            kind=ProfileKind.OPPONENT,
+            display_name="Study games",
+        )
+        self._session.add_all([identity, profile, study_profile])
         await self._session.flush()
 
         self._session.add(
@@ -142,6 +152,7 @@ class AuthService:
             user,
             {"provider": platform_user.provider.value, "username": platform_user.username},
         )
+        self._audit(AuditAction.PROFILE_CREATED, user, {"kind": "opponent", "purpose": "study"})
         await self._session.flush()
 
         return LoginResult(user=user, profile=profile, identity=identity, created=True)

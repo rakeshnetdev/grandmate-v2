@@ -6,6 +6,7 @@ metadata — so autogenerate would silently emit a migration dropping its table.
 """
 
 from app.db.models.analysis import GameAnalysis, MoveClassification, MoveEvaluation
+from app.db.models.analytics import ProfileAggregateSnapshot
 from app.db.models.audit import AuditAction, AuditEvent
 from app.db.models.games import Game, GameColor, GameMove
 from app.db.models.identity import (
@@ -58,6 +59,7 @@ __all__ = [
     "OpeningMatch",
     "Persona",
     "Profile",
+    "ProfileAggregateSnapshot",
     "ProfileKind",
     "ProfileRelationship",
     "ProfileSource",
