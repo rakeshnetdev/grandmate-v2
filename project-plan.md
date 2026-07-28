@@ -1193,39 +1193,62 @@ three separate storage models. They are never collapsed.
 
 ---
 
-## Phase 12 — MCP Server and Tool Interface (new)
+## Phase 12 — MCP Client Integration (deferred — see ADR-0010, D-027, D-028)
+
+**Status: deferred, not implemented.** The owner first reversed this phase from an MCP
+server (exposing GrandMate's own tools externally) to an MCP client (consuming an
+external tool) — D-027. Working through that reversal, no external MCP tool turned out
+to have a real trigger anywhere in the current product (no chat flow invites a user to
+paste a link; open-ended web search was rejected under rule 8/9). Rather than build an
+integration to satisfy the letter of D-016 with no product need behind it, the owner
+deferred this phase entirely — D-016's MCP requirement stands, unresolved, until a
+genuine use case exists. The plan below is preserved as the direction to pick back up,
+not a scope to build now.
 
 ### Goal
-Expose GrandMate's analysis and retrieval capability through the Model Context Protocol
-so external clients and internal agents share one tool contract.
+Demonstrate MCP by consuming an external MCP tool from GrandMate's chat agent — not by
+exposing GrandMate's own capability over MCP. The owner reversed the original draft
+(an MCP server exposing `analyze_pgn`, `get_game_analysis`, etc. to external callers)
+before implementation began: GrandMate exposes nothing of its own over MCP. See
+ADR-0010 and decision D-027 for the full rationale.
 
 ### Deliverables
-- MCP server exposing a curated tool set
-- authenticated, permission-scoped tool access
-- tool schema documentation
-- internal agents consuming the same contract
+- MCP client wiring in the backend, reached the same way any other tool dependency is
+  (behind an adapter, configured via `.env`, no hardcoded endpoint or key)
+- one or more external MCP tools (web search / fetch) registered in the existing chat
+  agent tool set (`backend/app/orchestration/tools/registry.py`), alongside the internal
+  tools already there
+- tool schema and error-shaping for external-server failures (timeout, rate limit,
+  malformed response)
+- documentation of which external server is used and why
 
 ### Candidate tools
-`analyze_pgn`, `get_game_analysis`, `get_profile_aggregate`, `search_knowledge`,
-`lookup_opening`, `validate_line`, `list_critical_moments`.
+External web search / fetch, exposed to the chat agent as a new entry in `TOOL_DISPATCH`.
+Exact external server package and whether it requires a credential is **open** — must be
+resolved with the owner before coding (see D-027 follow-up).
 
 ### Tasks
-- define tool schemas and error contracts
-- implement the server behind the existing service layer, not duplicating logic
-- enforce profile-scoped permissions on every tool call
-- document client setup
+- confirm the specific external MCP server package and any required `.env` credential
+  with the owner
+- implement an MCP client adapter and a tool wrapper consuming it, following the same
+  calling convention every other entry in `TOOL_DISPATCH` uses
+- add step/token budget and error handling consistent with existing agent tools
+- document client setup and the external dependency
 
 ### Testing
-- tool schema contract tests
-- permission enforcement tests per tool
-- integration test with a real MCP client
+- tool schema contract test for the wrapper
+- external-server failure handling tests (timeout, rate limit, malformed response) using
+  a mocked MCP client
+- integration test exercising the real external MCP server, gated so it doesn't run
+  unauthenticated in CI
 
 ### Evaluation
-- tool call success rate
-- verification that MCP and internal agent paths return identical results
+- tool call success rate against the external server
+- spot-check that agent answers using the external tool stay consistent with the critic
+  rule (rule 8): the external tool may inform explanation, never assert chess truth
 
 ### Exit criteria
-- MCP surface stable and safe
+- MCP client integration stable, external-server failures handled gracefully
 - sign-off required
 
 ---
