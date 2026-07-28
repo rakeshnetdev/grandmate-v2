@@ -257,6 +257,59 @@ coach, kid). Splitting into age bands (e.g. 8-10 / 11-14) is real additional sco
 matrix rows, prompts, critic rules, tests — deferred until real usage data motivates it,
 not built speculatively now.
 
+### D-025 — Phase 10 agentic chat mechanics · Locked
+Four decisions confirmed with the owner before coding, all defaults recommended and
+approved as proposed:
+
+- **Checkpointer backend**: Postgres-backed (`langgraph-checkpoint-postgres`), not
+  in-memory. Threads must survive a backend restart for a coaching product users return
+  to. Its tables (`checkpoints`, `checkpoint_writes`, ...) are deliberately **not** an
+  Alembic migration — they are library-owned state versioned by the package's own
+  `.setup()` call (idempotent, run on every turn via `orchestration/checkpointer.py`),
+  and pinning that DDL into our migration history would fight the library's own upgrade
+  mechanism the next time the installed version changes. `chat_threads` (the
+  identity/listing row a route can query without touching LangGraph internals) *is* a
+  normal Alembic-owned table — only the checkpointer's own internal state is exempt.
+- **Response mode**: single-shot request/response, not streaming. Matches Phase 9's
+  report-generation pattern; the grounding guardrail needs to see the complete answer
+  before anything reaches the user regardless, so streaming would not have shortened the
+  real latency, only added transport complexity.
+- **Intent routing**: LLM-classified (`explain`/`compare`/`summarise`/`train_next`), not
+  a keyword heuristic like Phase 7's bucket router. User phrasing for intent is
+  open-ended natural language, not domain keywords — exactly the judgment call agentic
+  RAG is meant to hand to the model. Falls back to `explain` on any parse failure or
+  off-taxonomy response.
+- **Evaluation dataset size**: a small (10-scenario) self-authored, unreviewed golden
+  set now, not the ~60-question target `evaluation-strategy.md` names for the mature
+  system — that number is a long-run target, not a Phase 10 gate, matching Phase 9's
+  identical reasoning for its own persona-fidelity set.
+
+**Grounding contract**: the agent's final turn answers in a structured shape —
+`{"answer": ..., "citations": [...]}` — with four citation kinds (`move`, `evaluation`,
+`variation`, `opening`), each checked against the same profile-scoped tables the tools
+themselves read from. Discovered during live testing: the tool set initially omitted a
+way to answer "what was my opening in this game" at all (`lookup_opening(epd)` needs an
+EPD nothing gave the model access to) — fixed by attaching the game's already-computed
+`OpeningMatch` directly to `get_game_analysis`'s payload and adding the corresponding
+`opening` citation kind, rather than requiring the model to chain three tool calls for a
+question this common.
+
+**RAGAS answer-quality finding**: a real run against `gpt-4o-mini`
+(`evals/runs/20260728T162429Z_single_game_chat.json`) recorded Faithfulness 0.70 against
+`evaluation-strategy.md`'s 0.85 hard threshold. Per the golden-vs-synthetic rule already
+applied identically in Phase 7 and Phase 9, this does not block sign-off — the dataset is
+unreviewed (`reviewed_by` unset on every scenario) — but the number itself is a real,
+specific finding, not noise: manual review of all ten real answers found no false or
+fabricated game-specific claim; RAGAS's Faithfulness scores every sentence, including
+legitimate coaching advice ("study tactical patterns like forks and pins") that was never
+meant to be citation-backed the way a game fact is. The citation-level grounding
+guardrail — which *is* unconditionally enforced, not dataset-gated — caught every
+citation-shaped claim correctly in testing. Worth revisiting once the golden set is
+human-reviewed: either the threshold needs owner recalibration for a system that
+intentionally gives uncited advice, or the output contract needs an explicit
+advice-vs-fact split so Faithfulness can be scored against the fact portion only.
+→ `final_docs/v2/phase-reports/phase-10-agentic-rag-chat.md`
+
 ---
 
 ## Open questions raised back to the owner

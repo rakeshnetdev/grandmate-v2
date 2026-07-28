@@ -13,7 +13,35 @@ from openai import AsyncOpenAI
 
 from app.core.config import LLMSettings, RetrievalSettings
 from app.core.devinsight import SpanKind, get_recorder
-from app.integrations.llm.base import CompletionRequest, CompletionResponse, TokenUsage
+from app.integrations.llm.base import (
+    CompletionRequest,
+    CompletionResponse,
+    Message,
+    TokenUsage,
+    ToolCall,
+)
+
+
+def _to_openai_message(message: Message) -> dict[str, Any]:
+    """Map our provider-agnostic `Message` to the OpenAI chat-completions shape.
+
+    `content` is passed through as-is, including `None` — valid only on an assistant
+    message that carries `tool_calls` instead of text, which is exactly the case this
+    type exists to represent.
+    """
+    payload: dict[str, Any] = {"role": message.role, "content": message.content}
+    if message.tool_calls:
+        payload["tool_calls"] = [
+            {
+                "id": call.id,
+                "type": "function",
+                "function": {"name": call.name, "arguments": call.arguments},
+            }
+            for call in message.tool_calls
+        ]
+    if message.tool_call_id:
+        payload["tool_call_id"] = message.tool_call_id
+    return payload
 
 
 class OpenAIEmbeddingProvider:
@@ -63,7 +91,7 @@ class OpenAIChatProvider:
 
         kwargs: dict[str, Any] = {
             "model": model,
-            "messages": [{"role": m.role, "content": m.content} for m in request.messages],
+            "messages": [_to_openai_message(m) for m in request.messages],
             "temperature": (
                 request.temperature
                 if request.temperature is not None
@@ -73,19 +101,43 @@ class OpenAIChatProvider:
         }
         if request.response_format:
             kwargs["response_format"] = {"type": request.response_format}
+        if request.tools:
+            kwargs["tools"] = [
+                {
+                    "type": "function",
+                    "function": {
+                        "name": tool.name,
+                        "description": tool.description,
+                        "parameters": tool.parameters,
+                    },
+                }
+                for tool in request.tools
+            ]
 
         with get_recorder().span(SpanKind.LLM, "complete", model=model) as span:
             response = await self._client.chat.completions.create(**kwargs)
             usage = response.usage
             prompt_tokens = usage.prompt_tokens if usage else 0
             completion_tokens = usage.completion_tokens if usage else 0
+            message = response.choices[0].message
+            tool_calls = (
+                [
+                    ToolCall(id=tc.id, name=tc.function.name, arguments=tc.function.arguments)
+                    for tc in message.tool_calls
+                ]
+                if message.tool_calls
+                else None
+            )
             if span:
                 span.set_tokens(prompt_tokens, completion_tokens)
+                if tool_calls:
+                    span.set(tool_call_count=len(tool_calls))
 
             return CompletionResponse(
-                content=response.choices[0].message.content or "",
+                content=message.content or "",
                 model=response.model,
                 usage=TokenUsage(prompt_tokens=prompt_tokens, completion_tokens=completion_tokens),
+                tool_calls=tool_calls,
             )
 
     async def aclose(self) -> None:
@@ -117,6 +169,25 @@ class UnconfiguredLLMProvider:
         return None
 
 
+class UnconfiguredEmbeddingProvider:
+    """`EmbeddingProvider` stand-in used when `OPENAI_API_KEY` is blank (Phase 10).
+
+    Same reasoning as `UnconfiguredLLMProvider`: Phase 10 holds one embedding provider
+    on `app.state` for the lifetime of the process (the chat agent's `search_knowledge`
+    and `search_analysis` tools need one on every graph invocation), so construction must
+    not depend on a key existing at startup — only actual use should fail.
+    """
+
+    async def embed(self, texts: list[str]) -> list[list[float]]:
+        raise RuntimeError(
+            "OPENAI_API_KEY is not configured — add it to backend/.env to enable "
+            "retrieval-backed features (knowledge search, chat)."
+        )
+
+    async def aclose(self) -> None:
+        return None
+
+
 def build_llm_provider(llm_settings: LLMSettings) -> OpenAIChatProvider | UnconfiguredLLMProvider:
     """The real provider when configured, otherwise a stand-in that fails only on use."""
     if llm_settings.is_configured:
@@ -124,9 +195,21 @@ def build_llm_provider(llm_settings: LLMSettings) -> OpenAIChatProvider | Unconf
     return UnconfiguredLLMProvider()
 
 
+def build_embedding_provider(
+    llm_settings: LLMSettings, retrieval_settings: RetrievalSettings
+) -> OpenAIEmbeddingProvider | UnconfiguredEmbeddingProvider:
+    """The real embedding provider when configured, otherwise a stand-in that fails only
+    on use — see `build_llm_provider`."""
+    if llm_settings.is_configured:
+        return OpenAIEmbeddingProvider(llm_settings, retrieval_settings)
+    return UnconfiguredEmbeddingProvider()
+
+
 __all__ = [
     "OpenAIChatProvider",
     "OpenAIEmbeddingProvider",
+    "UnconfiguredEmbeddingProvider",
     "UnconfiguredLLMProvider",
+    "build_embedding_provider",
     "build_llm_provider",
 ]

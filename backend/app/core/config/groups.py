@@ -127,6 +127,18 @@ class DatabaseSettings(BaseSettings):
         """
         return self.url.replace("+asyncpg", "+psycopg")
 
+    @property
+    def psycopg_conninfo(self) -> str:
+        """Plain libpq connection string — no SQLAlchemy driver prefix.
+
+        For the one consumer that talks to psycopg directly rather than through
+        SQLAlchemy: the LangGraph Postgres checkpointer (Phase 10, ADR-0005 short-term
+        store), whose ``AsyncConnection.connect`` expects a bare ``postgresql://`` URL.
+        Derived from ``sync_url`` for the same one-URL-in-.env reason as ``sync_url``
+        itself.
+        """
+        return self.sync_url.replace("postgresql+psycopg://", "postgresql://")
+
 
 class StorageSettings(BaseSettings):
     """Object storage for uploaded PGNs and generated reports (ADR-0015).

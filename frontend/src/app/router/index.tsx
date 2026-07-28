@@ -8,6 +8,7 @@
 import { createBrowserRouter } from 'react-router-dom';
 
 import { RootLayout } from '@/app/layouts/RootLayout';
+import { ChatPage } from '@/pages/ChatPage';
 import { DashboardPage } from '@/pages/DashboardPage';
 import { GameDetailPage } from '@/pages/GameDetailPage';
 import { GamesPage } from '@/pages/GamesPage';
@@ -27,6 +28,7 @@ export const routes = [
       { path: 'games', element: <GamesPage /> },
       { path: 'games/:gameId', element: <GameDetailPage /> },
       { path: 'dashboard', element: <DashboardPage /> },
+      { path: 'chat', element: <ChatPage /> },
       // Phase 9:  { path: 'players/:profileId', element: <PlayerPage /> }
       { path: '*', element: <NotFoundPage /> },
     ],
