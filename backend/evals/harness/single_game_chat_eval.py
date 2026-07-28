@@ -49,10 +49,12 @@ from app.db.models import (
 from app.db.session import create_engine, create_session_factory, session_scope
 from app.domain.chat.prompts import INTENTS
 from app.domain.llm_usage import LLMBudgetTracker
+from app.domain.memory import MemoryService
 from app.domain.patterns import load_opening_index
 from app.integrations.llm.openai_provider import OpenAIChatProvider, OpenAIEmbeddingProvider
 from app.orchestration.checkpointer import open_checkpointer
 from app.orchestration.graphs.chat import ChatGraphDeps, build_chat_graph
+from app.orchestration.store import open_store
 from app.orchestration.tools import ToolContext
 from evals.harness.ragas_compat import ensure_ragas_importable
 from evals.harness.single_game_chat_dataset import (
@@ -168,21 +170,25 @@ async def _score_scenario(
 ) -> ScenarioResult:
     game = await _seed_game(session, scenario)
 
-    deps = ChatGraphDeps(
-        llm=llm,
-        llm_settings=settings.llm,
-        agent_settings=settings.agents,
-        budget=LLMBudgetTracker(session, settings.llm),
-        tool_context=ToolContext(
-            session=session,
-            profile_id=game.profile_id,
-            settings=settings,
-            embedding_provider=embedding_provider,
-            opening_index=opening_index,
-        ),
-    )
-
-    async with open_checkpointer(settings.database) as checkpointer:
+    async with (
+        open_checkpointer(settings.database) as checkpointer,
+        open_store(settings.database) as store,
+    ):
+        deps = ChatGraphDeps(
+            llm=llm,
+            llm_settings=settings.llm,
+            agent_settings=settings.agents,
+            budget=LLMBudgetTracker(session, settings.llm),
+            tool_context=ToolContext(
+                session=session,
+                profile_id=game.profile_id,
+                settings=settings,
+                embedding_provider=embedding_provider,
+                opening_index=opening_index,
+                store=store,
+            ),
+            memory=MemoryService(session, store, settings.memory),
+        )
         graph = build_chat_graph(deps, checkpointer)
         result = await graph.ainvoke(
             {

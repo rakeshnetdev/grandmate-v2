@@ -106,4 +106,9 @@ export const apiClient = {
     body: unknown,
     signal?: AbortSignal,
   ): Promise<z.infer<TSchema>> => request(path, { schema, method: 'POST', body, signal }),
+
+  // No caller in this app expects a meaningful DELETE response body (a 204), so unlike
+  // `get`/`post` this does not take a schema — there is nothing for one to validate.
+  delete: (path: string, signal?: AbortSignal): Promise<void> =>
+    request(path, { schema: z.void(), method: 'DELETE', signal }),
 };

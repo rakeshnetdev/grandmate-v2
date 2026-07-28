@@ -17,6 +17,8 @@ from app.integrations.llm import build_embedding_provider
 from tests.fake_llm import FakeLLMProvider
 
 _DIRECT_ANSWER = '{"answer": "A grounded answer.", "citations": []}'
+# Every completed turn runs a `write_memory` extraction call after its answer.
+_NO_MEMORIES = '{"memories": []}'
 
 
 async def _make_profile(session: AsyncSession) -> Profile:
@@ -88,7 +90,7 @@ class TestSendMessage:
         self, db_session: AsyncSession
     ) -> None:
         profile = await _make_profile(db_session)
-        llm = FakeLLMProvider(responses=['{"intent": "explain"}', _DIRECT_ANSWER])
+        llm = FakeLLMProvider(responses=['{"intent": "explain"}', _DIRECT_ANSWER, _NO_MEMORIES])
         service = _service(db_session, llm)
         thread = await service.create_thread(profile.id, active_game_id=None)
 
@@ -109,8 +111,10 @@ class TestSendMessage:
             responses=[
                 '{"intent": "explain"}',
                 _DIRECT_ANSWER,
+                _NO_MEMORIES,
                 '{"intent": "explain"}',
                 _DIRECT_ANSWER,
+                _NO_MEMORIES,
             ]
         )
         service = _service(db_session, llm)
@@ -147,7 +151,7 @@ class TestGetHistory:
 
     async def test_contains_the_exchange_after_a_message(self, db_session: AsyncSession) -> None:
         profile = await _make_profile(db_session)
-        llm = FakeLLMProvider(responses=['{"intent": "explain"}', _DIRECT_ANSWER])
+        llm = FakeLLMProvider(responses=['{"intent": "explain"}', _DIRECT_ANSWER, _NO_MEMORIES])
         service = _service(db_session, llm)
         thread = await service.create_thread(profile.id, active_game_id=None)
         await service.send_message(profile.id, thread.id, Persona.SELF_LEARNER, "hello")

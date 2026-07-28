@@ -15,6 +15,7 @@ import { GamesPage } from '@/pages/GamesPage';
 import { HomePage } from '@/pages/HomePage';
 import { ImportsPage } from '@/pages/ImportsPage';
 import { LoginPage } from '@/pages/LoginPage';
+import { MemoryPage } from '@/pages/MemoryPage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
 
 export const routes = [
@@ -29,6 +30,7 @@ export const routes = [
       { path: 'games/:gameId', element: <GameDetailPage /> },
       { path: 'dashboard', element: <DashboardPage /> },
       { path: 'chat', element: <ChatPage /> },
+      { path: 'memory', element: <MemoryPage /> },
       // Phase 9:  { path: 'players/:profileId', element: <PlayerPage /> }
       { path: '*', element: <NotFoundPage /> },
     ],

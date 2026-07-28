@@ -15,10 +15,13 @@ import uuid
 
 import pytest
 from langgraph.checkpoint.memory import MemorySaver
+from langgraph.store.memory import InMemoryStore
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import Settings
+from app.db.models import ChatThread, Profile, ProfileKind, User
 from app.domain.llm_usage import LLMBudgetTracker
+from app.domain.memory import MemoryService
 from app.domain.patterns import OpeningIndex
 from app.integrations.llm import build_embedding_provider
 from app.integrations.llm.base import ToolCall
@@ -28,8 +31,33 @@ from tests.fake_llm import FakeLLMProvider
 
 pytestmark = pytest.mark.asyncio
 
+# Every completed turn runs a `write_memory` extraction call after its answer — this is
+# the "nothing durable was said" response most tests script for it, since memory
+# extraction itself is `test_memory_extraction.py`'s concern, not this file's.
+_NO_MEMORIES = '{"memories": []}'
 
-def _deps(settings: Settings, session: AsyncSession, llm: FakeLLMProvider) -> ChatGraphDeps:
+
+async def _make_profile(session: AsyncSession) -> Profile:
+    """Only needed by tests that actually assert on a written `LongTermMemory` row —
+    that table has a real foreign key to `profiles`, unlike every other tool this file
+    exercises, so a bare `uuid.uuid4()` (what `_deps` uses by default) is not enough."""
+    user = User()
+    session.add(user)
+    await session.flush()
+    profile = Profile(owner_user_id=user.id, kind=ProfileKind.SELF, display_name="Me")
+    session.add(profile)
+    await session.flush()
+    return profile
+
+
+def _deps(
+    settings: Settings,
+    session: AsyncSession,
+    llm: FakeLLMProvider,
+    *,
+    profile_id: uuid.UUID | None = None,
+) -> ChatGraphDeps:
+    store = InMemoryStore()
     return ChatGraphDeps(
         llm=llm,
         llm_settings=settings.llm,
@@ -37,11 +65,13 @@ def _deps(settings: Settings, session: AsyncSession, llm: FakeLLMProvider) -> Ch
         budget=LLMBudgetTracker(session, settings.llm),
         tool_context=ToolContext(
             session=session,
-            profile_id=uuid.uuid4(),
+            profile_id=profile_id or uuid.uuid4(),
             settings=settings,
             embedding_provider=build_embedding_provider(settings.llm, settings.retrieval),
             opening_index=OpeningIndex({}),
+            store=store,
         ),
+        memory=MemoryService(session, store, settings.memory),
     )
 
 
@@ -52,6 +82,7 @@ async def test_a_direct_answer_skips_tool_calling(
         responses=[
             '{"intent": "explain"}',
             '{"answer": "Direct answer.", "citations": []}',
+            _NO_MEMORIES,
         ]
     )
     graph = build_chat_graph(_deps(settings, db_session, llm), MemorySaver())
@@ -63,7 +94,7 @@ async def test_a_direct_answer_skips_tool_calling(
 
     assert result["answer"] == "Direct answer."
     assert result["grounded"] is True
-    assert result["trace"] == ["classify_intent", "run_agent"]
+    assert result["trace"] == ["classify_intent", "run_agent", "write_memory"]
     assert result["messages"][-2:] == [
         {"role": "user", "content": "what is a fork?"},
         {"role": "assistant", "content": "Direct answer."},
@@ -81,6 +112,7 @@ async def test_a_tool_call_is_dispatched_and_fed_back(
             '{"intent": "explain"}',
             [tool_call],
             '{"answer": "It is not a known opening.", "citations": []}',
+            _NO_MEMORIES,
         ]
     )
     graph = build_chat_graph(_deps(settings, db_session, llm), MemorySaver())
@@ -99,7 +131,8 @@ async def test_a_tool_call_is_dispatched_and_fed_back(
         }
     ]
     # The tool result was fed back to the model as a "tool" message before its next call.
-    final_call_messages = llm.calls[-1].messages
+    # llm.calls[-1] is the trailing write_memory extraction call, not run_agent's.
+    final_call_messages = llm.calls[-2].messages
     tool_messages = [m for m in final_call_messages if m.role == "tool"]
     assert len(tool_messages) == 1
     assert tool_messages[0].content is not None
@@ -115,6 +148,7 @@ async def test_an_unknown_tool_call_becomes_an_error_result_not_a_crash(
             '{"intent": "explain"}',
             [tool_call],
             '{"answer": "ok", "citations": []}',
+            _NO_MEMORIES,
         ]
     )
     graph = build_chat_graph(_deps(settings, db_session, llm), MemorySaver())
@@ -143,6 +177,7 @@ async def test_a_stray_profile_id_argument_is_rejected_not_accepted(
             '{"intent": "explain"}',
             [tool_call],
             '{"answer": "ok", "citations": []}',
+            _NO_MEMORIES,
         ]
     )
     graph = build_chat_graph(_deps(settings, db_session, llm), MemorySaver())
@@ -166,7 +201,9 @@ async def test_an_ungrounded_answer_is_retried_once_then_falls_back(
             "citations": [{"kind": "move", "game_id": str(uuid.uuid4()), "ply": 4, "san": "Nf3"}],
         }
     )
-    llm = FakeLLMProvider(responses=['{"intent": "explain"}', bad_citation, bad_citation])
+    llm = FakeLLMProvider(
+        responses=['{"intent": "explain"}', bad_citation, bad_citation, _NO_MEMORIES]
+    )
     graph = build_chat_graph(_deps(settings, db_session, llm), MemorySaver())
 
     result = await graph.ainvoke(
@@ -175,7 +212,8 @@ async def test_an_ungrounded_answer_is_retried_once_then_falls_back(
     )
 
     # Exactly two answer attempts were made (both scripted responses consumed) before
-    # falling back — not zero, not a third.
+    # falling back to a deterministic answer, followed by one memory-extraction call —
+    # not zero, not a third answer attempt.
     assert llm.responses == []
     assert result["grounded"] is True
     assert result["answer"] != "Bad answer."
@@ -189,8 +227,10 @@ async def test_thread_continuity_carries_prior_turns_into_the_next_llm_call(
         responses=[
             '{"intent": "explain"}',
             '{"answer": "First answer.", "citations": []}',
+            _NO_MEMORIES,
             '{"intent": "explain"}',
             '{"answer": "Second answer.", "citations": []}',
+            _NO_MEMORIES,
         ]
     )
     graph = build_chat_graph(_deps(settings, db_session, llm), MemorySaver())
@@ -207,8 +247,9 @@ async def test_thread_continuity_carries_prior_turns_into_the_next_llm_call(
         {"role": "user", "content": "second question"},
         {"role": "assistant", "content": "Second answer."},
     ]
-    # The second turn's agent call carried the first turn's exchange as context.
-    second_agent_call_messages = llm.calls[-1].messages
+    # The second turn's agent call (not its trailing write_memory call) carried the
+    # first turn's exchange as context.
+    second_agent_call_messages = llm.calls[-2].messages
     contents = [m.content for m in second_agent_call_messages]
     assert "first question" in contents
     assert "First answer." in contents
@@ -221,8 +262,10 @@ async def test_a_different_thread_id_starts_with_no_history(
         responses=[
             '{"intent": "explain"}',
             '{"answer": "First answer.", "citations": []}',
+            _NO_MEMORIES,
             '{"intent": "explain"}',
             '{"answer": "Second answer.", "citations": []}',
+            _NO_MEMORIES,
         ]
     )
     checkpointer = MemorySaver()
@@ -241,3 +284,55 @@ async def test_a_different_thread_id_starts_with_no_history(
         {"role": "user", "content": "q2"},
         {"role": "assistant", "content": "Second answer."},
     ]
+
+
+async def test_write_memory_persists_a_qualifying_candidate_after_the_answer(
+    settings: Settings, db_session: AsyncSession
+) -> None:
+    """End-to-end through the real graph, not just `MemoryService` in isolation
+    (`test_memory_service.py`'s job) — proves `write_memory` is actually wired into the
+    graph and actually calls it."""
+    llm = FakeLLMProvider(
+        responses=[
+            '{"intent": "explain"}',
+            '{"answer": "Sure, I will keep it brief.", "citations": []}',
+            '{"memories": [{"kind": "preference", "content": "Prefers short answers", '
+            '"confidence": 0.9}]}',
+        ]
+    )
+    profile = await _make_profile(db_session)
+    deps = _deps(settings, db_session, llm, profile_id=profile.id)
+    thread = ChatThread(profile_id=profile.id)
+    db_session.add(thread)
+    await db_session.flush()
+
+    result = await build_chat_graph(deps, MemorySaver()).ainvoke(
+        {"question": "Please keep answers short.", "persona": "self_learner"},
+        config={"configurable": {"thread_id": str(thread.id)}},
+    )
+
+    assert result["trace"][-1] == "write_memory"
+    written = await deps.memory.list_memories(deps.tool_context.profile_id)
+    assert [m.content for m in written] == ["Prefers short answers"]
+    assert written[0].source_thread_id == thread.id
+
+
+async def test_write_memory_drops_a_candidate_below_the_confidence_floor(
+    settings: Settings, db_session: AsyncSession
+) -> None:
+    llm = FakeLLMProvider(
+        responses=[
+            '{"intent": "explain"}',
+            '{"answer": "Noted.", "citations": []}',
+            '{"memories": [{"kind": "goal", "content": "maybe endgames", "confidence": 0.2}]}',
+        ]
+    )
+    deps = _deps(settings, db_session, llm)
+
+    await build_chat_graph(deps, MemorySaver()).ainvoke(
+        {"question": "I guess I could look at endgames sometime?", "persona": "self_learner"},
+        config={"configurable": {"thread_id": str(uuid.uuid4())}},
+    )
+
+    written = await deps.memory.list_memories(deps.tool_context.profile_id)
+    assert written == []

@@ -194,9 +194,11 @@ async def test_graph_nodes_emit_spans(settings: Settings, db_session: AsyncSessi
     import uuid
 
     from langgraph.checkpoint.memory import MemorySaver
+    from langgraph.store.memory import InMemoryStore
 
     from app.core.devinsight import TraceRecorder, bind_recorder, reset_recorder
     from app.domain.llm_usage import LLMBudgetTracker
+    from app.domain.memory import MemoryService
     from app.domain.patterns import OpeningIndex
     from app.integrations.llm import build_embedding_provider
     from app.orchestration.graphs.chat import ChatGraphDeps, build_chat_graph
@@ -207,8 +209,10 @@ async def test_graph_nodes_emit_spans(settings: Settings, db_session: AsyncSessi
         responses=[
             '{"intent": "explain"}',
             '{"answer": "A test answer.", "citations": []}',
+            '{"memories": []}',
         ]
     )
+    store = InMemoryStore()
     deps = ChatGraphDeps(
         llm=llm,
         llm_settings=settings.llm,
@@ -220,7 +224,9 @@ async def test_graph_nodes_emit_spans(settings: Settings, db_session: AsyncSessi
             settings=settings,
             embedding_provider=build_embedding_provider(settings.llm, settings.retrieval),
             opening_index=OpeningIndex({}),
+            store=store,
         ),
+        memory=MemoryService(db_session, store, settings.memory),
     )
     graph = build_chat_graph(deps, MemorySaver())
 
@@ -236,7 +242,7 @@ async def test_graph_nodes_emit_spans(settings: Settings, db_session: AsyncSessi
 
     trace = recorder.finish()
     node_spans = [s for s in trace.spans if s.kind is SpanKind.GRAPH_NODE]
-    assert [s.name for s in node_spans] == ["classify_intent"]
+    assert [s.name for s in node_spans] == ["classify_intent", "write_memory"]
     agent_spans = [s for s in trace.spans if s.kind is SpanKind.AGENT]
     assert [s.name for s in agent_spans] == ["run_agent"]
     assert trace.status is SpanStatus.OK

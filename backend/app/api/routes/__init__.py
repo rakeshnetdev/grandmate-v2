@@ -19,6 +19,7 @@ from app.api.routes import (
     games,
     health,
     imports,
+    memory,
     patterns,
     profiles,
     reports,
@@ -54,6 +55,7 @@ def build_v1_router(*, include_dev_routes: bool = False) -> APIRouter:
     router.include_router(analytics.router)
     router.include_router(reports.router)
     router.include_router(chat.router)
+    router.include_router(memory.router)
 
     if include_dev_routes:
         router.include_router(dev.router)

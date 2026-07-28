@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import uuid
 
+from langgraph.store.base import BaseStore
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import Settings
@@ -24,6 +25,7 @@ from app.db.models import (
     ProfileKind,
     User,
 )
+from app.domain.memory import MemoryService
 from app.domain.patterns import OpeningEntry, OpeningIndex
 from app.integrations.llm import build_embedding_provider
 from app.orchestration.tools import ToolContext
@@ -34,6 +36,7 @@ from app.orchestration.tools.analysis_tools import (
     lookup_opening,
 )
 from app.orchestration.tools.knowledge_tools import search_knowledge
+from app.orchestration.tools.memory_tools import recall_memory
 from app.orchestration.tools.validation_tools import validate_line
 
 _START_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
@@ -92,7 +95,11 @@ async def _seed_game(session: AsyncSession, profile: Profile, *, critical: bool)
 
 
 def _ctx(
-    session: AsyncSession, profile_id: uuid.UUID, *, opening_index: OpeningIndex | None = None
+    session: AsyncSession,
+    profile_id: uuid.UUID,
+    *,
+    opening_index: OpeningIndex | None = None,
+    store: BaseStore | None = None,
 ) -> ToolContext:
     settings = Settings()
     return ToolContext(
@@ -101,6 +108,7 @@ def _ctx(
         settings=settings,
         embedding_provider=build_embedding_provider(settings.llm, settings.retrieval),
         opening_index=opening_index or OpeningIndex({}),
+        store=store,
     )
 
 
@@ -253,3 +261,51 @@ class TestValidateLine:
 
         assert result["legal"] is False
         assert result["illegal_at"] is None
+
+
+class TestRecallMemory:
+    async def test_returns_previously_written_memories(self, db_session: AsyncSession) -> None:
+        from langgraph.store.memory import InMemoryStore
+
+        profile = await _make_profile(db_session)
+        store = InMemoryStore()
+        settings = Settings()
+        await MemoryService(db_session, store, settings.memory).write_candidate_memories(
+            profile.id,
+            [{"kind": "goal", "content": "Improve endgames", "confidence": 0.9}],
+            source_thread_id=None,
+        )
+
+        result = await recall_memory(_ctx(db_session, profile.id, store=store))
+
+        assert result["memories"] == [
+            {"kind": "goal", "content": "Improve endgames", "confidence": 0.9}
+        ]
+
+    async def test_no_store_bound_yields_no_memories_not_an_error(
+        self, db_session: AsyncSession
+    ) -> None:
+        profile = await _make_profile(db_session)
+
+        result = await recall_memory(_ctx(db_session, profile.id, store=None))
+
+        assert result["memories"] == []
+
+    async def test_a_different_profiles_memories_are_never_returned(
+        self, db_session: AsyncSession
+    ) -> None:
+        from langgraph.store.memory import InMemoryStore
+
+        owner = await _make_profile(db_session)
+        other = await _make_profile(db_session)
+        store = InMemoryStore()
+        settings = Settings()
+        await MemoryService(db_session, store, settings.memory).write_candidate_memories(
+            owner.id,
+            [{"kind": "goal", "content": "Improve endgames", "confidence": 0.9}],
+            source_thread_id=None,
+        )
+
+        result = await recall_memory(_ctx(db_session, other.id, store=store))
+
+        assert result["memories"] == []

@@ -30,6 +30,7 @@ from app.orchestration.tools.knowledge_tools import (
     search_analysis,
     search_knowledge,
 )
+from app.orchestration.tools.memory_tools import RECALL_MEMORY, recall_memory
 from app.orchestration.tools.validation_tools import VALIDATE_LINE, validate_line
 
 ToolFn = Callable[..., Awaitable[dict[str, Any]]]
@@ -50,6 +51,7 @@ TOOL_SPECS: list[ToolSpec] = [
     GET_PROFILE_AGGREGATE,
     LOOKUP_OPENING,
     VALIDATE_LINE,
+    RECALL_MEMORY,
 ]
 
 TOOL_DISPATCH: dict[str, ToolFn] = {
@@ -60,6 +62,7 @@ TOOL_DISPATCH: dict[str, ToolFn] = {
     GET_PROFILE_AGGREGATE.name: get_profile_aggregate,
     LOOKUP_OPENING.name: lookup_opening,
     VALIDATE_LINE.name: _call_validate_line,
+    RECALL_MEMORY.name: recall_memory,
 }
 
 __all__ = ["TOOL_DISPATCH", "TOOL_SPECS", "ToolFn"]

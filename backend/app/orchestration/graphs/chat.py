@@ -1,8 +1,9 @@
-"""The chat agent graph (Phase 10, ADR-0008 §"agentic retrieval").
+"""The chat agent graph (Phase 10, ADR-0008 §"agentic retrieval"; +write_memory Phase 11).
 
 Replaces `graphs/skeleton.py`'s placeholder nodes (Phase 1) with the real thing: intent
 classification, then a tool-calling agent loop bounded by `AgentSettings`, with a
-grounding guardrail gating every answer before it leaves the loop.
+grounding guardrail gating every answer before it leaves the loop, then a best-effort
+long-term-memory extraction step.
 
 **Two nodes, not one-node-per-tool-call.** `_run_agent` runs its own bounded `while`
 loop internally rather than modelling each tool call as a separate graph node with
@@ -14,14 +15,24 @@ plain control flow inside one node. `messages` only ever grows by one user turn 
 assistant turn per invocation; intra-turn tool exchanges live in a local list, never in
 checkpointed state, so a long conversation's persisted size stays proportional to turn
 count, not tool-call count.
+
+**`write_memory` runs after the answer is final, as its own node.** Long-term memory
+extraction is a separate concern from answering — it reads the completed (question,
+answer) pair and may write to `long_term_memory`/the memory store, but it can never
+change what the user was already told, and a failure there does not fail the turn. That
+independence is exactly why it is its own graph node rather than folded into
+`_run_agent`: two responsibilities that must never entangle get two places to change
+independently.
 """
 
 from __future__ import annotations
 
 import json
+import uuid
 from dataclasses import dataclass
 from typing import Annotated, Any, TypedDict
 
+from langchain_core.runnables import RunnableConfig
 from langgraph.graph import END, StateGraph
 
 from app.core.config import AgentSettings, LLMSettings
@@ -31,6 +42,8 @@ from app.domain.chat.fallback import build_fallback_answer
 from app.domain.chat.guardrail import validate_answer
 from app.domain.chat.prompts import build_agent_system_message, build_intent_messages, parse_intent
 from app.domain.llm_usage import LLMBudgetTracker
+from app.domain.memory import MemoryService
+from app.domain.memory.prompts import build_extraction_messages, parse_candidate_memories
 from app.integrations.llm.base import CompletionRequest, LLMProvider, Message, ToolCall
 from app.orchestration.tools import TOOL_DISPATCH, TOOL_SPECS, ToolContext
 
@@ -86,6 +99,7 @@ class ChatGraphDeps:
     agent_settings: AgentSettings
     budget: LLMBudgetTracker
     tool_context: ToolContext
+    memory: MemoryService
 
 
 async def _classify_intent(state: GraphState, deps: ChatGraphDeps) -> GraphState:
@@ -233,6 +247,52 @@ async def _run_agent(state: GraphState, deps: ChatGraphDeps) -> GraphState:
         }
 
 
+async def _write_memory(
+    state: GraphState, deps: ChatGraphDeps, thread_id: str | None
+) -> GraphState:
+    """A best-effort side channel, never the user-visible path: a failure or an empty
+    result here changes nothing about the answer already returned by `_run_agent`. Runs
+    after the answer is decided, not before, so extraction judges the actual completed
+    exchange rather than an in-progress one.
+
+    Reads `profile_id` from `deps.tool_context` — the one bound, never-model-suppliable
+    value (rule 14) — rather than `state["profile_id"]`, which nothing else in this graph
+    actually enforces is set. `thread_id` comes from the graph's own invocation config
+    (LangGraph's checkpointer thread id), the single source of truth for which
+    conversation this is, instead of duplicating it into checkpointed state too.
+    """
+    with get_recorder().span(SpanKind.GRAPH_NODE, "write_memory") as span:
+        if not await deps.budget.has_budget():
+            if span:
+                span.set(skipped="budget_exhausted")
+            return {"trace": ["write_memory"]}
+
+        response = await deps.llm.complete(
+            CompletionRequest(
+                messages=build_extraction_messages(state["question"], state.get("answer") or ""),
+                model=deps.llm_settings.llm_model,
+                response_format="json_object",
+            )
+        )
+        await deps.budget.record_usage(
+            response.usage.prompt_tokens, response.usage.completion_tokens
+        )
+        candidates = parse_candidate_memories(response.content)
+
+        written_count = 0
+        if candidates:
+            written = await deps.memory.write_candidate_memories(
+                deps.tool_context.profile_id,
+                candidates,
+                source_thread_id=uuid.UUID(thread_id) if thread_id else None,
+            )
+            written_count = len(written)
+
+        if span:
+            span.set(candidate_count=len(candidates), written_count=written_count)
+        return {"trace": ["write_memory"]}
+
+
 def build_chat_graph(deps: ChatGraphDeps, checkpointer: Any) -> Any:
     """Compile the chat graph bound to `deps` and `checkpointer`.
 
@@ -251,12 +311,18 @@ def build_chat_graph(deps: ChatGraphDeps, checkpointer: Any) -> Any:
     async def _run_agent_node(state: GraphState) -> GraphState:
         return await _run_agent(state, deps)
 
+    async def _write_memory_node(state: GraphState, config: RunnableConfig) -> GraphState:
+        thread_id = config.get("configurable", {}).get("thread_id")
+        return await _write_memory(state, deps, thread_id)
+
     builder.add_node("classify_intent", _classify_intent_node)
     builder.add_node("run_agent", _run_agent_node)
+    builder.add_node("write_memory", _write_memory_node)
 
     builder.set_entry_point("classify_intent")
     builder.add_edge("classify_intent", "run_agent")
-    builder.add_edge("run_agent", END)
+    builder.add_edge("run_agent", "write_memory")
+    builder.add_edge("write_memory", END)
 
     return builder.compile(checkpointer=checkpointer)
 

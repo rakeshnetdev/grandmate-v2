@@ -150,6 +150,11 @@ Declared at Phase 1, enforced starting Phase 10 — the chat agent loop
 | `AGENT_MAX_TOOL_CALLS` | `12` | Per turn; a call past this returns an error result to the model rather than dispatching |
 | `AGENT_TOKEN_BUDGET` | `20000` | Per turn; exceeding it stops the loop and falls back to a deterministic answer, same as exhausting `LLM_DAILY_TOKEN_CEILING` mid-turn |
 
+### Long-term memory (Phase 11, ADR-0005, D-013, D-026)
+| Key | Default | Notes |
+|-----|---------|-------|
+| `MEMORY_WRITE_CONFIDENCE_FLOOR` | `0.7` | Below this, a candidate preference/goal/recurring-finding is not written at all — the whole enforcement mechanism for "only durable facts persist"; writes are silent and confidence-gated, never confirmation-prompted (D-026) |
+
 ### Ingestion
 | Key | Default | Notes |
 |-----|---------|-------|

@@ -30,6 +30,7 @@ from app.db.models.knowledge import (
     KnowledgeDocument,
 )
 from app.db.models.llm_usage import LLMUsageDaily
+from app.db.models.memory import LongTermMemory, MemoryKind
 from app.db.models.patterns import (
     MotifFinding,
     MotifType,
@@ -58,6 +59,8 @@ __all__ = [
     "KnowledgeChunk",
     "KnowledgeDocument",
     "LLMUsageDaily",
+    "LongTermMemory",
+    "MemoryKind",
     "MotifFinding",
     "MotifType",
     "MoveClassification",

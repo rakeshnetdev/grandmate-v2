@@ -26,6 +26,9 @@ export function RootLayout() {
             <Link to="/dashboard" className="hover:text-foreground">
               Dashboard
             </Link>
+            <Link to="/memory" className="hover:text-foreground">
+              Memory
+            </Link>
             <UserMenu />
           </nav>
         </div>

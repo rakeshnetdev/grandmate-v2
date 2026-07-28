@@ -1,4 +1,4 @@
-"""Per-turn context every chat tool runs with (Phase 10).
+"""Per-turn context every chat tool runs with (Phase 10, +store at Phase 11).
 
 `profile_id` is bound here, not accepted as a tool argument anywhere in this package —
 the same isolation shape `AnalysisRetriever.search` already established at Phase 7
@@ -12,6 +12,7 @@ from __future__ import annotations
 import uuid
 from dataclasses import dataclass
 
+from langgraph.store.base import BaseStore
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import Settings
@@ -28,6 +29,11 @@ class ToolContext:
     settings: Settings
     embedding_provider: EmbeddingProvider
     opening_index: OpeningIndex
+    # Phase 11: the long-term memory store, read by `recall_memory`. Optional so every
+    # existing Phase 10 tool test that builds a `ToolContext` without memory in scope
+    # keeps working unchanged — a tool that never touches memory has no reason to
+    # require it.
+    store: BaseStore | None = None
 
 
 __all__ = ["ToolContext"]

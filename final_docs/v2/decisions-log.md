@@ -310,6 +310,41 @@ intentionally gives uncited advice, or the output contract needs an explicit
 advice-vs-fact split so Faithfulness can be scored against the fact portion only.
 → `final_docs/v2/phase-reports/phase-10-agentic-rag-chat.md`
 
+### D-026 — Phase 11 long-term memory mechanics · Locked (D-013 detail resolved)
+Three decisions confirmed with the owner before coding, all defaults recommended and
+approved as proposed — the exact retention/conflict-resolution detail D-013 deferred to
+"when there is real chat behaviour to reason about":
+
+- **Write trigger**: silent, confidence-gated — not a confirmation prompt ("I'll
+  remember that you're focusing on endgames — ok?"). The confidence floor
+  (`MEMORY_WRITE_CONFIDENCE_FLOOR`, default 0.7) is the entire enforcement mechanism for
+  ADR-0005's "only durable facts persist"; no in-chat friction on every new preference
+  or goal.
+- **Retention window**: no automatic expiry. An entry persists until superseded by a
+  new one of the same kind (`preference`/`goal`) or manually deleted — staleness is
+  handled by the write policy preferring recent signal, not a timer, matching the
+  supersede-not-overwrite audit trail ADR-0005 already specifies.
+- **`coach_note` scope**: deferred entirely, not even the data model. There is no
+  coach-viewing feature for it to attach to yet (ADR-0012 still defers cross-account
+  viewing) — `MemoryKind` ships with `preference` | `goal` | `recurring_finding` only.
+
+**Supersession policy, an implementation detail beyond what was asked but worth
+recording.** `preference` and `goal` are single-current-value-per-profile — a new one
+supersedes whatever was active, matching how a coach actually thinks about "what does
+this player want right now." `recurring_finding` accumulates instead (a player can have
+several distinct recurring weaknesses at once), deduplicated only against an exact
+repeat. A real semantic "does this update an existing entry" judgment is not attempted —
+genuinely the class of decision D-013 said needed real chat behaviour first, and one
+phase of real usage is not that yet.
+
+A real evaluation run against `gpt-4o-mini`
+(`evals/runs/20260728T204941Z_memory_quality.json`) scored retention true-positive and
+true-negative rates at 100% across ten scenarios — including one designed to catch the
+extraction prompt attributing a durable statement to the assistant's own words rather
+than the player's — plus a real-Postgres check confirming staleness resolves to exactly
+one active entry and memories never cross a profile boundary.
+→ `final_docs/v2/phase-reports/phase-11-long-term-memory.md`
+
 ---
 
 ## Open questions raised back to the owner

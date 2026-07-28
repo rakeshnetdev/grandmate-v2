@@ -32,6 +32,22 @@ target_metadata = Base.metadata
 # Injected here rather than stored in alembic.ini, so the URL lives only in .env.
 config.set_main_option("sqlalchemy.url", get_settings().database.sync_url)
 
+# LangGraph's Postgres checkpointer (Phase 10) and store (Phase 11) each own a family of
+# tables (`checkpoints`/`checkpoint_*`, `store`/`store_*`) created by their own `.setup()`
+# call, not by us — see `orchestration/checkpointer.py`'s docstring for why that DDL is
+# deliberately outside Alembic's ownership. Autogenerate has no way to know that on its
+# own: those tables are absent from `Base.metadata`, and absent-from-metadata is exactly
+# what autogenerate otherwise reads as "drop this". Filtering them out here means that
+# reasoning happens once, not by hand in every future migration that happens to run
+# alongside them.
+_LANGGRAPH_OWNED_TABLE_PREFIXES = ("checkpoint", "store")
+
+
+def include_object(object_: object, name: str | None, type_: str, *_args: object) -> bool:
+    if type_ == "table" and name is not None:
+        return not name.startswith(_LANGGRAPH_OWNED_TABLE_PREFIXES)
+    return True
+
 
 def run_migrations_offline() -> None:
     """Emit SQL to stdout without connecting.
@@ -45,6 +61,7 @@ def run_migrations_offline() -> None:
         dialect_opts={"paramstyle": "named"},
         compare_type=True,
         compare_server_default=True,
+        include_object=include_object,
     )
 
     with context.begin_transaction():
@@ -67,6 +84,7 @@ def run_migrations_online() -> None:
             # which is how a schema silently drifts from the models.
             compare_type=True,
             compare_server_default=True,
+            include_object=include_object,
         )
 
         with context.begin_transaction():
