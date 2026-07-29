@@ -271,6 +271,35 @@ class AgentSettings(BaseSettings):
     agent_token_budget: int = 20_000
 
 
+class MultiAgentSettings(BaseSettings):
+    """Multi-agent supervisor graph guardrails (Phase 13, ADR-0008 §7, D-029).
+
+    A **separate** ceiling from `AgentSettings`, not a reuse of it. Phase 10's single
+    agent loop shares one `AgentSettings` budget across its own tool-calling turn; the
+    Phase 13 supervisor graph spends that same kind of budget five times over — once
+    per specialist (retriever, chess analyst, coach, critic) plus the supervisor's own
+    routing calls — inside one user-facing turn. Reusing `AgentSettings` unchanged would
+    starve the multi-agent path before it could do enough work to fairly test Phase 13's
+    exit criterion (does multi-agent beat the Phase 10 baseline); these values are sized
+    with real headroom for that instead, confirmed with the owner before implementation.
+    """
+
+    model_config = _BASE_CONFIG
+
+    # Total supervisor-routed hops across the whole turn (supervisor decision points
+    # plus every specialist node visited) — roughly 2.5x AgentSettings.agent_max_steps,
+    # enough for supervisor -> retriever -> chess_analyst -> coach -> critic -> coach
+    # (one retry) with room to spare, not per-specialist.
+    multi_agent_max_steps: int = 20
+    # Total tool calls across every specialist in the turn combined (retriever and chess
+    # analyst are the only tool-calling specialists) — matches AgentSettings.agent_max_tool_calls'
+    # per-call generosity, scaled for two specialists instead of one.
+    multi_agent_max_tool_calls: int = 20
+    # Total token spend across the whole turn (supervisor + up to 4 specialists), roughly
+    # 3x AgentSettings.agent_token_budget's single-agent figure.
+    multi_agent_token_budget: int = 60_000
+
+
 class IngestionSettings(BaseSettings):
     """Upload limits and external API rate limits.
 
@@ -459,6 +488,7 @@ __all__ = [
     "IngestionSettings",
     "LLMSettings",
     "MemorySettings",
+    "MultiAgentSettings",
     "PatternSettings",
     "ReportSettings",
     "RetrievalSettings",

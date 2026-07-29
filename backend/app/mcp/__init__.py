@@ -1,1 +1,2 @@
-"""MCP server exposing tools over the service layer (ADR-0010). Lands in Phase 12."""
+"""MCP client integration (ADR-0010, D-027/D-028). Deferred out of Phase 12 — no
+external MCP tool has a real use case in the product yet. Left empty until one does."""

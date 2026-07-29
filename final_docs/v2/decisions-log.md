@@ -385,6 +385,30 @@ ADR-0010 and `project-plan.md` Phase 12 are marked Deferred, not deleted, so the
 survives for whoever picks this back up.
 → ADR-0010, `project-plan.md` Phase 12, `phase-map.md`
 
+### D-029 — Phase 13 scope confirmed before coding · Locked
+Two defaults proposed and confirmed with the owner before implementation began:
+
+- **Agent-trajectory evaluation set**: synthetic first, human spot-checked — same
+  discipline as every other synthetic set in this project (never silently becomes the
+  golden set; a human must spot-check a sample before it gates anything). Built smaller
+  than the ~30 originally proposed: 12 scenarios, three per routing category (retrieval
+  only, analysis only, both, neither), sized to what this comparison actually needs to
+  exercise every supervisor routing path at least a few times, not padded to a round
+  number. Flagged here as a deliberate scope reduction from what was proposed, not a
+  silent one.
+- **Agent budget ceilings**: dedicated `MultiAgentSettings` (`MULTI_AGENT_MAX_STEPS=20`,
+  `MULTI_AGENT_MAX_TOOL_CALLS=20`, `MULTI_AGENT_TOKEN_BUDGET=60000`), not a reuse of
+  Phase 10's `AgentSettings`. Rationale: the supervisor graph spends that kind of budget
+  across up to five agents in one turn, and reusing the single-agent ceiling unchanged
+  would starve the multi-agent path before it could do enough work to fairly test
+  whether it beats the Phase 10 baseline — the entire question Phase 13 exists to
+  answer.
+
+The agent roster and per-agent tool subsets (Supervisor/Retriever/Chess analyst/Coach/
+Critic) were already locked in `rag-architecture.md` §7 at Phase 0 and are not
+re-litigated here.
+→ `rag-architecture.md` §7, `evaluation-strategy.md`, `final_docs/v2/phase-reports/phase-13-multi-agent-orchestration.md`
+
 ---
 
 ## Open questions raised back to the owner

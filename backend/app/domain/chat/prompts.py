@@ -58,7 +58,7 @@ def parse_intent(raw_content: str) -> str:
 # generated report — same underlying voice contract as `domain/reports/prompts.py`'s
 # per-persona system prompts, restated here because chat's system message also has to
 # carry tool-use and grounding instructions a report prompt never needs.
-_PERSONA_VOICE: dict[Persona, str] = {
+PERSONA_VOICE: dict[Persona, str] = {
     Persona.SELF_LEARNER: (
         "Speak directly to the player, second person. Centipawn values and engine "
         "terminology are fine when they clarify a point."
@@ -113,8 +113,14 @@ def build_agent_system_message(persona: Persona, *, active_game_id: str | None) 
         else "No specific game is currently open. Use profile-wide or general-knowledge "
         "tools unless the user names a specific game."
     )
-    content = _AGENT_SYSTEM_PROMPT_TEMPLATE.format(voice=_PERSONA_VOICE[persona], context=context)
+    content = _AGENT_SYSTEM_PROMPT_TEMPLATE.format(voice=PERSONA_VOICE[persona], context=context)
     return Message(role="system", content=content)
 
 
-__all__ = ["INTENTS", "build_agent_system_message", "build_intent_messages", "parse_intent"]
+__all__ = [
+    "INTENTS",
+    "PERSONA_VOICE",
+    "build_agent_system_message",
+    "build_intent_messages",
+    "parse_intent",
+]

@@ -79,7 +79,6 @@ corpus that cannot answer that cannot be repaired.
 - Agent handles both game-specific and general-knowledge questions well
 - Profile isolation enforced in exactly one place and testable
 - Corpus is auditable and legally defensible
-- MCP (ADR-0010) reuses the same tools with no duplication
 
 ### Negative
 - Considerably more machinery than a single index
