@@ -9,7 +9,7 @@
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { createImport, fetchImportJob, fetchImportJobs } from '../api/imports';
+import { createImport, fetchImportJob, fetchImportJobs, syncFromPlatform } from '../api/imports';
 
 export const importKeys = {
   all: ['imports'] as const,
@@ -24,6 +24,21 @@ export function useCreateImport() {
 
   return useMutation({
     mutationFn: createImport,
+    onSuccess: (job) => {
+      queryClient.setQueryData(importKeys.job(job.id), job);
+      queryClient.invalidateQueries({ queryKey: importKeys.list() });
+    },
+  });
+}
+
+/** Mirrors `useCreateImport` exactly — same terminal-job caching, same list
+ * invalidation — the only difference is which endpoint kicks off the job. */
+export function useSyncFromPlatform() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ provider, window }: { provider: 'lichess' | 'chesscom'; window?: number }) =>
+      syncFromPlatform(provider, window),
     onSuccess: (job) => {
       queryClient.setQueryData(importKeys.job(job.id), job);
       queryClient.invalidateQueries({ queryKey: importKeys.list() });

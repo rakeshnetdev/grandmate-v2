@@ -1293,19 +1293,32 @@ Decompose complex coaching requests across specialised agents coordinated by a s
 ### Goal
 Add account-based game ingestion beyond manual uploads.
 
+### Import auth model (D-030 — deviates from the original text below)
+This phase's original goal text ("Lichess game import using the authenticated user's
+OAuth token") assumed real Lichess OAuth2 PKCE would exist by now. It doesn't — ADR-0014
+deferred it. Both connectors instead read each platform's **public**, unauthenticated
+game-export endpoint for the profile's linked username (Lichess's
+`GET /api/games/user/{username}`, Chess.com's public monthly archives) — the same trust
+level today's username-claim login already relies on, and squarely outside ADR-0014's
+"before any private data or write feature" OAuth gate, since nothing here is private or
+a write. See D-030.
+
 ### Deliverables
-- Lichess game import using the authenticated user's OAuth token
+- Lichess game import from the public games-export endpoint, for the profile's linked
+  (unverified) username
 - Chess.com import from the linked username via monthly archives
 - recent-window import (last 10 / 30 / 60 games)
 - source-specific job handling
 - rate-limit protection with backoff
 
 ### Tasks
-- implement connector adapters behind one interface
-- profile-to-source linkage
+- implement connector adapters behind one interface, each fetching **PGN text** (D-031)
+  — Lichess via `Accept: application/x-chess-pgn`, Chess.com via the `pgn` field in each
+  monthly-archive game object — and handing it to `ImportService.ingest()` unchanged
+- profile-to-source linkage (reuses the existing `ProfileSource` table)
 - month and archive traversal for Chess.com
-- NDJSON stream handling for Lichess
-- dedupe across imported and uploaded games
+- dedupe across imported and uploaded games (already handled by `ingest()`'s
+  content-hash check, source-agnostic)
 
 ### Testing
 - connector integration tests with recorded fixtures

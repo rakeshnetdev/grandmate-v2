@@ -6,7 +6,7 @@
  * duplicating what the list already shows.
  */
 import { useCurrentUser } from '@/features/auth';
-import { ImportJobStatus, UploadForm, useImportJobs } from '@/features/imports';
+import { ImportJobStatus, SyncFromPlatform, UploadForm, useImportJobs } from '@/features/imports';
 import {
   Card,
   CardContent,
@@ -38,6 +38,18 @@ export function ImportsPage() {
           Paste a PGN, or upload one or more PGN files — a file may contain a single game or many.
         </p>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Sync from {user.provider === 'lichess' ? 'Lichess' : 'Chess.com'}</CardTitle>
+          <CardDescription>
+            Import your recent public games from your linked account
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <SyncFromPlatform provider={user.provider} username={user.username} />
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

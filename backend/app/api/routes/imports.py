@@ -34,13 +34,22 @@ from app.api.dependencies.db import DbSessionDep
 from app.api.dependencies.patterns import OpeningIndexDep
 from app.api.dependencies.settings import SettingsDep
 from app.api.dependencies.storage import StorageDep
-from app.db.models import Job
+from app.db.models import GameSource, Job, JobKind, JobStatus
 from app.domain.analysis import run_pending_analysis_jobs
-from app.domain.imports import ImportService, SourceText, TooManyGamesError
-from app.domain.profiles import get_linked_usernames, get_or_create_study_profile
-from app.schemas.imports import JobSummary
+from app.domain.imports import ImportService, SourceText, TooManyGamesError, run_platform_import_job
+from app.domain.profiles import (
+    get_linked_usernames,
+    get_or_create_study_profile,
+    get_profile_source,
+)
+from app.schemas.imports import JobSummary, PlatformSyncRequest
 
 router = APIRouter(prefix="/imports", tags=["imports"])
+
+# Sources a client may request a sync for — `GameSource.UPLOAD` is a `Game.source`
+# value, never something to fetch, so it is deliberately excluded here rather than
+# accepted and rejected inside the handler.
+_SYNCABLE_SOURCES = (GameSource.LICHESS, GameSource.CHESSCOM)
 
 
 def _to_job_summary(job: Job) -> JobSummary:
@@ -136,6 +145,71 @@ async def create_import(
         )
 
     return _to_job_summary(result.job)
+
+
+@router.post("/{provider}/sync", response_model=JobSummary, status_code=status.HTTP_202_ACCEPTED)
+async def sync_from_platform(
+    provider: GameSource,
+    body: PlatformSyncRequest,
+    request: Request,
+    background_tasks: BackgroundTasks,
+    current: CurrentLoginDep,
+    session: DbSessionDep,
+    settings: SettingsDep,
+    storage: StorageDep,
+    opening_index: OpeningIndexDep,
+) -> JobSummary:
+    """Import recent games from a linked Lichess or Chess.com account (Phase 14,
+    D-030/D-031). Reads each platform's public game-export endpoint for the profile's
+    already-linked username — no OAuth involved, see D-030.
+
+    Returns `202 Accepted` with a `PENDING` job immediately; the actual platform fetch
+    and ingestion run in the background (`run_platform_import_job`) because, unlike a
+    manual paste, a network round-trip to a third-party API has no bound on how long it
+    might take. Poll `GET /imports/{job_id}` for the outcome, same as any other job.
+    """
+    if provider not in _SYNCABLE_SOURCES:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=f"{provider.value!r} is not a syncable platform source",
+        )
+
+    profile_source = await get_profile_source(session, current.profile.id, provider)
+    if profile_source is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No linked {provider.value} account for this profile",
+        )
+
+    window = body.window if body.window is not None else settings.analytics.analytics_default_window
+    if window not in settings.analytics.window_sizes_list:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=f"window must be one of {settings.analytics.window_sizes_list}",
+        )
+
+    job = Job(kind=JobKind.PGN_IMPORT, profile_id=current.profile.id, status=JobStatus.PENDING)
+    session.add(job)
+    await session.flush()
+    # Committed before scheduling the background task for the same reason
+    # `create_import` commits before dispatching analysis jobs above: the background
+    # task opens its own session and looks the job up by id, which must not race this
+    # write's durability.
+    await session.commit()
+
+    background_tasks.add_task(
+        run_platform_import_job,
+        job.id,
+        provider=provider,
+        username=profile_source.source_username,
+        window=window,
+        session_factory=request.app.state.db_session_factory,
+        settings=settings,
+        storage=storage,
+        opening_index=opening_index,
+    )
+
+    return _to_job_summary(job)
 
 
 @router.get("/{job_id}", response_model=JobSummary)

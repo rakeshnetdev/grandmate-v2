@@ -409,6 +409,44 @@ Critic) were already locked in `rag-architecture.md` §7 at Phase 0 and are not
 re-litigated here.
 → `rag-architecture.md` §7, `evaluation-strategy.md`, `final_docs/v2/phase-reports/phase-13-multi-agent-orchestration.md`
 
+### D-030 — Phase 14 import proceeds without real Lichess OAuth · Locked
+`project-plan.md`'s Phase 14 text ("Lichess game import using the authenticated user's
+OAuth token") assumed real Lichess OAuth2 PKCE would have landed by this phase. It
+hasn't — ADR-0014 (Phase 2) deferred it in favour of username-claim login, so there is
+no OAuth token to reuse.
+
+ADR-0014 gates real OAuth as required "before any private data or write-permission
+feature ships." Reading a profile's own **public** game history — Lichess's
+`GET /api/games/user/{username}` export, Chess.com's public monthly archives — is
+neither: it is the same class of public, unauthenticated lookup `PlatformClient`
+already performs for login. The owner confirmed Phase 14 proceeds on that basis: import
+connectors read public archives for the profile's linked username, exactly as today's
+username-claim login already trusts that username to identify the account. Chess.com's
+planned username-verification token (ADR-0007) and real Lichess OAuth remain deferred
+together, gated on the same "before private data or write access" line ADR-0014 already
+drew — not re-opened here.
+
+This is a documented deviation from `project-plan.md`'s literal Phase 14 text, not a
+silent reinterpretation.
+→ ADR-0007, ADR-0014, `project-plan.md` Phase 14
+
+### D-031 — Phase 14 connectors fetch PGN, not NDJSON/structured JSON · Locked
+`project-plan.md`'s Phase 14 task list literally says "NDJSON stream handling for
+Lichess," implying the connector should consume Lichess's structured game-JSON stream
+and Chess.com's structured JSON directly. Proposed instead, and confirmed with the
+owner: both connectors fetch **PGN text** — Lichess's export endpoint via
+`Accept: application/x-chess-pgn`, Chess.com's monthly archives via the `pgn` field
+already embedded in each game object — and hand it to `ImportService.ingest()`
+completely unchanged.
+
+Rationale: `ingest()` already does parsing, dedup-by-content-hash, profile routing, and
+canonicalization for any PGN blob, regardless of source (Phase 3/4). Consuming
+structured JSON instead would mean building a second, source-specific parser mapping
+that shape into the same canonical fields — a duplicated capability `claude.md` rule 13
+forbids, for metadata (richer clock/rating-delta detail) nothing downstream currently
+uses. A connector's entire job becomes "fetch PGN text over HTTP," nothing more.
+→ `project-plan.md` Phase 14
+
 ---
 
 ## Open questions raised back to the owner

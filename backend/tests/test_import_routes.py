@@ -69,6 +69,18 @@ def _stub_analysis_dispatch(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr("app.api.routes.imports.run_pending_analysis_jobs", _noop)
 
 
+@pytest.fixture(autouse=True)
+def _stub_platform_import_dispatch(monkeypatch: pytest.MonkeyPatch) -> None:
+    """No-op: these tests check the sync route's HTTP contract (permission/validation),
+    not the platform-fetch-and-ingest path itself — that is
+    `test_platform_import_dispatch.py`'s job."""
+
+    async def _noop(*args, **kwargs) -> None:  # type: ignore[no-untyped-def]
+        return None
+
+    monkeypatch.setattr("app.api.routes.imports.run_platform_import_job", _noop)
+
+
 @pytest.fixture
 def import_settings() -> Settings:
     settings = Settings()
@@ -189,6 +201,71 @@ class TestCreateImport:
         transport = httpx.ASGITransport(app=app)
         async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
             response = await client.post("/api/v1/imports", data={"pgn_text": GAME_A})
+
+        assert response.status_code == 401
+
+
+class TestSyncFromPlatform:
+    """`import_client` logs in via Lichess as "magnus" (see the fixture above), which —
+    per `AuthService.login` — creates exactly one `ProfileSource(source=LICHESS,
+    source_username="magnus")` for the self profile. That is the one linked account
+    these tests can exercise; there is no linked Chess.com account for this profile,
+    which is itself one of the cases worth covering (Phase 14, D-030/D-031)."""
+
+    async def test_syncing_a_linked_provider_returns_a_pending_job(
+        self, import_client: httpx.AsyncClient
+    ) -> None:
+        response = await import_client.post("/api/v1/imports/lichess/sync", json={})
+
+        assert response.status_code == 202
+        body = response.json()
+        assert body["status"] == "pending"
+        assert body["kind"] == "pgn_import"
+
+    async def test_syncing_an_unlinked_provider_is_not_found(
+        self, import_client: httpx.AsyncClient
+    ) -> None:
+        response = await import_client.post("/api/v1/imports/chesscom/sync", json={})
+
+        assert response.status_code == 404
+
+    async def test_syncing_upload_as_a_provider_is_rejected(
+        self, import_client: httpx.AsyncClient
+    ) -> None:
+        """`upload` is a valid `GameSource` member (it is what manual imports record),
+        but it is not a platform to fetch from — the route must reject it explicitly
+        rather than accepting it because `GameSource` parses it."""
+        response = await import_client.post("/api/v1/imports/upload/sync", json={})
+
+        assert response.status_code == 422
+
+    async def test_an_invalid_window_is_rejected(self, import_client: httpx.AsyncClient) -> None:
+        response = await import_client.post("/api/v1/imports/lichess/sync", json={"window": 7})
+
+        assert response.status_code == 422
+
+    async def test_a_valid_explicit_window_is_accepted(
+        self, import_client: httpx.AsyncClient
+    ) -> None:
+        response = await import_client.post("/api/v1/imports/lichess/sync", json={"window": 30})
+
+        assert response.status_code == 202
+
+    async def test_sync_without_login_is_unauthorized(
+        self, db_session: AsyncSession, tmp_path
+    ) -> None:
+        settings = Settings()
+        settings.identity.session_jwt_secret = SecretStr("test-only-signing-secret-32-bytes-plus")
+        app = create_app(settings)
+
+        async def _override_db_session() -> AsyncIterator[AsyncSession]:
+            yield db_session
+
+        app.dependency_overrides[get_db_session] = _override_db_session
+        app.dependency_overrides[get_storage] = lambda: LocalStorage(tmp_path)
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+            response = await client.post("/api/v1/imports/lichess/sync", json={})
 
         assert response.status_code == 401
 

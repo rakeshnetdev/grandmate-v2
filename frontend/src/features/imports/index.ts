@@ -5,5 +5,12 @@
  */
 export { UploadForm } from './components/UploadForm';
 export { ImportJobStatus } from './components/ImportJobStatus';
-export { useCreateImport, useImportJob, useImportJobs, importKeys } from './hooks/useImports';
+export { SyncFromPlatform } from './components/SyncFromPlatform';
+export {
+  useCreateImport,
+  useImportJob,
+  useImportJobs,
+  useSyncFromPlatform,
+  importKeys,
+} from './hooks/useImports';
 export type { JobSummary, RejectedGame } from './api/imports';

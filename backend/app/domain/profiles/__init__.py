@@ -5,6 +5,7 @@ from app.domain.profiles.queries import (
     get_linked_usernames,
     get_or_create_study_profile,
     get_owned_profile,
+    get_profile_source,
     list_profiles,
 )
 
@@ -12,5 +13,6 @@ __all__ = [
     "get_linked_usernames",
     "get_or_create_study_profile",
     "get_owned_profile",
+    "get_profile_source",
     "list_profiles",
 ]

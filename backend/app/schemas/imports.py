@@ -37,4 +37,13 @@ class JobSummary(BaseModel):
     completed_at: datetime | None
 
 
-__all__ = ["JobProgress", "JobSummary", "RejectedGameSummary"]
+class PlatformSyncRequest(BaseModel):
+    """Sync request body (Phase 14). `window` is optional — the route falls back to
+    `AnalyticsSettings.analytics_default_window`, the same "how many recent games"
+    default the profile-analytics window picker already uses (D-030/D-031: no new
+    window-size concept is introduced for imports)."""
+
+    window: int | None = None
+
+
+__all__ = ["JobProgress", "JobSummary", "PlatformSyncRequest", "RejectedGameSummary"]
