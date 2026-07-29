@@ -479,6 +479,19 @@ class EvaluationSettings(BaseSettings):
     ragas_context_precision_threshold: float = 0.75
     ragas_context_recall_threshold: float = 0.75
     eval_run_dir: str = "evals/runs"
+    # Score ledger (Phase 16): a metric that drops by more than this between consecutive
+    # runs of the same suite is flagged as a regression, even if its absolute value still
+    # clears its own threshold — see evaluation-strategy.md's own 0.94-to-0.86 example.
+    eval_regression_tolerance: float = 0.05
+    # Move-classifier accuracy eval (Phase 16, D-033): ground-truth depth for the
+    # independent re-analysis pass. Deliberately its own setting, not a reuse of
+    # `EngineSettings.engine_deep_depth` (18, already part of production's own tiered
+    # pass) — D-033's whole point is ground truth from a depth production never runs at.
+    classifier_eval_ground_truth_depth: int = 24
+    # How many real (position, production-classification) pairs to sample per run. Two
+    # engine calls per move (before/after) at a materially deeper depth are slow; this
+    # keeps a single run's wall-clock time bounded rather than scaling with corpus size.
+    classifier_eval_sample_size: int = 24
 
 
 __all__ = [

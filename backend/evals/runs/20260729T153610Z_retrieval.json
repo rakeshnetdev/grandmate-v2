@@ -1,0 +1,65 @@
+{
+  "dataset_path": "/Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/evals/datasets/golden/retrieval.jsonl",
+  "dataset_version": "v1-2026-07-27",
+  "retriever_version": "phase-7-v1",
+  "embed_model": "text-embedding-3-small",
+  "reviewed_query_count": 0,
+  "total_query_count": 41,
+  "timestamp": "2026-07-29T15:36:10.755487+00:00",
+  "thresholds": {
+    "context_precision": 0.75,
+    "context_recall": 0.75
+  },
+  "results": {
+    "dense": {
+      "strategy": "dense",
+      "context_precision": 0.9068617723995137,
+      "context_recall": 0.9507936507936507,
+      "mrr": 0.9138888888888889,
+      "mrr_by_qtype": {
+        "lexical": 1.0,
+        "semantic": 0.8368421052631579
+      },
+      "hit_rate_by_qtype": {
+        "lexical": 1.0,
+        "semantic": 0.9473684210526315
+      },
+      "negative_false_positive_rate": 1.0,
+      "n_scored": 36
+    },
+    "sparse": {
+      "strategy": "sparse",
+      "context_precision": 0.927166005200465,
+      "context_recall": 0.9825396825396826,
+      "mrr": 0.9212962962962963,
+      "mrr_by_qtype": {
+        "lexical": 0.9313725490196079,
+        "semantic": 0.9122807017543859
+      },
+      "hit_rate_by_qtype": {
+        "lexical": 1.0,
+        "semantic": 1.0
+      },
+      "negative_false_positive_rate": 1.0,
+      "n_scored": 36
+    },
+    "hybrid": {
+      "strategy": "hybrid",
+      "context_precision": 0.9358355378282864,
+      "context_recall": 0.976984126984127,
+      "mrr": 0.949074074074074,
+      "mrr_by_qtype": {
+        "lexical": 1.0,
+        "semantic": 0.9035087719298246
+      },
+      "hit_rate_by_qtype": {
+        "lexical": 1.0,
+        "semantic": 1.0
+      },
+      "negative_false_positive_rate": 1.0,
+      "n_scored": 36
+    }
+  },
+  "hybrid_beats_both_baselines": false,
+  "recommendation": "ship the simpler retriever (see rag-architecture.md section 3)"
+}

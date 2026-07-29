@@ -48,6 +48,7 @@ Phase 0 documentation set. Start here.
 | 0 | [Discovery and Decision Baseline](checklists/phase-0-completeness.md) | Signed off |
 | 1 | [Engineering Foundation](phase-reports/phase-01-engineering-foundation.md) | Pending sign-off |
 | 15 | [Training Plan and Coaching Recommendations](phase-reports/phase-15-training-plan-recommendations.md) | Pending sign-off |
+| 16 | [Evaluation, Synthetic Data, Golden Sets, and Fine-Tuning](phase-reports/phase-16-evaluation-golden-sets-finetuning.md) | Pending sign-off |
 
 ## Other
 

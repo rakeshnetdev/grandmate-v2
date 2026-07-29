@@ -1,0 +1,86 @@
+{
+  "harness_version": "phase-16-v1",
+  "timestamp": "2026-07-29T09:28:54.107634+00:00",
+  "ground_truth_depth": 24,
+  "sample_size": 24,
+  "results": {
+    "detection_f1": 1.0,
+    "detection_precision": 1.0,
+    "detection_recall": 1.0,
+    "severity_accuracy": 0.75,
+    "n_scored": 24,
+    "negative_control_detection_f1": 0.5,
+    "negative_control_severity_accuracy": 0.125
+  },
+  "per_class": {
+    "best": {
+      "precision": 0.6666666666666666,
+      "recall": 1.0,
+      "f1": 0.8,
+      "support": 4
+    },
+    "good": {
+      "precision": 1.0,
+      "recall": 0.6666666666666666,
+      "f1": 0.8,
+      "support": 6
+    },
+    "inaccuracy": {
+      "precision": 0.4,
+      "recall": 1.0,
+      "f1": 0.5714285714285715,
+      "support": 2
+    },
+    "mistake": {
+      "precision": 1.0,
+      "recall": 0.5555555555555556,
+      "f1": 0.7142857142857143,
+      "support": 9
+    },
+    "blunder": {
+      "precision": 0.75,
+      "recall": 1.0,
+      "f1": 0.8571428571428571,
+      "support": 3
+    }
+  },
+  "negative_control_per_class": {
+    "best": {
+      "precision": 0.16666666666666666,
+      "recall": 0.25,
+      "f1": 0.2,
+      "support": 4
+    },
+    "good": {
+      "precision": 0.25,
+      "recall": 0.16666666666666666,
+      "f1": 0.2,
+      "support": 6
+    },
+    "inaccuracy": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": null,
+      "support": 2
+    },
+    "mistake": {
+      "precision": 0.2,
+      "recall": 0.1111111111111111,
+      "f1": 0.14285714285714285,
+      "support": 9
+    },
+    "blunder": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": null,
+      "support": 3
+    }
+  },
+  "ground_truth_class_distribution": {
+    "best": 4,
+    "good": 6,
+    "inaccuracy": 2,
+    "mistake": 9,
+    "blunder": 3
+  }
+}

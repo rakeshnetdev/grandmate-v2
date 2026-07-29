@@ -1,0 +1,197 @@
+{
+  "dataset_path": "/Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/evals/datasets/golden/memory_retention.jsonl",
+  "dataset_version": "v1-2026-07-28",
+  "harness_version": "phase-11-v1",
+  "model": "gpt-4o-mini",
+  "reviewed_scenario_count": 0,
+  "total_scenario_count": 30,
+  "timestamp": "2026-07-29T15:29:36.367809+00:00",
+  "results": {
+    "retention_true_positive_rate": 0.8421052631578947,
+    "retention_true_negative_rate": 1.0,
+    "staleness_resolved": true,
+    "cross_profile_isolated": true
+  },
+  "per_scenario": [
+    {
+      "scenario_id": "explicit-goal-endgames",
+      "should_remember": true,
+      "correct": true,
+      "extracted_kind": "goal"
+    },
+    {
+      "scenario_id": "explicit-preference-engine-line",
+      "should_remember": true,
+      "correct": true,
+      "extracted_kind": "preference"
+    },
+    {
+      "scenario_id": "confirmed-recurring-finding-time-trouble",
+      "should_remember": true,
+      "correct": true,
+      "extracted_kind": "recurring_finding"
+    },
+    {
+      "scenario_id": "small-talk-no-durable-content",
+      "should_remember": false,
+      "correct": true,
+      "extracted_kind": null
+    },
+    {
+      "scenario_id": "vague-passing-remark",
+      "should_remember": false,
+      "correct": true,
+      "extracted_kind": null
+    },
+    {
+      "scenario_id": "explicit-preference-short-answers",
+      "should_remember": true,
+      "correct": true,
+      "extracted_kind": "preference"
+    },
+    {
+      "scenario_id": "general-question-no-personal-statement",
+      "should_remember": false,
+      "correct": true,
+      "extracted_kind": null
+    },
+    {
+      "scenario_id": "restated-goal-supersedes",
+      "should_remember": true,
+      "correct": true,
+      "extracted_kind": "goal"
+    },
+    {
+      "scenario_id": "confirmed-recurring-finding-king-safety",
+      "should_remember": true,
+      "correct": true,
+      "extracted_kind": "recurring_finding"
+    },
+    {
+      "scenario_id": "never-extract-from-assistant-words-alone",
+      "should_remember": false,
+      "correct": true,
+      "extracted_kind": null
+    },
+    {
+      "scenario_id": "explicit-goal-calculation",
+      "should_remember": true,
+      "correct": true,
+      "extracted_kind": "goal"
+    },
+    {
+      "scenario_id": "explicit-goal-openings-repertoire",
+      "should_remember": true,
+      "correct": true,
+      "extracted_kind": "goal"
+    },
+    {
+      "scenario_id": "explicit-preference-no-engine-lines",
+      "should_remember": true,
+      "correct": false,
+      "extracted_kind": "preference"
+    },
+    {
+      "scenario_id": "explicit-preference-diagrams",
+      "should_remember": true,
+      "correct": true,
+      "extracted_kind": "preference"
+    },
+    {
+      "scenario_id": "confirmed-recurring-finding-blunder-under-pressure",
+      "should_remember": true,
+      "correct": false,
+      "extracted_kind": "recurring_finding"
+    },
+    {
+      "scenario_id": "confirmed-recurring-finding-passive-play",
+      "should_remember": true,
+      "correct": true,
+      "extracted_kind": "recurring_finding"
+    },
+    {
+      "scenario_id": "confirmed-recurring-finding-weak-back-rank",
+      "should_remember": true,
+      "correct": true,
+      "extracted_kind": "recurring_finding"
+    },
+    {
+      "scenario_id": "small-talk-good-game-comment",
+      "should_remember": false,
+      "correct": true,
+      "extracted_kind": null
+    },
+    {
+      "scenario_id": "small-talk-greeting",
+      "should_remember": false,
+      "correct": true,
+      "extracted_kind": null
+    },
+    {
+      "scenario_id": "vague-passing-remark-tactics",
+      "should_remember": false,
+      "correct": true,
+      "extracted_kind": null
+    },
+    {
+      "scenario_id": "vague-passing-remark-coach",
+      "should_remember": false,
+      "correct": true,
+      "extracted_kind": null
+    },
+    {
+      "scenario_id": "general-question-no-personal-statement-castling",
+      "should_remember": false,
+      "correct": true,
+      "extracted_kind": null
+    },
+    {
+      "scenario_id": "general-question-no-personal-statement-en-passant",
+      "should_remember": false,
+      "correct": true,
+      "extracted_kind": null
+    },
+    {
+      "scenario_id": "restated-preference-supersedes",
+      "should_remember": true,
+      "correct": true,
+      "extracted_kind": "preference"
+    },
+    {
+      "scenario_id": "restated-goal-supersedes-endgames-again",
+      "should_remember": true,
+      "correct": true,
+      "extracted_kind": "goal"
+    },
+    {
+      "scenario_id": "confirmed-recurring-finding-hanging-pieces",
+      "should_remember": true,
+      "correct": true,
+      "extracted_kind": "recurring_finding"
+    },
+    {
+      "scenario_id": "explicit-goal-endgame-technique-specific",
+      "should_remember": true,
+      "correct": true,
+      "extracted_kind": "goal"
+    },
+    {
+      "scenario_id": "never-extract-from-assistant-words-alone-2",
+      "should_remember": false,
+      "correct": true,
+      "extracted_kind": null
+    },
+    {
+      "scenario_id": "explicit-preference-third-person-coach-tone",
+      "should_remember": true,
+      "correct": true,
+      "extracted_kind": "preference"
+    },
+    {
+      "scenario_id": "confirmed-recurring-finding-opening-prep-gap",
+      "should_remember": true,
+      "correct": false,
+      "extracted_kind": null
+    }
+  ]
+}

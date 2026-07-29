@@ -1,0 +1,309 @@
+{
+  "dataset_path": "/Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/evals/datasets/golden/single_game_chat.jsonl",
+  "dataset_version": "v1-2026-07-28",
+  "harness_version": "phase-10-v1",
+  "model": "gpt-4o-mini",
+  "reviewed_scenario_count": 0,
+  "total_scenario_count": 32,
+  "timestamp": "2026-07-29T15:28:57.072880+00:00",
+  "thresholds": {
+    "faithfulness": 0.85
+  },
+  "results": {
+    "faithfulness": 0.7130819024564187,
+    "response_relevancy": 0.6336553517031368,
+    "intent_valid_rate": 1.0,
+    "grounded_rate": 1.0,
+    "n_scenarios": 32
+  },
+  "per_scenario": [
+    {
+      "scenario_id": "ruy-lopez-opening-name",
+      "intent_valid": true,
+      "grounded": true,
+      "tool_call_count": 1,
+      "faithfulness": 1.0,
+      "response_relevancy": 0.8377559895014337,
+      "answer": "Your opening in this game was the Ruy Lopez: Exchange Variation, Alapin Gambit, classified under ECO code C68."
+    },
+    {
+      "scenario_id": "ruy-lopez-summarise",
+      "intent_valid": true,
+      "grounded": true,
+      "tool_call_count": 1,
+      "faithfulness": 0.8333333333333334,
+      "response_relevancy": 0.7087466976288198,
+      "answer": "The opening of your game was the Ruy Lopez: Exchange Variation, Alapin Gambit (ECO code C68). Here\u2019s a summary of the moves played in the opening:\n\n1. e4 e5  \n2. Nf3 Nc6  \n3. Bb5 a6  \n4. Ba4 Nf6  \n5. O-O Be7  \n\nAll moves were classified as best by the engine, with evaluations ranging from +20 to +30 centipawns, indicating a strong position for both sides throughout the opening."
+    },
+    {
+      "scenario_id": "ruy-lopez-train-next",
+      "intent_valid": true,
+      "grounded": true,
+      "tool_call_count": 2,
+      "faithfulness": 0.18181818181818182,
+      "response_relevancy": 0.5918225065784851,
+      "answer": "Based on your game, you played the Ruy Lopez: Exchange Variation, Alapin Gambit (ECO C68). Since there are no critical moments identified in this game, it might be beneficial to study the following areas:\n\n1. **Opening Theory**: Deepen your understanding of the Ruy Lopez, particularly the Exchange Variation. Familiarize yourself with common plans and tactics that arise from this opening.\n2. **Middle Game Strategies**: Since there were no significant evaluation swings, focusing on general middle game strategies and tactics could help improve your decision-making in future games.\n3. **Endgame Techniques**: Strengthening your endgame skills can also be beneficial, as many games reach this phase where precise play is crucial.\n\nConsider reviewing games played by strong players in this opening to see how they handle various positions."
+    },
+    {
+      "scenario_id": "ruy-lopez-explain-move",
+      "intent_valid": true,
+      "grounded": true,
+      "tool_call_count": 1,
+      "faithfulness": 0.6666666666666666,
+      "response_relevancy": 0.9522415782845047,
+      "answer": "Yes, Bb5 was a good move on move 3. It was classified as the best move and resulted in an evaluation of +30 centipawns."
+    },
+    {
+      "scenario_id": "ruy-lopez-compare-alternative",
+      "intent_valid": true,
+      "grounded": true,
+      "tool_call_count": 3,
+      "faithfulness": 0.7,
+      "response_relevancy": 0.6788833762746006,
+      "answer": "In your game, after 5...a6, the position remains solid for Black, with an evaluation of +25 centipawns. This move is classified as best, allowing for further development and control over the center. On the other hand, if you were to play 5...Nf6, this move is also classified as best but leads to a slightly lower evaluation of +22 centipawns. Both moves are viable, but 5...a6 maintains a stronger position in this specific context. \n\nOverall, while both moves are good, 5...a6 offers a slight edge in terms of evaluation compared to 5...Nf6 in this position."
+    },
+    {
+      "scenario_id": "scholars-mate-explain-blunder",
+      "intent_valid": true,
+      "grounded": true,
+      "tool_call_count": 1,
+      "faithfulness": 0.8,
+      "response_relevancy": 0.8814715635260897,
+      "answer": "Your move Nf6 was classified as a blunder because it allowed your opponent to play Qxf7#, delivering checkmate. This move resulted in a significant evaluation swing of 925 centipawns, indicating that it was a very poor choice in that position."
+    },
+    {
+      "scenario_id": "scholars-mate-critical-moment",
+      "intent_valid": true,
+      "grounded": true,
+      "tool_call_count": 1,
+      "faithfulness": 1.0,
+      "response_relevancy": 0.8151656359667222,
+      "answer": "The critical moment in your game occurred at ply 5, when the move **Nf6** was played. This move was classified as a blunder and resulted in a significant evaluation swing of 925 centipawns."
+    },
+    {
+      "scenario_id": "scholars-mate-train-next",
+      "intent_valid": true,
+      "grounded": true,
+      "tool_call_count": 2,
+      "faithfulness": 0.23076923076923078,
+      "response_relevancy": 0.5673287966800404,
+      "answer": "To avoid the kind of mistake you made with the move **Nf6** (which was classified as a blunder), you should focus on practicing the following areas:\n\n1. **Tactical Awareness**: Blunders often arise from overlooking tactical threats. Regularly solving tactical puzzles can help improve your ability to spot threats and opportunities.\n\n2. **Opening Principles**: Familiarize yourself with basic opening principles, such as controlling the center, developing pieces, and ensuring king safety. This will help you make stronger moves in the opening phase.\n\n3. **Calculation Skills**: Practice calculating variations more thoroughly before making a move. This includes considering your opponent's possible responses and the consequences of your own moves.\n\n4. **Reviewing Mistakes**: Analyze your games to understand why certain moves were mistakes. This reflection will help you recognize similar patterns in future games.\n\nIn this specific game, the move **Nf6** led to a significant evaluation swing of 925 centipawns, allowing your opponent to deliver checkmate with **Qxf7#** on the next move. By focusing on these areas, you can reduce the likelihood of similar blunders in the future."
+    },
+    {
+      "scenario_id": "scholars-mate-summarise",
+      "intent_valid": true,
+      "grounded": true,
+      "tool_call_count": 1,
+      "faithfulness": 0.625,
+      "response_relevancy": 0.571085509655361,
+      "answer": "In this game, Black faced significant issues primarily due to a blunder on move 5. After the moves 1. e4 e5 2. Qh5 Nc6 3. Bc4 Nf6, Black played 5...Nf6, which was a blunder leading to an immediate checkmate with 6. Qxf7#. This blunder resulted in a drastic evaluation swing of 925 centipawns, allowing White to win the game instantly. The earlier moves were played correctly, but the critical mistake on move 5 sealed Black's fate."
+    },
+    {
+      "scenario_id": "scholars-mate-compare-alternative",
+      "intent_valid": true,
+      "grounded": true,
+      "tool_call_count": 2,
+      "faithfulness": 0.5,
+      "response_relevancy": 0.0,
+      "answer": "It seems that playing Nf6 is not a legal move from the starting position of the game. Therefore, we cannot compare it to playing Qe7, as Nf6 cannot be played in this context. If you meant a different position or move, please clarify!"
+    },
+    {
+      "scenario_id": "italian-opening-name",
+      "intent_valid": true,
+      "grounded": true,
+      "tool_call_count": 1,
+      "faithfulness": 1.0,
+      "response_relevancy": 0.9018233124868456,
+      "answer": "In this game, you played the Italian Game as White, which is classified under the ECO code C50."
+    },
+    {
+      "scenario_id": "italian-summarise",
+      "intent_valid": true,
+      "grounded": true,
+      "tool_call_count": 1,
+      "faithfulness": 1.0,
+      "response_relevancy": 0.4752003086990228,
+      "answer": "So far in your game, you have played the Italian Game (ECO C50). Here\u2019s a summary of the moves and evaluations:\n\n1. **e4** - Best move, evaluation: +20 centipawns\n2. **e5** - Best move, evaluation: +23 centipawns\n3. **Nf3** - Best move, evaluation: +26 centipawns\n4. **Nc6** - Best move, evaluation: +29 centipawns\n5. **Bc4** - Best move, evaluation: +32 centipawns\n6. **Bc5** - Best move, evaluation: +35 centipawns\n7. **c3** - Best move, evaluation: +38 centipawns\n8. **Nf6** - Best move, evaluation: +41 centipawns\n9. **d3** - Best move, evaluation: +44 centipawns\n10. **O-O** - Best move, evaluation: +47 centipawns\n\nYour position has steadily improved, with a current evaluation of +47 centipawns, indicating a strong advantage."
+    },
+    {
+      "scenario_id": "italian-explain-move",
+      "intent_valid": true,
+      "grounded": true,
+      "tool_call_count": 1,
+      "faithfulness": 0.6666666666666666,
+      "response_relevancy": 0.953181419767316,
+      "answer": "Yes, Bc5 was a good response for Black on move 3. It was classified as the best move, contributing positively to the position's evaluation."
+    },
+    {
+      "scenario_id": "italian-train-next",
+      "intent_valid": true,
+      "grounded": true,
+      "tool_call_count": 2,
+      "faithfulness": 0.14285714285714285,
+      "response_relevancy": 0.5697785781691683,
+      "answer": "Based on your game, you played the Italian Game (ECO C50), which is a classic opening that focuses on rapid development and control of the center. Since there are no critical moments identified in your game, it suggests that you maintained a consistent level of play throughout. To improve, consider studying the following areas:\n\n1. **Italian Game Theory**: Familiarize yourself with common plans and tactics in the Italian Game, especially focusing on the lines after 4. Bc4 and 5. c3.\n2. **Tactical Patterns**: Since there were no significant mistakes, enhancing your tactical vision can help you capitalize on opportunities in future games.\n3. **Endgame Principles**: Understanding basic endgame techniques can help convert advantages into wins.\n\nThese areas will help strengthen your overall game and prepare you for more complex positions in the future."
+    },
+    {
+      "scenario_id": "qgd-opening-name",
+      "intent_valid": true,
+      "grounded": true,
+      "tool_call_count": 1,
+      "faithfulness": 1.0,
+      "response_relevancy": 0.6428225399731097,
+      "answer": "The opening in this game is called the Queen's Gambit Declined, classified under ECO code D37."
+    },
+    {
+      "scenario_id": "qgd-summarise",
+      "intent_valid": true,
+      "grounded": true,
+      "tool_call_count": 1,
+      "faithfulness": 1.0,
+      "response_relevancy": 0.5720312501815916,
+      "answer": "The opening phase of your game was a Queen's Gambit Declined, classified under ECO code D37. Here are the moves played:\n\n1. d4 d5  \n2. c4 e6  \n3. Nc3 Nf6  \n4. Bg5 Be7  \n5. e3 O-O  \n\nThroughout this phase, all moves were classified as best by the engine, with evaluations steadily increasing from +20 centipawns to +47 centipawns by the end of the opening."
+    },
+    {
+      "scenario_id": "qgd-explain-move",
+      "intent_valid": true,
+      "grounded": true,
+      "tool_call_count": 1,
+      "faithfulness": 0.8571428571428571,
+      "response_relevancy": 0.6250082128108507,
+      "answer": "White played Bg5 on move 6, but it was classified as a mistake by the engine. The evaluation dropped significantly after this move, indicating that it was not the best choice. The position was evaluated at -92 centipawns after Bg5, suggesting that Black gained a significant advantage. The best move for White at that point would have been to play Be2 instead."
+    },
+    {
+      "scenario_id": "qgd-critical-moment",
+      "intent_valid": true,
+      "grounded": true,
+      "tool_call_count": 1,
+      "faithfulness": 1.0,
+      "response_relevancy": 0.9290344672379732,
+      "answer": "There haven't been any critical moments in this game so far."
+    },
+    {
+      "scenario_id": "najdorf-opening-name",
+      "intent_valid": true,
+      "grounded": true,
+      "tool_call_count": 1,
+      "faithfulness": 0.75,
+      "response_relevancy": 0.0,
+      "answer": "I couldn't determine the opening for the current position. It appears to be the starting position of a chess game, but without specific moves played, I can't provide an ECO code or opening name."
+    },
+    {
+      "scenario_id": "najdorf-summarise",
+      "intent_valid": true,
+      "grounded": true,
+      "tool_call_count": 1,
+      "faithfulness": 1.0,
+      "response_relevancy": 0.40320195104055573,
+      "answer": "The game opened with the Sicilian Najdorf variation. Here are the moves played in the opening:\n1. e4 c5  \n2. Nf3 d6  \n3. d4 cxd4  \n4. Nxd4 Nf6  \n5. Nc3 a6  \n\nThis sequence is characterized by Black's c5 pawn move, aiming for counterplay against White's center. The evaluation at the start shows a slight advantage for White, starting at +20 centipawns and increasing to +47 by the end of the opening moves."
+    },
+    {
+      "scenario_id": "najdorf-compare-alternative",
+      "intent_valid": true,
+      "grounded": true,
+      "tool_call_count": 3,
+      "faithfulness": 0.23529411764705882,
+      "response_relevancy": 0.6140040148905745,
+      "answer": "In your game, the moves 4...Nf6 and 4...a6 are both part of the Sicilian Najdorf opening. However, they serve different strategic purposes:\n\n1. **4...Nf6**: This move develops a knight and attacks the e4 pawn, putting immediate pressure on White's center. It is a common and strong continuation in the Najdorf variation, leading to dynamic play. In your game, this move was evaluated as the best option, with an evaluation of +41 centipawns after 7...Nf6.\n\n2. **4...a6**: This move is also a standard response in the Najdorf, preparing for ...b5 to expand on the queenside and prevent any knight or bishop from landing on b5. In your game, this move was played later as 9...a6, with an evaluation of +47 centipawns. \n\nBoth moves are legal and strategically sound, but they lead to different types of positions. Nf6 is more aggressive, while a6 is more about solidifying your position and preparing for expansion."
+    },
+    {
+      "scenario_id": "najdorf-train-next",
+      "intent_valid": true,
+      "grounded": true,
+      "tool_call_count": 2,
+      "faithfulness": 0.10526315789473684,
+      "response_relevancy": 0.6673067789507455,
+      "answer": "After a game like this, it's beneficial to focus on the following areas:\n\n1. **Opening Theory**: Since you played the Sicilian Najdorf (ECO B90), reviewing the main lines and ideas behind this opening can help you understand typical plans and tactics. Familiarize yourself with key concepts and strategies in the Najdorf variation.\n\n2. **Tactical Training**: Since there were no critical moments identified in your game, it might be useful to practice tactics to sharpen your calculation skills. Use puzzles to improve your ability to spot tactical opportunities and threats.\n\n3. **Endgame Practice**: If your game reached an endgame, reviewing common endgame principles and techniques can be very helpful. If not, practicing endgames in general can strengthen your overall play.\n\n4. **Game Review**: Analyze your game move by move to identify any missed opportunities or mistakes. Understanding where you could have played better will help you improve.\n\n5. **Time Management**: If you felt rushed or took too long on certain moves, consider practicing time management in your games to ensure you have enough time to think through critical positions.\n\nBy focusing on these areas, you can enhance your overall chess skills and prepare for future games more effectively."
+    },
+    {
+      "scenario_id": "caro-kann-opening-name",
+      "intent_valid": true,
+      "grounded": true,
+      "tool_call_count": 1,
+      "faithfulness": 1.0,
+      "response_relevancy": 0.8305343293839708,
+      "answer": "Black played the Caro-Kann Defense, specifically starting with 1...c6."
+    },
+    {
+      "scenario_id": "caro-kann-explain-move",
+      "intent_valid": true,
+      "grounded": true,
+      "tool_call_count": 1,
+      "faithfulness": 0.5,
+      "response_relevancy": 0.943913708442596,
+      "answer": "Yes, Bf5 was a reasonable move for Black on move 4. It was classified as the best move at that point in the game, contributing positively to Black's position with an evaluation of +41 centipawns."
+    },
+    {
+      "scenario_id": "caro-kann-mistake-explain",
+      "intent_valid": true,
+      "grounded": true,
+      "tool_call_count": 2,
+      "faithfulness": 0.42857142857142855,
+      "response_relevancy": 0.7060875127948104,
+      "answer": "Your move 9...Bg6 was classified as a mistake because it resulted in a significant evaluation swing of 130 centipawns, dropping your position from a favorable one to a much worse one. The engine evaluation dropped to -83, indicating a strong disadvantage after this move. This suggests that there were better alternatives available at that moment that could have maintained or improved your position."
+    },
+    {
+      "scenario_id": "caro-kann-summarise",
+      "intent_valid": true,
+      "grounded": true,
+      "tool_call_count": 1,
+      "faithfulness": 0.5,
+      "response_relevancy": 0.26528814520244637,
+      "answer": "The opening of your game is classified as the Caro-Kann Defense, with the ECO code B18. The moves played in this opening are as follows:\n1. e4 c6  \n2. d4 d5  \n3. Nc3 dxe4  \n4. Nxe4 Bf5  \n5. Ng3 Bg6  \nThis setup is typical for the Caro-Kann, where Black aims to challenge the center and develop pieces harmoniously."
+    },
+    {
+      "scenario_id": "kings-indian-opening-name",
+      "intent_valid": true,
+      "grounded": true,
+      "tool_call_count": 2,
+      "faithfulness": 1.0,
+      "response_relevancy": 0.9172014073934737,
+      "answer": "The opening for Black in this game is the King's Indian Defense, classified under ECO code E60."
+    },
+    {
+      "scenario_id": "kings-indian-blunder-explain",
+      "intent_valid": true,
+      "grounded": true,
+      "tool_call_count": 2,
+      "faithfulness": 0.42857142857142855,
+      "response_relevancy": 0.8444415317724584,
+      "answer": "Castling (O-O) was considered a blunder in this position because it resulted in a significant evaluation swing of 340 centipawns, indicating that it was a very poor move compared to the alternatives. The engine likely found a much stronger continuation that would have maintained a better position for you. It's important to analyze what the best move could have been instead of castling to understand the tactical or strategic reasons behind this evaluation."
+    },
+    {
+      "scenario_id": "kings-indian-critical-moment",
+      "intent_valid": true,
+      "grounded": true,
+      "tool_call_count": 1,
+      "faithfulness": 1.0,
+      "response_relevancy": 0.8151737768403186,
+      "answer": "The critical moment in your game occurred at ply 9, when you played O-O. This move was classified as a blunder and resulted in a significant evaluation swing of 340 centipawns."
+    },
+    {
+      "scenario_id": "kings-indian-train-next",
+      "intent_valid": true,
+      "grounded": true,
+      "tool_call_count": 8,
+      "faithfulness": 0.6666666666666666,
+      "response_relevancy": 0.0,
+      "answer": "I found some relevant information but couldn't confirm a fully grounded answer to your question. Here is what the underlying analysis actually shows:"
+    },
+    {
+      "scenario_id": "english-opening-name",
+      "intent_valid": true,
+      "grounded": true,
+      "tool_call_count": 2,
+      "faithfulness": 1.0,
+      "response_relevancy": 0.6223665682923146,
+      "answer": "The opening in your game is called the **English Opening**. It is classified under the ECO code **A29**."
+    },
+    {
+      "scenario_id": "english-summarise",
+      "intent_valid": true,
+      "grounded": true,
+      "tool_call_count": 1,
+      "faithfulness": 1.0,
+      "response_relevancy": 0.37406978607418084,
+      "answer": "The game so far has followed the English Opening (ECO A29). Here are the moves played:\n\n1. c4 (White) - Best move, evaluation: +20 centipawns\n2. e5 (Black) - Best move, evaluation: +23 centipawns\n3. Nc3 (White) - Best move, evaluation: +26 centipawns\n4. Nf6 (Black) - Best move, evaluation: +29 centipawns\n5. Nf3 (White) - Best move, evaluation: +32 centipawns\n6. Nc6 (Black) - Best move, evaluation: +35 centipawns\n7. g3 (White) - Best move, evaluation: +38 centipawns\n8. d5 (Black) - Best move, evaluation: +41 centipawns\n9. cxd5 (White) - Best move, evaluation: +44 centipawns\n10. Nxd5 (Black) - Best move, evaluation: +47 centipawns\n\nThe evaluation indicates that White has a slight advantage throughout the opening moves, with the position steadily improving for White as the game progresses."
+    }
+  ]
+}

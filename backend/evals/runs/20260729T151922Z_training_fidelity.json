@@ -1,0 +1,617 @@
+{
+  "dataset_path": "/Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/evals/datasets/golden/training_fidelity.jsonl",
+  "dataset_version": "v1-2026-07-28",
+  "harness_version": "phase-15-v1",
+  "model": "gpt-4o-mini",
+  "reviewed_scenario_count": 0,
+  "total_scenario_count": 30,
+  "timestamp": "2026-07-29T15:19:22.914063+00:00",
+  "results": {
+    "grounded_rate": 1.0,
+    "top_weakness_invariance_rate": 0.9888888888888889,
+    "kid_safety_rate": 1.0,
+    "n_scenarios": 30
+  },
+  "per_scenario": [
+    {
+      "scenario_id": "single_weakness_no_citation",
+      "personas": {
+        "self_learner": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "coach": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "kid": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": true
+        }
+      }
+    },
+    {
+      "scenario_id": "single_weakness_with_citation",
+      "personas": {
+        "self_learner": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "coach": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "kid": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": true
+        }
+      }
+    },
+    {
+      "scenario_id": "multiple_weaknesses_capped",
+      "personas": {
+        "self_learner": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "coach": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "kid": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": true
+        }
+      }
+    },
+    {
+      "scenario_id": "synth_training_01",
+      "personas": {
+        "self_learner": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "coach": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "kid": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": true
+        }
+      }
+    },
+    {
+      "scenario_id": "synth_training_02",
+      "personas": {
+        "self_learner": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "coach": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "kid": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": true
+        }
+      }
+    },
+    {
+      "scenario_id": "synth_training_03",
+      "personas": {
+        "self_learner": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "coach": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "kid": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": true
+        }
+      }
+    },
+    {
+      "scenario_id": "synth_training_04",
+      "personas": {
+        "self_learner": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "coach": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "kid": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": true
+        }
+      }
+    },
+    {
+      "scenario_id": "synth_training_05",
+      "personas": {
+        "self_learner": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "coach": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "kid": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": true
+        }
+      }
+    },
+    {
+      "scenario_id": "synth_training_06",
+      "personas": {
+        "self_learner": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "coach": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "kid": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": true
+        }
+      }
+    },
+    {
+      "scenario_id": "synth_training_07",
+      "personas": {
+        "self_learner": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "coach": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "kid": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": true
+        }
+      }
+    },
+    {
+      "scenario_id": "synth_training_08",
+      "personas": {
+        "self_learner": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "coach": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "kid": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": true
+        }
+      }
+    },
+    {
+      "scenario_id": "synth_training_09",
+      "personas": {
+        "self_learner": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "coach": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "kid": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": true
+        }
+      }
+    },
+    {
+      "scenario_id": "synth_training_10",
+      "personas": {
+        "self_learner": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "coach": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "kid": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": true
+        }
+      }
+    },
+    {
+      "scenario_id": "synth_training_11",
+      "personas": {
+        "self_learner": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "coach": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "kid": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": true
+        }
+      }
+    },
+    {
+      "scenario_id": "synth_training_12",
+      "personas": {
+        "self_learner": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "coach": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "kid": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": true
+        }
+      }
+    },
+    {
+      "scenario_id": "synth_training_13",
+      "personas": {
+        "self_learner": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "coach": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "kid": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": true
+        }
+      }
+    },
+    {
+      "scenario_id": "synth_training_14",
+      "personas": {
+        "self_learner": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "coach": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "kid": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": true
+        }
+      }
+    },
+    {
+      "scenario_id": "synth_training_15",
+      "personas": {
+        "self_learner": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "coach": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "kid": {
+          "grounded": true,
+          "top_weakness_included": false,
+          "kid_first_attempt_safe": true
+        }
+      }
+    },
+    {
+      "scenario_id": "synth_training_16",
+      "personas": {
+        "self_learner": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "coach": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "kid": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": true
+        }
+      }
+    },
+    {
+      "scenario_id": "synth_training_17",
+      "personas": {
+        "self_learner": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "coach": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "kid": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": true
+        }
+      }
+    },
+    {
+      "scenario_id": "synth_training_18",
+      "personas": {
+        "self_learner": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "coach": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "kid": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": true
+        }
+      }
+    },
+    {
+      "scenario_id": "synth_training_19",
+      "personas": {
+        "self_learner": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "coach": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "kid": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": true
+        }
+      }
+    },
+    {
+      "scenario_id": "synth_training_20",
+      "personas": {
+        "self_learner": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "coach": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "kid": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": true
+        }
+      }
+    },
+    {
+      "scenario_id": "synth_training_21",
+      "personas": {
+        "self_learner": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "coach": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "kid": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": true
+        }
+      }
+    },
+    {
+      "scenario_id": "synth_training_22",
+      "personas": {
+        "self_learner": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "coach": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "kid": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": true
+        }
+      }
+    },
+    {
+      "scenario_id": "synth_training_23",
+      "personas": {
+        "self_learner": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "coach": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "kid": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": true
+        }
+      }
+    },
+    {
+      "scenario_id": "synth_training_24",
+      "personas": {
+        "self_learner": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "coach": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "kid": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": true
+        }
+      }
+    },
+    {
+      "scenario_id": "synth_training_25",
+      "personas": {
+        "self_learner": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "coach": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "kid": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": true
+        }
+      }
+    },
+    {
+      "scenario_id": "synth_training_26",
+      "personas": {
+        "self_learner": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "coach": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "kid": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": true
+        }
+      }
+    },
+    {
+      "scenario_id": "synth_training_27",
+      "personas": {
+        "self_learner": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "coach": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "kid": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": true
+        }
+      }
+    }
+  ]
+}

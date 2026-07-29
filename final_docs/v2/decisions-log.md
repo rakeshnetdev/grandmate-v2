@@ -524,6 +524,38 @@ requirements in ADR-0017, not optional refinements.
 
 ---
 
+### D-034 — Phase 16 fine-tuning gate: no-go, evidence-based · Locked
+
+Per `evaluation-strategy.md`'s own framing, fine-tuning is the last lever evaluated, and
+only proceeds on a measurable gain the eval set shows that prompting cannot reach, scoped
+to persona tone consistency alone — never chess knowledge. The consolidated Phase 16 eval
+run (golden sets grown to 30 rows each, all six suites re-run for real, plus the new
+tone/persona-fidelity LLM-judge harness) is that evidence:
+
+| Area | Score | In fine-tuning's scope? |
+|------|-------|--------------------------|
+| `tone_fidelity_rate` (LLM-judged) | 0.92 overall (self-learner 0.89, coach 1.00, kid 0.83) | Yes |
+| `kid_safety_rate` | 1.00 (persona reports and training plans) | Yes |
+| `fact_invariance_rate` / `top_weakness_invariance_rate` | 0.94 / 0.99 | Yes |
+| `single_game_chat` faithfulness/relevancy | 0.71 / 0.63 | No — grounding/retrieval quality |
+| `agent_trajectory` faithfulness | 0.52–0.59 | No — same reason |
+
+Prompting alone already reaches 0.92-1.00 on every metric fine-tuning is actually scoped
+to touch; there is no ceiling it is visibly hitting. The metrics with real headroom
+(chat faithfulness/relevancy) are explicitly out of scope — fine-tuning them would mean
+baking chess-adjacent grounding behaviour into weights, which rule 8 and this project's
+whole deterministic-core-vs-LLM-layer architecture (ADR-0003) forbid regardless of score.
+
+**Decision: no-go this phase**, confirmed with the owner after the evidence above was
+presented, not decided unilaterally. Per `evaluation-strategy.md`'s own words: "if
+prompting gets there, no fine-tuning happens and that is a successful outcome, not a
+failure." Revisit only if a future tone/persona-fidelity run shows prompting plateauing
+below where a real gap opens up.
+
+→ `project-plan.md` Phase 16, `final_docs/v2/evaluation-strategy.md`
+
+---
+
 ## Open questions raised back to the owner
 
 Recorded here so they are not lost between phases.
