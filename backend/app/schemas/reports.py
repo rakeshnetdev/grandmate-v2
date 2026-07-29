@@ -27,4 +27,24 @@ class GameReportSummary(BaseModel):
     created_at: datetime
 
 
-__all__ = ["GameReportSummary", "ReportFinding"]
+class TrainingRecommendationSummary(BaseModel):
+    """Phase 15, D-032. Same shape as `GameReportSummary` plus the two fields specific
+    to a profile-level plan: `window_size` (which analytics window it was built from)
+    and `themes_covered` (what history the next generation deprioritises)."""
+
+    id: uuid.UUID
+    profile_id: uuid.UUID
+    persona: str
+    window_size: int
+    source: str
+    model: str | None
+    snapshot_version: str
+    summary: str
+    findings: list[ReportFinding]
+    recommendations: list[str]
+    themes_covered: list[str]
+    grounded: bool
+    created_at: datetime
+
+
+__all__ = ["GameReportSummary", "ReportFinding", "TrainingRecommendationSummary"]

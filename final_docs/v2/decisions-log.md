@@ -447,6 +447,81 @@ forbids, for metadata (richer clock/rating-delta detail) nothing downstream curr
 uses. A connector's entire job becomes "fetch PGN text over HTTP," nothing more.
 → `project-plan.md` Phase 14
 
+### D-032 — Phase 15 recommendation-engine mechanics · Locked
+`project-plan.md`'s Phase 15 lists "define the recommendation policy" as a task, not a
+given — four real product decisions were open before implementation and were resolved
+with the owner, all recommended defaults accepted as proposed:
+
+- **Grounding model: hybrid.** `ProfileAnalyticsService`'s existing recurring-weakness
+  detection (Phase 8) decides *what* to recommend — deterministic, unchanged. The
+  recommendation engine then calls `search_knowledge` against the existing
+  tactics/strategy corpus buckets (Phase 7) to pull real study content for that
+  weakness, and the LLM phrases it persona-appropriately with citations — the same
+  grounding pattern chat (Phase 10) and reports (Phase 9) already use. Rejected: a pure
+  hand-curated mapping table (real content to author now, no corpus reuse) and letting
+  the LLM generate a plan straight from profile stats with no retrieval step (an
+  ungrounded study suggestion is exactly the class of claim rule 8 exists to prevent).
+- **Cadence: on-demand only, no scheduler.** "Weekly training plan" is framing
+  ("this week's focus"), not a literal recurring job — generated fresh whenever
+  requested from current profile data. No new scheduling infrastructure, consistent
+  with Phase 17 (hosting/deployment) not having happened yet.
+- **Outcome tracking: history only.** Persist what was recommended and when, so a plan
+  does not repeat itself and a coach can see history. Automated before/after
+  improvement detection was rejected — attributing a later analytics change to one
+  specific past recommendation among possibly several is a real causal-inference
+  problem, not a lookup, and out of proportion for this phase.
+- **Delivery surface: a new report type**, reusing Phase 9's report
+  generation/critic/persona infrastructure rather than a new chat tool or a second
+  surface — least new infrastructure, most consistent with the existing report pattern.
+
+→ `project-plan.md` Phase 15
+
+---
+
+### D-033 — Agent observability: LangSmith, in Phase 17; classifier evaluation in Phase 16 · Locked
+
+Raised after comparing this project against the sibling `grandmate/` reference app for
+deliverables and architecture. Three questions were put to the owner and all three were
+answered directly.
+
+**1. LangSmith, not LangTrace.** LangTrace was the initial recommendation on
+vendor-neutrality grounds; the owner chose LangSmith. The reasoning that supports that
+choice: `langsmith` is already installed as a transitive dependency of `langchain-core`,
+so this is configuration rather than new supply chain; its LangGraph integration is
+node-aware rather than generic; and the portability an OpenTelemetry stack would buy is
+portability away from LangChain, which this project's orchestration layer is built on and
+has no plan to leave. ADR-0006's provider-abstraction posture is real but applies to the
+*LLM provider*, which sits behind a `Protocol` for exactly that reason — LangGraph never
+did. Full reasoning and rejected alternatives in
+[ADR-0017](adr/0017-langsmith-tracing-and-langgraph-studio.md).
+
+**2. Phase 17, not a new `P15a` sub-phase.** The original proposal was a separate phase
+slotted before Phase 16. The owner placed it in Phase 17 instead. That is the better
+fit: Phase 17 already carried "tracing across API, worker, and agent boundaries" as a
+deliverable, and a separate sub-phase would have split one concern across two phases
+while leaving Phase 17's existing line item ambiguous about whether it had been
+satisfied. LangGraph Studio (`backend/langgraph.json`) rides along because it shares the
+graph-factory refactor production tracing needs.
+
+**3. The move-classifier accuracy evaluation goes to Phase 16.** The sibling comparison
+surfaced a genuine coverage gap that is *not* an observability problem: every layer above
+Phase 5 treats the five-way move classification as ground truth, and it has never been
+validated against an independent, deeper engine run. `grandmate` does exactly that
+(detection F1 0.9294, severity accuracy 0.9073) and — the part worth copying —
+deliberately broke its own thresholds to prove the test could fail, watching F1 drop to
+0.19. Assigned to Phase 16, where evaluation consolidation already lives, and kept
+deliberately separate from Phase 17's tracing work so that "we added tracing" cannot be
+mistaken for "we validated the classifier."
+
+**Accepted cost, stated plainly.** LangSmith means user game history and prompt text
+leave our infrastructure to a third party. ADR-0013 declined to send that data even to
+the user's own browser by default; this is a strictly larger disclosure. It is acceptable
+only with redaction reusing dev-insight's existing sanitiser, tracing defaulting to off,
+and an explicit privacy statement in the deployment docs. Those are follow-up
+requirements in ADR-0017, not optional refinements.
+
+→ `project-plan.md` Phases 16 and 17, [ADR-0017](adr/0017-langsmith-tracing-and-langgraph-studio.md)
+
 ---
 
 ## Open questions raised back to the owner

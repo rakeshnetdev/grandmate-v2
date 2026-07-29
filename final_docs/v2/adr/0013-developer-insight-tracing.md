@@ -105,9 +105,25 @@ convenience, and losing them on restart is fine.
 - Phase 7: retrieval spans with bucket and hit counts
 - Phase 10: LLM spans with token usage; prompt capture used locally when debugging
 - Phase 13: agent and trajectory spans, feeding the multi-agent evaluation
-- Phase 17: production observability with real tracing behind auth; revisit whether the dev endpoints should exist there at all
+- Phase 17: production observability with real tracing behind auth; revisit whether the dev endpoints should exist there at all — **resolved by [ADR-0017](0017-langsmith-tracing-and-langgraph-studio.md)**
+
+## Relationship to ADR-0017
+
+[ADR-0017](0017-langsmith-tracing-and-langgraph-studio.md) adds LangSmith as the
+production agent-tracing backend. It **complements this decision and does not supersede
+it**: dev-insight remains the zero-cost, zero-egress local surface answering "what did
+*this* request just do," while LangSmith answers "why does this class of turn fail," with
+durable retention this ADR's 50-trace in-memory ring buffer deliberately does not
+provide.
+
+The redaction discipline decided here is load-bearing there. ADR-0017 requires reusing
+this module's existing sanitiser rather than writing a second one, and requires prompt
+and retrieved-context text to ship only behind an explicit, default-off switch —
+the same posture `DEV_INSIGHT_CAPTURE_PROMPTS` already takes, now applied to a strictly
+larger disclosure, since that data leaves our infrastructure entirely.
 
 ## References
 - `backend/app/core/devinsight/`
 - `frontend/src/features/devinsight/`
 - Reference implementation: `grandmate/frontend/src/components/DevInsights.tsx`
+- [ADR-0017](0017-langsmith-tracing-and-langgraph-studio.md) — production agent tracing

@@ -10,6 +10,8 @@
  */
 import { useState } from 'react';
 
+import { TrainingPlanPanel } from '@/features/training';
+
 import { useProfileAnalytics } from '../hooks/useAnalytics';
 import { WINDOW_OPTIONS } from '../lib/constants';
 import { ClassificationRateTable } from './ClassificationRateTable';
@@ -75,6 +77,11 @@ export function ProfileDashboard({ profileId }: ProfileDashboardProps) {
           <section>
             <h2 className="mb-2 text-sm font-semibold">Recurring weaknesses</h2>
             <RecurringWeaknessList weaknesses={analytics.recurring_weaknesses} />
+          </section>
+
+          <section>
+            <h2 className="mb-2 text-sm font-semibold">Training plan</h2>
+            <TrainingPlanPanel profileId={profileId} windowSize={windowSize} />
           </section>
 
           <section>

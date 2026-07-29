@@ -23,7 +23,14 @@ from app.db.models import (
 )
 from app.domain.patterns.polarity import is_players_own_motif, is_players_own_theme
 
-FactKind = Literal["summary", "opening", "move", "motif", "theme"]
+FactKind = Literal[
+    "summary", "opening", "move", "motif", "theme", "recurring_weakness", "knowledge_chunk"
+]
+# `recurring_weakness`/`knowledge_chunk` are produced by `training_facts.py` (Phase 15),
+# not by `extract_facts` below — added here rather than as a second `Fact`-like type
+# because the vocabulary (id/kind/severity/confidence/data) and the grounding critic
+# (`critic.py`'s fact_id check) are already fully generic; a training plan is "a new
+# report type" (D-032), not a new fact model.
 Severity = Literal["info", "notable", "critical"]
 
 _NOTABLE_CLASSIFICATIONS = frozenset({"inaccuracy", "mistake", "blunder"})

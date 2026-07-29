@@ -446,6 +446,11 @@ class ReportSettings(BaseSettings):
     # per persona-matrix.md's safety rules, it is suppressed entirely. A young player
     # acting on a false pattern is a real harm, not a cosmetic simplification choice.
     report_kid_min_confidence_to_show: float = 0.6
+    # Training plans (Phase 15, D-032): how many retrieved knowledge chunks ground one
+    # weakness. Capped independently of `retrieval_top_k` — a training plan cites study
+    # material for several weaknesses at once, so each one needs a small slice, not the
+    # full per-query top_k.
+    report_training_chunks_per_weakness: int = 2
 
 
 class MemorySettings(BaseSettings):
