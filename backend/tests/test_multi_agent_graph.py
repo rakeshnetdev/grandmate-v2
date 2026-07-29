@@ -107,7 +107,7 @@ async def test_supervisor_routes_to_chess_analyst_only_and_dispatches_its_tool(
             '{"needs_retrieval": false, "needs_analysis": true}',
             [tool_call],
             '{"done": true}',
-            "{\"answer\": \"It's not a known opening.\", \"citations\": []}",
+            '{"answer": "It\'s not a known opening.", "citations": []}',
         ]
     )
     graph = build_multi_agent_graph(_deps(settings, db_session, llm), MemorySaver())

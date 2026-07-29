@@ -10,4 +10,3 @@ from app.orchestration.agents.specs import (
 )
 
 __all__ = ["CHESS_ANALYST", "COACH", "CRITIC", "RETRIEVER", "SUPERVISOR", "AgentSpec"]
-

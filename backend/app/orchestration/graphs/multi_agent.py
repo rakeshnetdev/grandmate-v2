@@ -146,9 +146,7 @@ async def _ceiling_exceeded(state: MultiAgentState, deps: MultiAgentGraphDeps) -
     """`_ceilings_exceeded` reading its two numeric inputs out of graph state — the
     entry point every node checks at its own start, before state has been mutated for
     the current call."""
-    return await _ceilings_exceeded(
-        state.get("steps_taken", 0), state.get("tokens_used", 0), deps
-    )
+    return await _ceilings_exceeded(state.get("steps_taken", 0), state.get("tokens_used", 0), deps)
 
 
 async def _dispatch_tool(
