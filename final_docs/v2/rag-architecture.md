@@ -158,10 +158,19 @@ A supervisor routes to specialists:
 | Agent | Responsibility | Tools |
 |-------|---------------|-------|
 | Supervisor | Intent classification, routing, assembly | none |
-| Retriever | Corpus search and reranking | `search_knowledge` |
+| Retriever | Corpus search and reranking | `search_knowledge`, `search_analysis` |
 | Chess analyst | Analysis interpretation | `get_game_analysis`, `list_critical_moments`, `get_profile_aggregate`, `lookup_opening` |
 | Coach | Persona-appropriate phrasing, recommendations | none |
 | Critic | Verifies the draft against deterministic truth | `validate_line`, `get_game_analysis` |
+
+**Implementation note (Phase 13):** `search_analysis` was added to the Retriever's tool
+set, not left with the Chess analyst — this table predates that tool's Phase 10 build.
+It groups by retrieval *mechanism* rather than subject matter: `search_analysis` is
+`domain/retrieval`'s hybrid search over the user's own games, the same machinery
+`search_knowledge` uses over the general corpus, while every Chess analyst tool is a
+structured deterministic lookup (`domain/analysis`/`domain/analytics`/`domain/patterns`)
+with no ranking or semantic matching involved. The critic's tools are reached via
+`validate_answer`, reused unchanged from Phase 10, not a second implementation.
 
 The critic is the agent that justifies the pattern. Separating drafting from verification
 means the verifier is not invested in the draft it is checking, which is measurably better
@@ -171,6 +180,10 @@ at catching fabrication than asking one model to self-check.
 beats the Phase 10 single-agent baseline on the evaluation set. If it does not, that result
 is recorded and the simpler architecture stays. Multi-agent orchestration costs latency and
 tokens; it needs to buy something.
+
+**Status:** built and evaluated at Phase 13. See
+`final_docs/v2/phase-reports/phase-13-multi-agent-orchestration.md` and
+`evals/runs/` for the recorded exit-criterion result.
 
 ---
 

@@ -1,0 +1,338 @@
+{
+  "dataset_path": "/Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/evals/datasets/synthetic/agent_trajectory.jsonl",
+  "dataset_version": "v1-2026-07-28-synthetic",
+  "harness_version": "phase-13-v1",
+  "model": "gpt-4o-mini",
+  "reviewed_scenario_count": 0,
+  "total_scenario_count": 12,
+  "timestamp": "2026-07-29T01:23:14.032865+00:00",
+  "results": {
+    "single_agent": {
+      "faithfulness": 0.6,
+      "response_relevancy": 0.40581021803769285,
+      "grounded_rate": 1.0,
+      "avg_tool_call_count": 1.25
+    },
+    "multi_agent": {
+      "faithfulness": 0.5041666666666667,
+      "response_relevancy": 0.1177225274631956,
+      "grounded_rate": 1.0,
+      "avg_tool_call_count": 1.1666666666666667
+    },
+    "routing_accuracy": 0.9166666666666666
+  },
+  "exit_criterion": {
+    "rule": "multi-agent must match or beat single-agent on both faithfulness and response_relevancy to be adopted; otherwise the Phase 10 baseline stays (rag-architecture.md \u00a77)",
+    "multi_agent_wins": false,
+    "directional_only": true
+  },
+  "per_scenario": [
+    {
+      "scenario_id": "ag-fork-vs-pin",
+      "routing_category": "retrieval_only",
+      "routing_correct": true,
+      "multi_agent_trace": [
+        "supervisor",
+        "retriever",
+        "coach",
+        "critic",
+        "coach",
+        "critic"
+      ],
+      "single_agent": {
+        "answer": "I found some relevant information but couldn't confirm a fully grounded answer to your question. Here is what the underlying analysis actually shows:",
+        "grounded": true,
+        "tool_call_count": 2,
+        "faithfulness": 1.0,
+        "response_relevancy": 0.0
+      },
+      "multi_agent": {
+        "answer": "I currently do not have sufficient information to provide a corrected response. Please provide more context or details about your game.",
+        "grounded": true,
+        "tool_call_count": 2,
+        "faithfulness": 0.0,
+        "response_relevancy": 0.0
+      }
+    },
+    {
+      "scenario_id": "ag-italian-idea",
+      "routing_category": "retrieval_only",
+      "routing_correct": true,
+      "multi_agent_trace": [
+        "supervisor",
+        "retriever",
+        "coach",
+        "critic",
+        "coach",
+        "critic"
+      ],
+      "single_agent": {
+        "answer": "The Italian Game, initiated by the moves 1.e4 e5 2.Nf3 Nc6 3.Bc4, focuses on rapid development and control of the center. The key strategic idea is to develop the light-squared bishop towards f7, which is a vulnerable point in Black's position. This opening can lead to various lines, including the Giuoco Piano, which emphasizes solid development for both sides, or more aggressive lines like the Fried Liver Attack, where White sacrifices material to expose Black's king before it can castle. Overall, it rewards accurate calculation and principled play as the position opens up.",
+        "grounded": true,
+        "tool_call_count": 3,
+        "faithfulness": 1.0,
+        "response_relevancy": 0.7885365305230275
+      },
+      "multi_agent": {
+        "answer": "The opening of your game is the Italian Game (C50). In this opening, 1.e4 e5 2.Nf3 Nc6 3.Bc4 develops the light-squared bishop toward f7, which is a key point in Black's early position. The Italian Game can lead to careful development for both sides or sharper lines like the Fried Liver Attack, which sacrifices material to expose Black's king before it can castle. It's a classical choice that rewards accurate calculation as the position opens up.",
+        "grounded": true,
+        "tool_call_count": 3,
+        "faithfulness": 1.0,
+        "response_relevancy": 0.729884521325013
+      }
+    },
+    {
+      "scenario_id": "ag-pawn-structure",
+      "routing_category": "retrieval_only",
+      "routing_correct": true,
+      "multi_agent_trace": [
+        "supervisor",
+        "retriever",
+        "coach",
+        "critic",
+        "coach",
+        "critic"
+      ],
+      "single_agent": {
+        "answer": "I found some relevant information but couldn't confirm a fully grounded answer to your question. Here is what the underlying analysis actually shows:",
+        "grounded": true,
+        "tool_call_count": 1,
+        "faithfulness": 0.6666666666666666,
+        "response_relevancy": 0.0
+      },
+      "multi_agent": {
+        "answer": "I currently do not have sufficient information to provide a corrected response based on the context available. Please check back later or provide more details about your game.",
+        "grounded": true,
+        "tool_call_count": 2,
+        "faithfulness": 0.3333333333333333,
+        "response_relevancy": 0.0
+      }
+    },
+    {
+      "scenario_id": "ag-my-opening",
+      "routing_category": "analysis_only",
+      "routing_correct": true,
+      "multi_agent_trace": [
+        "supervisor",
+        "chess_analyst",
+        "coach",
+        "critic"
+      ],
+      "single_agent": {
+        "answer": "In this game, you played the Queen's Gambit Declined opening, which is classified under the ECO code D06.",
+        "grounded": true,
+        "tool_call_count": 1,
+        "faithfulness": 1.0,
+        "response_relevancy": 0.8152702187148352
+      },
+      "multi_agent": {
+        "answer": "I don't have information about the opening played in your game.",
+        "grounded": true,
+        "tool_call_count": 0,
+        "faithfulness": 1.0,
+        "response_relevancy": 0.0
+      }
+    },
+    {
+      "scenario_id": "ag-critical-moment",
+      "routing_category": "analysis_only",
+      "routing_correct": true,
+      "multi_agent_trace": [
+        "supervisor",
+        "chess_analyst",
+        "coach",
+        "critic"
+      ],
+      "single_agent": {
+        "answer": "The critical moment in your game occurred at ply 7, where the move 7...d6 was classified as a blunder, resulting in a significant evaluation swing of 320 centipawns.",
+        "grounded": true,
+        "tool_call_count": 1,
+        "faithfulness": 1.0,
+        "response_relevancy": 0.7161085925261066
+      },
+      "multi_agent": {
+        "answer": "I don't have information about the critical moments in your game. Please provide more details or check the game analysis for insights.",
+        "grounded": true,
+        "tool_call_count": 0,
+        "faithfulness": 0.6666666666666666,
+        "response_relevancy": 0.0
+      }
+    },
+    {
+      "scenario_id": "ag-accuracy-trend",
+      "routing_category": "analysis_only",
+      "routing_correct": true,
+      "multi_agent_trace": [
+        "supervisor",
+        "chess_analyst",
+        "coach",
+        "critic"
+      ],
+      "single_agent": {
+        "answer": "It seems that there isn't enough data from your last 10 games to provide an accuracy trend. You may want to play a few more games to gather sufficient data for analysis.",
+        "grounded": true,
+        "tool_call_count": 1,
+        "faithfulness": 1.0,
+        "response_relevancy": 0.0
+      },
+      "multi_agent": {
+        "answer": "I don't have sufficient data to determine how your accuracy has trended over your last 10 games.",
+        "grounded": true,
+        "tool_call_count": 1,
+        "faithfulness": 1.0,
+        "response_relevancy": 0.0
+      }
+    },
+    {
+      "scenario_id": "ag-motif-at-blunder",
+      "routing_category": "both",
+      "routing_correct": false,
+      "multi_agent_trace": [
+        "supervisor",
+        "chess_analyst",
+        "coach",
+        "critic"
+      ],
+      "single_agent": {
+        "answer": "Your critical moment in this game occurred at ply 6, where you played **Nxe4**, which was classified as a blunder. This move resulted in a significant evaluation swing of 320 centipawns, indicating that it was a major mistake. The best move at that point was to play **dxe4** instead. The tactical motif you missed likely involved maintaining pressure and control over the center, as well as avoiding unnecessary exchanges that could lead to a disadvantageous position.",
+        "grounded": true,
+        "tool_call_count": 2,
+        "faithfulness": 0.6666666666666666,
+        "response_relevancy": 0.6872212633774222
+      },
+      "multi_agent": {
+        "answer": "I currently don't have access to the specific details of your game's critical moments or the tactical motifs involved. Please check your game analysis tool or provide more context for further assistance.",
+        "grounded": true,
+        "tool_call_count": 1,
+        "faithfulness": 0.25,
+        "response_relevancy": 0.0
+      }
+    },
+    {
+      "scenario_id": "ag-opening-plan",
+      "routing_category": "both",
+      "routing_correct": true,
+      "multi_agent_trace": [
+        "supervisor",
+        "retriever",
+        "chess_analyst",
+        "coach",
+        "critic",
+        "coach",
+        "critic"
+      ],
+      "single_agent": {
+        "answer": "Your opening was played correctly, following the English Opening (ECO A15). The moves you played were classified as the best by the engine, maintaining a solid evaluation throughout the opening phase. The general plan behind the English Opening typically involves controlling the center with pawns and pieces, developing your pieces harmoniously, and preparing for a flexible pawn structure. You can aim for a kingside fianchetto with g3 and Bg2, which enhances your control over the center and prepares for potential attacks on the center and kingside.",
+        "grounded": true,
+        "tool_call_count": 1,
+        "faithfulness": 0.2,
+        "response_relevancy": 0.6067233605290491
+      },
+      "multi_agent": {
+        "answer": "I found some relevant information but couldn't confirm a fully grounded answer to your question. Here is what the underlying analysis actually shows:",
+        "grounded": true,
+        "tool_call_count": 2,
+        "faithfulness": 1.0,
+        "response_relevancy": 0.0
+      }
+    },
+    {
+      "scenario_id": "ag-mistake-and-hanging",
+      "routing_category": "both",
+      "routing_correct": true,
+      "multi_agent_trace": [
+        "supervisor",
+        "retriever",
+        "chess_analyst",
+        "coach",
+        "critic"
+      ],
+      "single_agent": {
+        "answer": "Your biggest mistake in this game occurred on move 8 when you played Nc3, which was classified as a blunder. This move resulted in an evaluation of -296 centipawns, indicating a significant disadvantage at that point in the game. The evaluation swing was 320 centipawns, showing that this move drastically changed the position's evaluation.\n\nA hanging piece is a term used in chess to describe a piece that is unprotected and can be captured by an opponent without any consequences. Essentially, if a piece is hanging, it means that it is vulnerable to being taken, and the player has not provided any defense for it. This often leads to material loss if the opponent capitalizes on the opportunity.",
+        "grounded": true,
+        "tool_call_count": 3,
+        "faithfulness": 0.6666666666666666,
+        "response_relevancy": 0.8887018983289314
+      },
+      "multi_agent": {
+        "answer": "I couldn't find any specific information about your biggest mistake in this game. However, a hanging piece refers to a piece that is unprotected and can be captured by an opponent's piece without any consequence. It is important to always be aware of your pieces' safety to avoid losing material unnecessarily.",
+        "grounded": true,
+        "tool_call_count": 3,
+        "faithfulness": 0.8,
+        "response_relevancy": 0.0
+      }
+    },
+    {
+      "scenario_id": "ag-greeting",
+      "routing_category": "neither",
+      "routing_correct": true,
+      "multi_agent_trace": [
+        "supervisor",
+        "coach",
+        "critic"
+      ],
+      "single_agent": {
+        "answer": "You're welcome! I'm glad to assist you. How can I help you today?",
+        "grounded": true,
+        "tool_call_count": 0,
+        "faithfulness": 0.0,
+        "response_relevancy": 0.0
+      },
+      "multi_agent": {
+        "answer": "You're welcome! I'm here to help you with your chess game. If you have any questions or need assistance, feel free to ask!",
+        "grounded": true,
+        "tool_call_count": 0,
+        "faithfulness": 0.0,
+        "response_relevancy": 0.27092171201600873
+      }
+    },
+    {
+      "scenario_id": "ag-how-it-works",
+      "routing_category": "neither",
+      "routing_correct": true,
+      "multi_agent_trace": [
+        "supervisor",
+        "coach",
+        "critic"
+      ],
+      "single_agent": {
+        "answer": "I'm designed to assist you with your chess games by providing analysis, move suggestions, and explanations based on engine evaluations and chess knowledge. I can analyze your current game, suggest alternative moves, and help you understand strategies and tactics. My responses are grounded in specific data from your games or established chess principles, ensuring accuracy and relevance.",
+        "grounded": true,
+        "tool_call_count": 0,
+        "faithfulness": 0.0,
+        "response_relevancy": 0.36716075245294316
+      },
+      "multi_agent": {
+        "answer": "I'm here to assist you with your chess game by providing insights based on the current position and moves in your game. I can offer evaluations, suggest moves, and explain concepts, all based on the information gathered from your game. However, I can only provide information if it has been specifically collected in the context of your current game. If there's something specific you'd like to know, feel free to ask!",
+        "grounded": true,
+        "tool_call_count": 0,
+        "faithfulness": 0.0,
+        "response_relevancy": 0.4118640962173255
+      }
+    },
+    {
+      "scenario_id": "ag-goodbye",
+      "routing_category": "neither",
+      "routing_correct": true,
+      "multi_agent_trace": [
+        "supervisor",
+        "coach",
+        "critic"
+      ],
+      "single_agent": {
+        "answer": "You're welcome! Looking forward to our next session. Have a great day!",
+        "grounded": true,
+        "tool_call_count": 0,
+        "faithfulness": 0.0,
+        "response_relevancy": 0.0
+      },
+      "multi_agent": {
+        "answer": "You're welcome! Looking forward to our next session. Have a great day!",
+        "grounded": true,
+        "tool_call_count": 0,
+        "faithfulness": 0.0,
+        "response_relevancy": 0.0
+      }
+    }
+  ]
+}
