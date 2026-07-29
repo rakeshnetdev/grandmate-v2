@@ -1341,21 +1341,36 @@ a write. See D-030.
 ### Goal
 Convert insights into actionable improvement plans.
 
+### Recommendation mechanics (D-032 — resolves this phase's open policy questions)
+Four decisions confirmed with the owner before implementation:
+- **Grounding**: hybrid — `ProfileAnalyticsService`'s recurring-weakness detection
+  (deterministic, Phase 8) decides what to recommend; `search_knowledge` over the
+  tactics/strategy corpus (Phase 7) supplies real, citable study content; the LLM
+  phrases it per persona. No ungrounded LLM-generated study advice.
+- **Cadence**: on-demand only. "Weekly" is framing, not a scheduled job — no new
+  scheduler.
+- **Outcome tracking**: history only (what was recommended, when) — no automated
+  before/after improvement detection.
+- **Delivery**: a new report type on Phase 9's existing report infrastructure, not a
+  new chat tool or a second surface.
+
 ### Deliverables
-- weekly training plans
-- recurring theme prioritisation
-- focus-area planner
-- profile-specific recommendation engine
+- on-demand training-plan report (persona-framed, citation-grounded)
+- recurring theme prioritisation, reusing Phase 8's weakness detection
+- recommendation history per profile, to avoid repeating the same suggestion
+- profile-specific recommendation engine over the existing corpus + analytics data
 
 ### Tasks
-- define the recommendation policy
-- map recurring issues to drills and study themes
-- support persona-sensitive framing
-- track prior recommendations and outcomes
+- recommendation engine: weakness → corpus query → grounded suggestion, per persona
+- recommendation-history persistence and prioritisation (skip recently-recommended
+  themes in favour of others when several weaknesses are candidates)
+- support persona-sensitive framing (reuses Phase 9's persona voice/critic pattern)
+- track prior recommendations (history only, per D-032 — not outcomes)
 
 ### Testing
 - recommendation consistency tests
 - no-contradiction tests against profile findings
+- grounding/citation tests (same pattern as report/chat guardrails)
 - user acceptance review
 
 ### Exit criteria
@@ -1376,7 +1391,37 @@ its place.
 - **synthetic dataset generation pipeline with provenance and human spot-check**
 - score ledger with run-over-run trending and regression flags
 - LLM-as-judge rubrics for tone and persona fidelity
+- **move-classifier accuracy evaluation against an independent, deeper engine run** —
+  added here in Phase 15 after a sibling-project comparison (D-033)
 - fine-tuning experiment and go/no-go decision
+
+### Move-classifier accuracy evaluation (added, D-033)
+
+Every layer above Phase 5 — patterns, aggregates, personas, chat, training plans — treats
+the five-way move classification as ground truth. Phases 5 and 6 evaluated *around* it
+(legal lines, reproducibility across independent engine instances, motif precision and
+recall against Lichess puzzles) but never validated the classification itself. The
+sibling project does: it grades its classifier against Stockfish at a materially deeper
+setting than production runs, reporting detection F1 and severity accuracy.
+
+Required properties, learned from that comparison:
+
+- **Ground truth must be independent of the thing being graded.** A deeper, separate
+  Stockfish run — not the same depth, not the same process, not the production
+  thresholds.
+- **The test must be able to fail, and that must be demonstrated.** The sibling project
+  deliberately broke its thresholds and watched F1 fall from 0.95 to 0.19. A test that
+  cannot fail proves nothing, so the negative control is part of the deliverable, not an
+  optional extra.
+- **Report accuracy per class, not only in aggregate.** Near-miss inaccuracies and
+  borderline cases are where a classifier actually disagrees; a single headline number
+  hides that.
+- **Thresholds are configuration** (rule 11), and a failure stops the phase and is
+  reported, per the threshold rule below.
+
+Deliberately kept separate from Phase 17's tracing work: this is an evaluation-coverage
+gap, not an observability one. Conflating them would let "we added tracing" read as "we
+validated the classifier."
 
 ### Fine-tuning position
 Fine-tuning is evaluated last, deliberately. Retrieval quality, prompt design, and
@@ -1389,6 +1434,8 @@ Proceed only if the evaluation set shows a measurable gain that prompting cannot
 - unify the harness across all datasets
 - build the synthetic generator and label workflow
 - implement the score ledger with thresholds
+- build the move-classifier accuracy harness: independent deep-engine ground truth,
+  per-class breakdown, and a demonstrated negative control
 - run the fine-tuning experiment and record the comparison
 
 ### Threshold rule
@@ -1397,6 +1444,8 @@ the failure is reported. Evaluation is never run informally and discarded.
 
 ### Exit criteria
 - all datasets scored and trended, thresholds met
+- move-classifier detection and severity accuracy recorded, with the negative control
+  demonstrated
 - fine-tuning decision documented with evidence
 - sign-off required
 
@@ -1409,7 +1458,10 @@ Prepare the platform for reliable real-world use.
 
 ### Deliverables
 - structured logs with request and trace ids
-- tracing across API, worker, and agent boundaries
+- tracing across API, worker, and agent boundaries — **LangSmith for the agent boundary
+  (ADR-0017, D-033)**
+- **LangGraph Studio wired via `backend/langgraph.json`, development only**
+- **committed mermaid state diagrams for both graphs, exported from the graphs themselves**
 - metrics dashboards
 - job dead-letter handling
 - rate limiting and LLM spend guardrails
@@ -1421,8 +1473,51 @@ Prepare the platform for reliable real-world use.
   ADR-0002 or an alternative; write the Storage adapter and switch the connection
   string. No schema change is involved, since MVP already runs Postgres.
 
+### Agent observability (ADR-0017, D-033)
+
+Phases 10–13 built the graphs and instrumented them with ADR-0013's dev-insight spans.
+That surface is hard-gated **off** in production by design, so a hosted deployment today
+runs the agent completely unobserved. This is where that is closed.
+
+**LangSmith — production agent tracing.** Chosen over LangTrace because `langsmith` is
+already an installed transitive dependency of `langchain-core`, its LangGraph integration
+is node-aware rather than generic, and the portability an OpenTelemetry stack would buy
+is portability away from a framework this project has no plan to leave. Full reasoning
+and the rejected alternatives are in ADR-0017.
+
+Non-negotiable constraints, carried from ADR-0013's own reasoning:
+
+- **Redaction before egress.** Prompt and retrieved-context text contain a user's game
+  history. Reuse dev-insight's existing sanitiser — do not write a second one. Raw text
+  ships only behind an explicit switch that is off by default, mirroring
+  `DEV_INSIGHT_CAPTURE_PROMPTS`.
+- **Tracing defaults off.** An unconfigured deploy transmits nothing. Every knob
+  (`LANGSMITH_TRACING`, `LANGSMITH_API_KEY`, `LANGSMITH_PROJECT`, sampling rate) is a
+  typed setting read from `.env`, per rule 11.
+- **A privacy statement** in `configuration.md` and the deployment docs saying plainly
+  what leaves the system and how to stop it.
+- **Spend guard**, treated the same way `LLM_DAILY_TOKEN_CEILING` already is.
+
+**LangGraph Studio — development only.** `backend/langgraph.json` exposing both
+`chat` and `multi_agent`. Studio needs zero-argument graph factories while
+`build_chat_graph` takes live dependencies, so the factories and `ChatService` must share
+one `build_graph_deps(settings)` helper — two wiring paths that could diverge is exactly
+what rule 13 forbids, and a test asserts they resolve the same dependency set. Studio is
+never mounted or reachable in production.
+
+**Mermaid state diagrams.** Exported from the compiled graphs via
+`get_graph().draw_mermaid()` and committed, with a test asserting the checked-in diagram
+still matches the built graph — so a routing change shows up in review rather than only
+in behaviour. This also closes a documented gap: `final_docs/v2/` currently contains no
+architecture diagrams at all, where the sibling project ships eight.
+
 ### Tasks
 - request id and trace propagation
+- LangSmith wiring, redaction, sampling, and the default-off switch
+- `langgraph.json` and the shared `build_graph_deps` refactor
+- mermaid diagram export plus the drift test
+- emit the three declared-but-unused span kinds (`DB`, `RETRIEVAL`, `JOB`) and instrument
+  tool dispatch in `orchestration/tools/registry.py`
 - worker job metrics
 - engine resource monitoring
 - chat latency, token, and cost monitoring
@@ -1433,6 +1528,9 @@ Prepare the platform for reliable real-world use.
 - chaos and retry tests
 - backup restore drill
 - security review
+- redaction test: assert no raw prompt or retrieved-context text reaches the exporter
+  with the sensitive switch off
+- one-wiring-path test: Studio's factory and `ChatService` resolve the same dependencies
 
 ### Exit criteria
 - production baseline approved

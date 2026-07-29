@@ -21,3 +21,8 @@ Phase 2:
 
  1. Q-1 — you wrote "gpt-40-min"; I implemented gpt-4o-mini. Confirm? ok, that was sspelling mistake
 2. Q-4 — a value for LLM_DAILY_TOKEN_CEILING. Currently blank, meaning no ceiling. that should be ok. do we know how many tokens are we using pre request? Have a proper logging to view in developer_insight (to track logs, agent calls, workflow navigations, it was implemented in my sibling project. Be careful anything doing to track should not introduce latency or)
+
+
+Instead of doing Phase 8 — Multi-Game Aggregation and Profile Analytics next, I really want to see this wofkflow so far completed on UI,
+with simple pgn upload and able to see the how its been analyzed and response. Is the RAG involved in it? how the the retrival? just introduce small early step or fist in this 
+phase 8 which shows that first , and once confirmed , we can start actual phase 8

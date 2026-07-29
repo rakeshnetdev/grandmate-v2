@@ -1,0 +1,77 @@
+{
+  "dataset_path": "/Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/evals/datasets/golden/training_fidelity.jsonl",
+  "dataset_version": "v1-2026-07-28",
+  "harness_version": "phase-15-v1",
+  "model": "gpt-4o-mini",
+  "reviewed_scenario_count": 0,
+  "total_scenario_count": 3,
+  "timestamp": "2026-07-29T06:38:20.634808+00:00",
+  "results": {
+    "grounded_rate": 1.0,
+    "top_weakness_invariance_rate": 1.0,
+    "kid_safety_rate": 1.0,
+    "n_scenarios": 3
+  },
+  "per_scenario": [
+    {
+      "scenario_id": "single_weakness_no_citation",
+      "personas": {
+        "self_learner": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "coach": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "kid": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": true
+        }
+      }
+    },
+    {
+      "scenario_id": "single_weakness_with_citation",
+      "personas": {
+        "self_learner": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "coach": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "kid": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": true
+        }
+      }
+    },
+    {
+      "scenario_id": "multiple_weaknesses_capped",
+      "personas": {
+        "self_learner": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "coach": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "kid": {
+          "grounded": true,
+          "top_weakness_included": true,
+          "kid_first_attempt_safe": true
+        }
+      }
+    }
+  ]
+}

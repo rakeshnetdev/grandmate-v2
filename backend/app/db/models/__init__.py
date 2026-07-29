@@ -39,6 +39,7 @@ from app.db.models.patterns import (
     StrategicThemeType,
 )
 from app.db.models.reports import GameReport, ReportSource
+from app.db.models.training import TrainingRecommendation
 
 __all__ = [
     "AnalysisKnowledgeChunk",
@@ -76,6 +77,7 @@ __all__ = [
     "ReportSource",
     "StrategicThemeFinding",
     "StrategicThemeType",
+    "TrainingRecommendation",
     "User",
     "UserIdentity",
 ]

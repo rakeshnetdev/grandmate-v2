@@ -7,6 +7,7 @@ Phase 0 documentation set. Start here.
 | Document | What it answers |
 |----------|----------------|
 | [`prd.md`](prd.md) | What is being built and for whom |
+| [`features-and-use-cases.md`](features-and-use-cases.md) | What actually works today, phase by phase, with runnable use cases |
 | [`decisions-log.md`](decisions-log.md) | What has been decided, and what is still open |
 | [`glossary.md`](glossary.md) | Shared vocabulary and the starter taxonomies |
 | [`persona-matrix.md`](persona-matrix.md) | How the same truth is rendered for different audiences |
@@ -38,6 +39,7 @@ Phase 0 documentation set. Start here.
 | [0013](adr/0013-developer-insight-tracing.md) | Developer insight via out-of-band tracing | Accepted |
 | [0015](adr/0015-postgres-for-mvp-supabase-deferred.md) | Plain Postgres + pgvector for MVP, Supabase deferred | Accepted |
 | [0016](adr/0016-private-study-profile-for-unowned-pgns.md) | Private study profile for unowned/arbitrary PGN analysis | Accepted |
+| [0017](adr/0017-langsmith-tracing-and-langgraph-studio.md) | LangSmith for production agent tracing, LangGraph Studio for development | Accepted |
 
 ## Phase reports
 
@@ -45,6 +47,7 @@ Phase 0 documentation set. Start here.
 |-------|--------|--------|
 | 0 | [Discovery and Decision Baseline](checklists/phase-0-completeness.md) | Signed off |
 | 1 | [Engineering Foundation](phase-reports/phase-01-engineering-foundation.md) | Pending sign-off |
+| 15 | [Training Plan and Coaching Recommendations](phase-reports/phase-15-training-plan-recommendations.md) | Pending sign-off |
 
 ## Other
 
