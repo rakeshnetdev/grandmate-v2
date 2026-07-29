@@ -14,7 +14,7 @@ import uuid
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.models import Profile, ProfileKind, ProfileSource
+from app.db.models import GameSource, Profile, ProfileKind, ProfileSource
 
 
 async def list_profiles(session: AsyncSession, user_id: uuid.UUID) -> list[Profile]:
@@ -60,9 +60,27 @@ async def get_linked_usernames(session: AsyncSession, profile_id: uuid.UUID) -> 
     return list(result.scalars().all())
 
 
+async def get_profile_source(
+    session: AsyncSession, profile_id: uuid.UUID, source: GameSource
+) -> ProfileSource | None:
+    """The profile's linked username for one specific platform (Phase 14) — `None` if
+    the profile has never logged in with or otherwise linked that platform. Distinct
+    from `get_linked_usernames`, which flattens every source together for the
+    self/study routing check (`matches_any_linked_username`); a game-import sync needs
+    to know *which* platform's username to hand a connector, not just whether one
+    matches."""
+    result = await session.execute(
+        select(ProfileSource).where(
+            ProfileSource.profile_id == profile_id, ProfileSource.source == source
+        )
+    )
+    return result.scalars().first()
+
+
 __all__ = [
     "get_linked_usernames",
     "get_or_create_study_profile",
     "get_owned_profile",
+    "get_profile_source",
     "list_profiles",
 ]

@@ -68,10 +68,19 @@ class TooManyGamesError(Exception):
 
 @dataclass(frozen=True)
 class SourceText:
-    """One submitted PGN blob — a pasted string or one uploaded file's contents."""
+    """One submitted PGN blob — a pasted string, one uploaded file's contents, or
+    (Phase 14) the PGN a platform connector fetched.
+
+    ``source`` defaults to ``GameSource.UPLOAD`` so every existing manual-paste/upload
+    call site keeps working unchanged; the platform-sync path is the only caller that
+    passes ``GameSource.LICHESS``/``GameSource.CHESSCOM`` explicitly, so the resulting
+    ``Game`` rows record where they actually came from rather than being silently
+    mislabelled as uploads.
+    """
 
     text: str
     label: str
+    source: GameSource = GameSource.UPLOAD
 
 
 @dataclass(frozen=True)
@@ -126,11 +135,71 @@ class ImportService:
         of where individual games land — it tracks the account's request, not one
         target profile's content.
         """
-        pattern_service = PatternDetectionService(self._session, pattern_settings)
         job = Job(kind=JobKind.PGN_IMPORT, profile_id=self_profile_id, status=JobStatus.PROCESSING)
         self._session.add(job)
         await self._session.flush()
+        return await self._ingest_sources(
+            job,
+            self_profile_id=self_profile_id,
+            study_profile_id=study_profile_id,
+            self_linked_usernames=self_linked_usernames,
+            sources=sources,
+            max_games=max_games,
+            opening_index=opening_index,
+            pattern_settings=pattern_settings,
+        )
 
+    async def ingest_into_job(
+        self,
+        job: Job,
+        *,
+        self_profile_id: uuid.UUID,
+        study_profile_id: uuid.UUID,
+        self_linked_usernames: list[str],
+        sources: list[SourceText],
+        max_games: int,
+        opening_index: OpeningIndex,
+        pattern_settings: PatternSettings,
+    ) -> ImportResult:
+        """Identical processing to :meth:`ingest`, but writing into an already-created,
+        ``PENDING`` ``job`` rather than creating one (Phase 14).
+
+        Exists for the platform-sync path: the route creates the job immediately (so
+        the caller has an id to poll before any network call to Lichess/Chess.com has
+        even started) and a background task fills it in once the platform fetch
+        completes — see ``domain/imports/dispatch.py``. Manual paste/upload has no such
+        two-step need (parsing a pasted blob is effectively instant), so :meth:`ingest`
+        keeps creating its own job inline, unchanged.
+        """
+        job.status = JobStatus.PROCESSING
+        await self._session.flush()
+        return await self._ingest_sources(
+            job,
+            self_profile_id=self_profile_id,
+            study_profile_id=study_profile_id,
+            self_linked_usernames=self_linked_usernames,
+            sources=sources,
+            max_games=max_games,
+            opening_index=opening_index,
+            pattern_settings=pattern_settings,
+        )
+
+    async def _ingest_sources(
+        self,
+        job: Job,
+        *,
+        self_profile_id: uuid.UUID,
+        study_profile_id: uuid.UUID,
+        self_linked_usernames: list[str],
+        sources: list[SourceText],
+        max_games: int,
+        opening_index: OpeningIndex,
+        pattern_settings: PatternSettings,
+    ) -> ImportResult:
+        """The actual parse/dedupe/persist/canonicalize/report work, shared by
+        :meth:`ingest` and :meth:`ingest_into_job` — the only difference between those
+        two entry points is who creates ``job`` and when."""
+        pattern_service = PatternDetectionService(self._session, pattern_settings)
         parsed_by_source: list[tuple[SourceText, list[ParsedGame], list[RejectedGame]]] = []
         total_games = 0
         for source in sources:
@@ -195,7 +264,7 @@ class ImportService:
                 game = Game(
                     profile_id=target_profile_id,
                     job_id=job.id,
-                    source=GameSource.UPLOAD,
+                    source=source.source,
                     content_hash=parsed.content_hash,
                     headers=parsed.headers,
                     played_at=None,
