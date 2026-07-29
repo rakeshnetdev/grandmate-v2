@@ -2,9 +2,10 @@
 (Phase 10, ADR-0010).
 
 One list of `ToolSpec`s to hand the LLM provider, one name-keyed dispatch table to
-resolve a model's tool call back to an implementation. Phase 12's MCP server is expected
-to import `TOOL_DISPATCH` directly rather than growing its own — that is the entire point
-of `claude.md` rule 13.
+resolve a model's tool call back to an implementation. Phase 12 (deferred — no external
+MCP tool has a real use case yet; see ADR-0010/D-027/D-028) would add an *external* MCP
+tool as one more entry in this same table, so the agent has one place to look regardless
+of whether a tool's implementation is local or reached over the MCP client protocol.
 """
 
 from __future__ import annotations

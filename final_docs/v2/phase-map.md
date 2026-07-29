@@ -37,7 +37,7 @@ change, not a silent one.
 | 8 — Persona Layer and Report Generation | 9 | Renumbered; personas fixed at self-learner, coach, kid; PDF deferred |
 | 9 — Chat with Short-Term Memory | 10 — Agentic RAG Chat with Short-Term Memory | Reshaped: retrieval exposed as agent tools rather than a fixed chain |
 | 10 — Long-Term Memory | 11 | Renumbered |
-| — | **12 — MCP Server and Tool Interface** | **New** |
+| — | **12 — MCP Client Integration** | **New; reversed from server to client direction, then deferred entirely — no product use case yet, see ADR-0010/D-027/D-028** |
 | — | **13 — Multi-Agent Orchestration** | **New** |
 | 11 — Lichess and Chess.com Connectors | 14 | Renumbered; Lichess import now uses the login token |
 | 12 — Training Plan and Coaching Recommendations | 15 | Renumbered |

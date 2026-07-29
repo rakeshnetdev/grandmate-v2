@@ -345,6 +345,46 @@ than the player's — plus a real-Postgres check confirming staleness resolves t
 one active entry and memories never cross a profile boundary.
 → `final_docs/v2/phase-reports/phase-11-long-term-memory.md`
 
+### D-027 — Phase 12 direction reversed: MCP client, not server · Locked
+ADR-0010 (drafted at Phase 0, still "Proposed") assumed GrandMate would expose its own
+analysis/retrieval tools through an MCP *server* for external clients to call. Before
+Phase 12 implementation began, the owner reversed this: **GrandMate exposes nothing of
+its own over MCP.** No outward-facing MCP server, no external caller granted access to
+`get_game_analysis`, `get_profile_aggregate`, or any other internal capability.
+
+Instead, MCP is demonstrated the other direction — GrandMate as an MCP **client**,
+consuming an existing external MCP tool (web search / fetch) from inside the chat agent's
+own tool set (`orchestration/tools/registry.py`), the same set the LangGraph agent already
+calls per ADR-0009/rule 13.
+
+This is a reversal of ADR-0010's decision, not a refinement of it — recorded per the
+deviation rule in `claude.md` rather than silently overwritten. D-016's requirement that
+the project demonstrate MCP still stands; only the direction of the integration changed.
+Rationale: exposing GrandMate's own tools externally was judged unnecessary risk/surface
+for this project's actual goals, whereas consuming external tools inside the existing
+agent has no equivalent exposure — nothing about a profile's data leaves the system.
+
+Still open, to be resolved before implementation: which specific external MCP server
+package to connect to, and whether it requires a credential for `.env`.
+→ ADR-0010 (rewritten), `project-plan.md` Phase 12, `phase-map.md`
+
+### D-028 — Phase 12 deferred: no forced MCP integration without a real use case · Locked
+Working through D-027's client direction surfaced that the only external MCP tool worth
+adding (`fetch`, for a user-pasted URL) has no concrete trigger anywhere in the product
+today — no chat flow currently invites a user to paste a link, and open-ended web
+*search* was rejected outright because an LLM treating live web content as chess truth is
+exactly what rule 8/9 exist to prevent.
+
+Rather than build an integration to satisfy D-016's letter with no product need behind
+it, the owner deferred Phase 12 entirely. D-016's MCP requirement is not dropped — it is
+unresolved until a genuine use case exists (most likely once a chat flow that accepts
+user-supplied links or references is designed, possibly alongside Phase 13's multi-agent
+work). Revisit then rather than inventing a use case now.
+
+ADR-0010 and `project-plan.md` Phase 12 are marked Deferred, not deleted, so the reasoning
+survives for whoever picks this back up.
+→ ADR-0010, `project-plan.md` Phase 12, `phase-map.md`
+
 ---
 
 ## Open questions raised back to the owner
