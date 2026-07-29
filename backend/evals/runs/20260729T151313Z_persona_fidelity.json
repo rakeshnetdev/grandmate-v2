@@ -1,0 +1,617 @@
+{
+  "dataset_path": "/Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/evals/datasets/golden/persona_fidelity.jsonl",
+  "dataset_version": "v1-2026-07-28",
+  "harness_version": "phase-9-v1",
+  "model": "gpt-4o-mini",
+  "reviewed_scenario_count": 0,
+  "total_scenario_count": 30,
+  "timestamp": "2026-07-29T15:13:13.410819+00:00",
+  "results": {
+    "grounded_rate": 0.7333333333333333,
+    "fact_invariance_rate": 0.9444444444444444,
+    "kid_safety_rate": 1.0,
+    "n_scenarios": 30
+  },
+  "per_scenario": [
+    {
+      "scenario_id": "clean_game",
+      "personas": {
+        "self_learner": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "coach": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "kid": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": true
+        }
+      }
+    },
+    {
+      "scenario_id": "one_blunder",
+      "personas": {
+        "self_learner": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "coach": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "kid": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": true
+        }
+      }
+    },
+    {
+      "scenario_id": "many_findings",
+      "personas": {
+        "self_learner": {
+          "grounded": false,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "coach": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "kid": {
+          "grounded": false,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": true
+        }
+      }
+    },
+    {
+      "scenario_id": "tactics_low_confidence",
+      "personas": {
+        "self_learner": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "coach": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "kid": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": true
+        }
+      }
+    },
+    {
+      "scenario_id": "no_findings",
+      "personas": {
+        "self_learner": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "coach": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "kid": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": true
+        }
+      }
+    },
+    {
+      "scenario_id": "synth_scenario_01",
+      "personas": {
+        "self_learner": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "coach": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "kid": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": true
+        }
+      }
+    },
+    {
+      "scenario_id": "synth_scenario_02",
+      "personas": {
+        "self_learner": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "coach": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "kid": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": true
+        }
+      }
+    },
+    {
+      "scenario_id": "synth_scenario_03",
+      "personas": {
+        "self_learner": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "coach": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "kid": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": true
+        }
+      }
+    },
+    {
+      "scenario_id": "synth_scenario_04",
+      "personas": {
+        "self_learner": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "coach": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "kid": {
+          "grounded": false,
+          "top_fact_included": false,
+          "kid_first_attempt_safe": true
+        }
+      }
+    },
+    {
+      "scenario_id": "synth_scenario_05",
+      "personas": {
+        "self_learner": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "coach": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "kid": {
+          "grounded": false,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": true
+        }
+      }
+    },
+    {
+      "scenario_id": "synth_scenario_06",
+      "personas": {
+        "self_learner": {
+          "grounded": false,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "coach": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "kid": {
+          "grounded": false,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": true
+        }
+      }
+    },
+    {
+      "scenario_id": "synth_scenario_07",
+      "personas": {
+        "self_learner": {
+          "grounded": false,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "coach": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "kid": {
+          "grounded": false,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": true
+        }
+      }
+    },
+    {
+      "scenario_id": "synth_scenario_08",
+      "personas": {
+        "self_learner": {
+          "grounded": false,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "coach": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "kid": {
+          "grounded": false,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": true
+        }
+      }
+    },
+    {
+      "scenario_id": "synth_scenario_09",
+      "personas": {
+        "self_learner": {
+          "grounded": false,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "coach": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "kid": {
+          "grounded": false,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": true
+        }
+      }
+    },
+    {
+      "scenario_id": "synth_scenario_10",
+      "personas": {
+        "self_learner": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "coach": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "kid": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": true
+        }
+      }
+    },
+    {
+      "scenario_id": "synth_scenario_11",
+      "personas": {
+        "self_learner": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "coach": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "kid": {
+          "grounded": true,
+          "top_fact_included": false,
+          "kid_first_attempt_safe": true
+        }
+      }
+    },
+    {
+      "scenario_id": "synth_scenario_12",
+      "personas": {
+        "self_learner": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "coach": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "kid": {
+          "grounded": true,
+          "top_fact_included": false,
+          "kid_first_attempt_safe": true
+        }
+      }
+    },
+    {
+      "scenario_id": "synth_scenario_13",
+      "personas": {
+        "self_learner": {
+          "grounded": false,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "coach": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "kid": {
+          "grounded": false,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": true
+        }
+      }
+    },
+    {
+      "scenario_id": "synth_scenario_14",
+      "personas": {
+        "self_learner": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "coach": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "kid": {
+          "grounded": false,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": true
+        }
+      }
+    },
+    {
+      "scenario_id": "synth_scenario_15",
+      "personas": {
+        "self_learner": {
+          "grounded": false,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "coach": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "kid": {
+          "grounded": false,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": true
+        }
+      }
+    },
+    {
+      "scenario_id": "synth_scenario_16",
+      "personas": {
+        "self_learner": {
+          "grounded": false,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "coach": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "kid": {
+          "grounded": false,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": true
+        }
+      }
+    },
+    {
+      "scenario_id": "synth_scenario_17",
+      "personas": {
+        "self_learner": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "coach": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "kid": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": true
+        }
+      }
+    },
+    {
+      "scenario_id": "synth_scenario_18",
+      "personas": {
+        "self_learner": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "coach": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "kid": {
+          "grounded": true,
+          "top_fact_included": false,
+          "kid_first_attempt_safe": true
+        }
+      }
+    },
+    {
+      "scenario_id": "synth_scenario_19",
+      "personas": {
+        "self_learner": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "coach": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "kid": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": true
+        }
+      }
+    },
+    {
+      "scenario_id": "synth_scenario_20",
+      "personas": {
+        "self_learner": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "coach": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "kid": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": true
+        }
+      }
+    },
+    {
+      "scenario_id": "synth_scenario_21",
+      "personas": {
+        "self_learner": {
+          "grounded": false,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "coach": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "kid": {
+          "grounded": false,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": true
+        }
+      }
+    },
+    {
+      "scenario_id": "synth_scenario_22",
+      "personas": {
+        "self_learner": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "coach": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "kid": {
+          "grounded": true,
+          "top_fact_included": false,
+          "kid_first_attempt_safe": true
+        }
+      }
+    },
+    {
+      "scenario_id": "synth_scenario_23",
+      "personas": {
+        "self_learner": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "coach": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "kid": {
+          "grounded": false,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": true
+        }
+      }
+    },
+    {
+      "scenario_id": "synth_scenario_24",
+      "personas": {
+        "self_learner": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "coach": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "kid": {
+          "grounded": false,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": true
+        }
+      }
+    },
+    {
+      "scenario_id": "synth_scenario_25",
+      "personas": {
+        "self_learner": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "coach": {
+          "grounded": true,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": null
+        },
+        "kid": {
+          "grounded": false,
+          "top_fact_included": true,
+          "kid_first_attempt_safe": true
+        }
+      }
+    }
+  ]
+}

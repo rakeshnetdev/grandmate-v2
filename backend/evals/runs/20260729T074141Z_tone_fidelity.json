@@ -1,0 +1,324 @@
+{
+  "dataset_path": "/Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/evals/datasets/golden/persona_fidelity.jsonl",
+  "dataset_version": "v1-2026-07-28",
+  "harness_version": "phase-16-v1",
+  "model": "gpt-4o-mini",
+  "reviewed_scenario_count": 0,
+  "total_scenario_count": 10,
+  "timestamp": "2026-07-29T07:41:41.218002+00:00",
+  "results": {
+    "tone_fidelity_rate": 0.92,
+    "self_learner.tone_fidelity_rate": 0.8888888888888888,
+    "coach.tone_fidelity_rate": 1.0,
+    "kid.tone_fidelity_rate": 0.8333333333333334,
+    "n_judged": 25,
+    "n_generated": 30
+  },
+  "per_scenario": [
+    {
+      "scenario_id": "clean_game",
+      "persona": "self_learner",
+      "grounded": true,
+      "tone": {
+        "person_correct": true,
+        "tone_appropriate": true,
+        "reading_level_appropriate": true,
+        "notes": "The text effectively addresses the player directly and maintains an encouraging tone throughout."
+      }
+    },
+    {
+      "scenario_id": "clean_game",
+      "persona": "coach",
+      "grounded": true,
+      "tone": {
+        "person_correct": true,
+        "tone_appropriate": true,
+        "reading_level_appropriate": true,
+        "notes": "The analysis effectively highlights the student's strengths while providing clear directions for future improvement."
+      }
+    },
+    {
+      "scenario_id": "clean_game",
+      "persona": "kid",
+      "grounded": true,
+      "tone": {
+        "person_correct": true,
+        "tone_appropriate": true,
+        "reading_level_appropriate": true,
+        "notes": "The message is encouraging and uses simple language suitable for kids."
+      }
+    },
+    {
+      "scenario_id": "one_blunder",
+      "persona": "self_learner",
+      "grounded": true,
+      "tone": {
+        "person_correct": true,
+        "tone_appropriate": true,
+        "reading_level_appropriate": true,
+        "notes": "The text effectively addresses the player directly and encourages them to improve."
+      }
+    },
+    {
+      "scenario_id": "one_blunder",
+      "persona": "coach",
+      "grounded": true,
+      "tone": {
+        "person_correct": true,
+        "tone_appropriate": true,
+        "reading_level_appropriate": true,
+        "notes": "The analysis highlights the student's performance, emphasizing the critical blunder at move 18 and the need for improved evaluation awareness."
+      }
+    },
+    {
+      "scenario_id": "one_blunder",
+      "persona": "kid",
+      "grounded": true,
+      "tone": {
+        "person_correct": false,
+        "tone_appropriate": true,
+        "reading_level_appropriate": true,
+        "notes": "The feedback is a bit too clinical and could be more encouraging."
+      }
+    },
+    {
+      "scenario_id": "many_findings",
+      "persona": "self_learner",
+      "grounded": false,
+      "tone": null
+    },
+    {
+      "scenario_id": "many_findings",
+      "persona": "coach",
+      "grounded": true,
+      "tone": {
+        "person_correct": true,
+        "tone_appropriate": true,
+        "reading_level_appropriate": true,
+        "notes": "The analysis effectively identifies critical moments and tactical oversights, providing a comprehensive framework for the student's improvement."
+      }
+    },
+    {
+      "scenario_id": "many_findings",
+      "persona": "kid",
+      "grounded": false,
+      "tone": null
+    },
+    {
+      "scenario_id": "tactics_low_confidence",
+      "persona": "self_learner",
+      "grounded": true,
+      "tone": {
+        "person_correct": true,
+        "tone_appropriate": true,
+        "reading_level_appropriate": true,
+        "notes": "The text effectively encourages the player while providing constructive feedback and actionable advice."
+      }
+    },
+    {
+      "scenario_id": "tactics_low_confidence",
+      "persona": "coach",
+      "grounded": true,
+      "tone": {
+        "person_correct": true,
+        "tone_appropriate": true,
+        "reading_level_appropriate": true,
+        "notes": "The analysis effectively highlights the student's tactical achievements and suggests areas for further exploration."
+      }
+    },
+    {
+      "scenario_id": "tactics_low_confidence",
+      "persona": "kid",
+      "grounded": true,
+      "tone": {
+        "person_correct": true,
+        "tone_appropriate": true,
+        "reading_level_appropriate": true,
+        "notes": "The feedback is positive and encouraging, suitable for a young player."
+      }
+    },
+    {
+      "scenario_id": "no_findings",
+      "persona": "self_learner",
+      "grounded": true,
+      "tone": {
+        "person_correct": true,
+        "tone_appropriate": true,
+        "reading_level_appropriate": true,
+        "notes": "The text directly addresses the player in an encouraging tone, promoting further learning and practice."
+      }
+    },
+    {
+      "scenario_id": "no_findings",
+      "persona": "coach",
+      "grounded": true,
+      "tone": {
+        "person_correct": true,
+        "tone_appropriate": true,
+        "reading_level_appropriate": true,
+        "notes": "The analysis should focus on reinforcing the student's understanding of opening principles and the significance of maintaining accuracy throughout the game."
+      }
+    },
+    {
+      "scenario_id": "no_findings",
+      "persona": "kid",
+      "grounded": true,
+      "tone": {
+        "person_correct": true,
+        "tone_appropriate": true,
+        "reading_level_appropriate": true,
+        "notes": "The message is encouraging and uses simple language suitable for kids."
+      }
+    },
+    {
+      "scenario_id": "synth_scenario_01",
+      "persona": "self_learner",
+      "grounded": true,
+      "tone": {
+        "person_correct": false,
+        "tone_appropriate": true,
+        "reading_level_appropriate": true,
+        "notes": "The text addresses the player in a third-person perspective instead of directly engaging them."
+      }
+    },
+    {
+      "scenario_id": "synth_scenario_01",
+      "persona": "coach",
+      "grounded": true,
+      "tone": {
+        "person_correct": true,
+        "tone_appropriate": true,
+        "reading_level_appropriate": true,
+        "notes": "The analysis effectively highlights critical moments in the student's game, emphasizing the importance of precise move selection and the consequences of inaccuracies."
+      }
+    },
+    {
+      "scenario_id": "synth_scenario_01",
+      "persona": "kid",
+      "grounded": false,
+      "tone": null
+    },
+    {
+      "scenario_id": "synth_scenario_02",
+      "persona": "self_learner",
+      "grounded": true,
+      "tone": {
+        "person_correct": true,
+        "tone_appropriate": true,
+        "reading_level_appropriate": true,
+        "notes": "The text effectively encourages you to improve while maintaining a supportive and direct tone."
+      }
+    },
+    {
+      "scenario_id": "synth_scenario_02",
+      "persona": "coach",
+      "grounded": true,
+      "tone": {
+        "person_correct": true,
+        "tone_appropriate": true,
+        "reading_level_appropriate": true,
+        "notes": "The student demonstrated a commendable understanding of the King's Indian Defense and should focus on refining opening principles and tactical motifs."
+      }
+    },
+    {
+      "scenario_id": "synth_scenario_02",
+      "persona": "kid",
+      "grounded": true,
+      "tone": {
+        "person_correct": true,
+        "tone_appropriate": true,
+        "reading_level_appropriate": true,
+        "notes": "The feedback is positive and encouraging, using simple language suitable for kids."
+      }
+    },
+    {
+      "scenario_id": "synth_scenario_03",
+      "persona": "self_learner",
+      "grounded": true,
+      "tone": {
+        "person_correct": true,
+        "tone_appropriate": true,
+        "reading_level_appropriate": true,
+        "notes": "The text effectively addresses the player directly and encourages improvement."
+      }
+    },
+    {
+      "scenario_id": "synth_scenario_03",
+      "persona": "coach",
+      "grounded": true,
+      "tone": {
+        "person_correct": true,
+        "tone_appropriate": true,
+        "reading_level_appropriate": true,
+        "notes": "The analysis effectively highlights the student's performance and areas for improvement in a structured manner."
+      }
+    },
+    {
+      "scenario_id": "synth_scenario_03",
+      "persona": "kid",
+      "grounded": true,
+      "tone": {
+        "person_correct": true,
+        "tone_appropriate": true,
+        "reading_level_appropriate": true,
+        "notes": "The feedback is positive and encouraging, suitable for a young player."
+      }
+    },
+    {
+      "scenario_id": "synth_scenario_04",
+      "persona": "self_learner",
+      "grounded": true,
+      "tone": {
+        "person_correct": true,
+        "tone_appropriate": true,
+        "reading_level_appropriate": true,
+        "notes": "The text effectively addresses the player directly and encourages improvement in a supportive manner."
+      }
+    },
+    {
+      "scenario_id": "synth_scenario_04",
+      "persona": "coach",
+      "grounded": true,
+      "tone": {
+        "person_correct": true,
+        "tone_appropriate": true,
+        "reading_level_appropriate": true,
+        "notes": "The student must focus on critical evaluation swings and the importance of maintaining space advantage in the Sicilian Defense."
+      }
+    },
+    {
+      "scenario_id": "synth_scenario_04",
+      "persona": "kid",
+      "grounded": false,
+      "tone": null
+    },
+    {
+      "scenario_id": "synth_scenario_05",
+      "persona": "self_learner",
+      "grounded": true,
+      "tone": {
+        "person_correct": true,
+        "tone_appropriate": true,
+        "reading_level_appropriate": true,
+        "notes": "The text directly addresses the player in an encouraging tone, providing constructive feedback and actionable advice."
+      }
+    },
+    {
+      "scenario_id": "synth_scenario_05",
+      "persona": "coach",
+      "grounded": true,
+      "tone": {
+        "person_correct": true,
+        "tone_appropriate": true,
+        "reading_level_appropriate": true,
+        "notes": "The analysis effectively highlights the student's performance while providing constructive feedback on critical moments for improvement."
+      }
+    },
+    {
+      "scenario_id": "synth_scenario_05",
+      "persona": "kid",
+      "grounded": false,
+      "tone": null
+    }
+  ]
+}

@@ -38,7 +38,10 @@ automatically a regression.
 | 10 | **RAGAS answer** | Faithfulness, Response Relevancy, Response Groundedness |
 | 11 | Memory quality | Retention precision, staleness, cross-profile isolation |
 | 13 | Agent trajectory | Tool-choice accuracy, step counts, critic catch rate |
-| 16 | Consolidated suite | All of the above, trended, plus fine-tuning comparison |
+| 15 | Training-plan fidelity | Top-weakness invariance, kid safety, grounded rate (mirrors persona fidelity for the training-plan surface) |
+| 16 | Consolidated suite + score ledger | All of the above, trended, plus fine-tuning comparison |
+| 16 | Tone/persona-fidelity (LLM-as-judge) | `tone_fidelity_rate` per persona — a second, judge-scored layer on top of the structural persona-fidelity check |
+| 16 | Move-classifier accuracy (D-033) | Detection F1, severity accuracy, per-class breakdown, against an independent deep-engine (depth 24) ground truth, with a demonstrated negative control |
 
 ## Thresholds
 
@@ -54,6 +57,8 @@ Gating values, all configurable per `configuration.md`:
 | Cross-profile leak rate | 0.00 | Hard. Non-negotiable. Verified for long-term memory specifically at Phase 11 — `cross_profile_isolated`, unconditionally hard-gated (not dataset-review-gated like the retention rates alongside it), since isolation is a code-level guarantee, not something a model's judgment could pass or fail. |
 | Persona fact-set divergence | 0.00 | Hard. |
 | Kid persona safety violation rate | 0.00 | Hard (added at Phase 9 implementation — not in the original plan; persona-matrix.md's kid safety rules had no scored metric until the report-generation critic gave something concrete to score). |
+| Move-classifier detection F1 / severity accuracy | none set yet | Informative (Phase 16, D-033) — this phase established the metric and its negative control; a defensible pass/fail line needs more corpus than the current dev database provides. Recorded: detection F1 1.00, severity accuracy 0.75 on 24 real sampled moves. |
+| Tone/persona-fidelity rate (LLM-as-judge) | none set yet | Informative (Phase 16) — a judge's own score has judge variance on top of the model being judged; not gated until there is a run history to calibrate normal variance against. Recorded: 0.92 overall. |
 
 The three zero-tolerance metrics are zero-tolerance for different reasons: illegal moves
 destroy credibility, leaks are a privacy breach, and persona divergence means the core
@@ -65,13 +70,20 @@ architectural claim of the product is false.
 Human-reviewed. Versioned. Used for gating. Kept deliberately small so review stays real
 rather than rubber-stamped.
 
-| Set | Contents | Target size |
-|-----|----------|-------------|
-| `golden/retrieval` | Query → expected chunk ids, per bucket | ~80 |
-| `golden/single-game-chat` | Question + game → reference answer + required facts | ~60 |
-| `golden/profile-chat` | Question + profile → reference answer | ~40 |
-| `golden/memory-chat` | Multi-turn sessions with expected recall | ~30 |
-| `golden/persona` | Analysis object → per-persona expectations | ~30 |
+| Set | Contents | Target size | Actual (Phase 16) |
+|-----|----------|-------------|--------------------|
+| `golden/retrieval` | Query → expected chunk ids, per bucket | ~80 | 41 |
+| `golden/single-game-chat` | Question + game → reference answer + required facts | ~60 | 32 |
+| `golden/profile-chat` | Question + profile → reference answer | ~40 | not built — no profile-level persona chat surface exists yet |
+| `golden/memory-chat` | Multi-turn sessions with expected recall | ~30 | 30 |
+| `golden/persona` | Analysis object → per-persona expectations | ~30 | 30 |
+| `golden/training-fidelity` (Phase 15) | Recurring-weakness facts + citations → per-persona expectations | ~30 | 30 |
+
+Every set above is still self-authored and unreviewed (`reviewed_by: null` throughout) —
+grown to size in Phase 16 per the owner's explicit direction, but human review itself
+was deliberately deferred (documented, not silently skipped): see this phase's own
+sign-off report for the reasoning. Scores against these sets are informative; nothing
+gates on them yet, exactly as the rule above states.
 
 ### Synthetic sets — coverage, not authority
 Generated to cover the long tail. Always labelled synthetic. A human spot-checks a sample
@@ -103,9 +115,12 @@ evals/
     persona_fidelity/
     memory_quality/
     agent_trajectory/
+    training_fidelity/   # Phase 15
+    tone_fidelity/        # Phase 16 — LLM-as-judge, layered on persona_fidelity's output
+    classifier_accuracy/  # Phase 16 — D-033, independent deep-engine ground truth
   runs/                # one scored record per run, committed
-  reports/             # trend summaries
-  harness/             # RAGAS wiring, judges, score ledger
+  reports/             # trend summaries (evals/harness/ledger.py writes reports/ledger.md)
+  harness/             # RAGAS wiring, judges, score ledger, synthetic generator
 ```
 
 ## Trending and regressions
@@ -130,6 +145,13 @@ undo the entire architectural premise.
 Gate: a measurable gain on the persona fidelity and answer quality sets that prompting
 demonstrably cannot reach, with the comparison recorded. If prompting gets there, no
 fine-tuning happens and that is a successful outcome, not a failure.
+
+**Outcome (Phase 16, D-034): no-go.** Prompting alone reaches 0.92-1.00 on every metric
+in fine-tuning's actual scope (`tone_fidelity_rate`, `kid_safety_rate`,
+`fact_invariance_rate`/`top_weakness_invariance_rate`) — no ceiling it is visibly
+hitting. The metrics with real headroom (`single_game_chat` faithfulness 0.71,
+`agent_trajectory` faithfulness 0.52-0.59) are grounding/retrieval quality, explicitly
+out of scope for a persona-tone-only fine-tune. See D-034 for the full evidence table.
 
 ## Reporting
 

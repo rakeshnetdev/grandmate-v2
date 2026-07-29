@@ -642,7 +642,11 @@ early and extended as capability lands. Every run writes a scored record to
 | 10 | **RAGAS answer harness** | Faithfulness, Response Relevancy, grounding |
 | 11 | Memory quality suite | retention precision, cross-profile isolation |
 | 13 | Multi-agent trajectory eval | tool-choice accuracy, handoff correctness |
+| 15 | Training-plan fidelity suite | top-weakness invariance, kid safety, grounded rate |
 | 16 | Full suite + golden sets + fine-tuning gate | all of the above, versioned and trended |
+| 16 | Score ledger | run-over-run regression flags across every suite |
+| 16 | Tone/persona-fidelity (LLM-as-judge) | tone_fidelity_rate per persona |
+| 16 | Move-classifier accuracy (D-033) | detection F1, severity accuracy, per-class, negative control |
 
 ---
 
