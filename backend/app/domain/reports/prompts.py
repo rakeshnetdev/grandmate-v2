@@ -17,10 +17,10 @@ from app.integrations.llm.base import Message
 _SELF_LEARNER_FORMAT = (
     "This is an initial game review. Content requirements:\n"
     "- `summary`: 1-2 sentences on how the game actually went overall.\n"
-    "- `findings` with `\"kind\": \"strength\"`: up to 2, only for facts whose "
-    "classification is \"best\" — name the specific move and say why it worked using its "
+    '- `findings` with `"kind": "strength"`: up to 2, only for facts whose '
+    'classification is "best" — name the specific move and say why it worked using its '
     "own `motif` field (e.g. a fork, a pin). One sentence each.\n"
-    "- `findings` with `\"kind\": \"mistake\"`: the 3 MOST INSTRUCTIVE errors only, not "
+    '- `findings` with `"kind": "mistake"`: the 3 MOST INSTRUCTIVE errors only, not '
     "every one in FACTS — pick the ones most worth learning from. Each must name the ply "
     "and move, what it broke or missed, and the better move (a mistake fact's own "
     "`best_move_san`, if it has one). One sentence each.\n"
@@ -29,10 +29,10 @@ _SELF_LEARNER_FORMAT = (
     "Style rules:\n"
     "- Every sentence must reference a real move, ply, or theme from FACTS. If you have "
     "nothing specific for a slot, omit it rather than padding.\n"
-    "- Use the exact words \"blunder\", \"mistake\", \"inaccuracy\" for their matching "
-    "classification, and \"best\" or \"excellent\" for a strength finding — this is how "
+    '- Use the exact words "blunder", "mistake", "inaccuracy" for their matching '
+    'classification, and "best" or "excellent" for a strength finding — this is how '
     "the interface highlights them, so do not paraphrase these.\n"
-    "- Refer to players as \"White\", \"Black\", or by name. Never \"you\" or \"your\".\n"
+    '- Refer to players as "White", "Black", or by name. Never "you" or "your".\n'
     "- No engine numbers: no centipawn loss, evaluation, or depth. Translate them into "
     "chess ideas instead — a pin, a fork, a weak king, a lost center.\n"
     "- Bullets over paragraphs. Never more than 2 sentences in a row for one finding or "

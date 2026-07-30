@@ -167,9 +167,7 @@ class TestExtractFactsMoves:
     def test_a_mate_swing_never_carries_its_sentinel_derived_number(self) -> None:
         """Regression test: a move fact for a mate-involving swing must not surface the
         classification-only sentinel value as if it were a real centipawn count."""
-        evaluations = [
-            _move(0, MoveClassification.BLUNDER, eval_swing_cp=99_470, mate_swing=True)
-        ]
+        evaluations = [_move(0, MoveClassification.BLUNDER, eval_swing_cp=99_470, mate_swing=True)]
         facts = extract_facts(
             game=_game(GameColor.WHITE),
             analysis=_analysis(evaluations),

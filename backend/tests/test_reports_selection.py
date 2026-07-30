@@ -80,9 +80,7 @@ class TestSelectForPersona:
             for i in range(4)
         ]
         settings = _settings(report_self_learner_positive_max=2, report_self_learner_mistake_max=3)
-        selected = select_for_persona(
-            [*positive, *mistakes], Persona.SELF_LEARNER, settings
-        )
+        selected = select_for_persona([*positive, *mistakes], Persona.SELF_LEARNER, settings)
         selected_ids = {f.id for f in selected}
         assert sum(1 for id_ in selected_ids if id_.startswith("move-best-")) == 2
         assert sum(1 for id_ in selected_ids if id_.startswith("move-bad-")) == 3

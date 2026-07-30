@@ -191,9 +191,7 @@ def _positive_move_facts(
     keeps "What Went Well" both meaningful (not just any book move) and non-empty.
     """
     tactics_by_ply: dict[int, MotifFinding] = {
-        finding.ply: finding
-        for finding in motifs
-        if finding.motif not in SELF_INFLICTED_MOTIFS
+        finding.ply: finding for finding in motifs if finding.motif not in SELF_INFLICTED_MOTIFS
     }
     facts: list[Fact] = []
     for move in analysis.evaluations:

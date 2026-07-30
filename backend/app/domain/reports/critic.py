@@ -62,9 +62,7 @@ def validate_report(
         )
 
     full_text = _full_text(parsed, findings)
-    if (
-        persona == Persona.KID or is_self_learner_game
-    ) and _CENTIPAWN_PATTERN.search(full_text):
+    if (persona == Persona.KID or is_self_learner_game) and _CENTIPAWN_PATTERN.search(full_text):
         violations.append(f"{persona.value} persona output mentions a centipawn value")
     if is_self_learner_game and _SECOND_PERSON_PATTERN.search(full_text):
         violations.append("self_learner game report uses second person (you/your)")
@@ -125,8 +123,7 @@ def _max_findings(
     if persona == Persona.SELF_LEARNER:
         if report_kind == "game":
             return (
-                settings.report_self_learner_positive_max
-                + settings.report_self_learner_mistake_max
+                settings.report_self_learner_positive_max + settings.report_self_learner_mistake_max
             )
         return settings.report_self_learner_max_findings
     return None
