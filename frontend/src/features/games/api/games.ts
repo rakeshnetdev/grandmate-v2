@@ -22,6 +22,10 @@ export type GameSummary = z.infer<typeof gameSummarySchema>;
 
 const moveEvaluationSchema = z.object({
   ply: z.number(),
+  // `null` only if canonicalization produced an evaluation for a ply `GameMove` itself
+  // doesn't have — should not happen in practice, but the backend schema allows it.
+  san: z.string().nullable(),
+  fen_after: z.string().nullable(),
   eval_cp: z.number().nullable(),
   mate_in: z.number().nullable(),
   best_move_uci: z.string().nullable(),

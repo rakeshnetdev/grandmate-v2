@@ -22,6 +22,7 @@ from app.core.config import Settings
 from app.db.models import (
     Game,
     GameAnalysis,
+    GameMove,
     GameSource,
     Job,
     JobKind,
@@ -96,7 +97,9 @@ async def _seed_game(session: AsyncSession, profile_id: uuid.UUID) -> Game:
     return game
 
 
-async def _seed_completed_analysis(session: AsyncSession, game: Game) -> GameAnalysis:
+async def _seed_completed_analysis(
+    session: AsyncSession, game: Game, *, with_move: bool = True
+) -> GameAnalysis:
     analysis = GameAnalysis(
         game_id=game.id,
         analysis_version="sf-d12-dd18-t50.100.300",
@@ -115,10 +118,26 @@ async def _seed_completed_analysis(session: AsyncSession, game: Game) -> GameAna
             pv=["e2e4"],
             classification=MoveClassification.BEST,
             eval_swing_cp=0,
+            mate_swing=False,
             is_critical_moment=False,
             deep_analyzed=False,
         )
     )
+    if with_move:
+        # `GameMove` is a separate table (canonicalization output, Phase 4) merged in by
+        # ply at the route layer — seeded here so the SAN/FEN fields on the response are
+        # exercised the same way a real, fully-canonicalized game would populate them.
+        session.add(
+            GameMove(
+                game_id=game.id,
+                ply=0,
+                san="e4",
+                uci="e2e4",
+                fen_before="rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+                fen_after="rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1",
+                epd_after="rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq -",
+            )
+        )
     await session.flush()
     return analysis
 
@@ -190,6 +209,21 @@ class TestGetGameAnalysis:
         assert body["summary"]["accuracy"] == 100.0
         assert len(body["moves"]) == 1
         assert body["moves"][0]["classification"] == "best"
+        assert body["moves"][0]["san"] == "e4"
+        assert body["moves"][0]["fen_after"] is not None
+        assert body["moves"][0]["mate_swing"] is False
+
+    async def test_a_ply_with_no_matching_game_move_has_a_null_san(
+        self, analysis_client: httpx.AsyncClient, db_session: AsyncSession
+    ) -> None:
+        profile_id = uuid.UUID(analysis_client.headers["X-Test-Profile-Id"])
+        game = await _seed_game(db_session, profile_id)
+        await _seed_completed_analysis(db_session, game, with_move=False)
+
+        response = await analysis_client.get(f"/api/v1/analysis/games/{game.id}")
+
+        assert response.status_code == 200
+        assert response.json()["moves"][0]["san"] is None
 
     async def test_a_game_with_no_analysis_yet_is_not_found(
         self, analysis_client: httpx.AsyncClient, db_session: AsyncSession

@@ -51,6 +51,10 @@ def _eval(cp: int, best: str = "e2e4") -> EngineEvaluation:
     return EngineEvaluation(eval_cp=cp, mate_in=None, best_move_uci=best, pv=[best])
 
 
+def _mate_eval(mate: int, best: str = "e2e4") -> EngineEvaluation:
+    return EngineEvaluation(eval_cp=None, mate_in=mate, best_move_uci=best, pv=[best])
+
+
 async def _make_profile(session: AsyncSession) -> Profile:
     user = User()
     session.add(user)
@@ -238,6 +242,107 @@ class TestPersistenceAndSummary:
         assert analysis.summary["counts"]["best"] == 1
         assert analysis.summary["counts"]["blunder"] == 1
         assert analysis.summary["accuracy"] == 50.0
+
+    async def test_a_move_that_lets_a_forced_mate_slip_is_flagged_mate_swing(
+        self, db_session: AsyncSession
+    ) -> None:
+        """Regression test for a real bug: a move played out of a forced-mate position
+        was reported to the user as "costing 99470 centipawns" — the classification
+        sentinel for mate scores (see classification._MATE_SCORE_CP) leaking into the
+        persisted, user-facing swing value. `mate_swing` is how the persistence layer
+        now flags that eval_swing_cp for this row isn't a real centipawn count."""
+        profile = await _make_profile(db_session)
+        fens = ["fen0", "fen1"]
+        game = await _make_game_with_moves(db_session, profile, fens)
+        settings = EngineSettings(critical_swing_cp=999_999)
+        engine = FakeEngine(
+            {
+                # White had a forced mate in 3 before the move, but played into a merely
+                # +50 position instead — a real blunder, but not a "99,950 centipawn" one.
+                ("fen0", settings.engine_depth): _mate_eval(3, best="uci_mate"),
+                ("fen1", settings.engine_depth): _eval(-50, best="uci1"),
+            }
+        )
+        service = AnalysisService(db_session, engine, settings)
+
+        analysis = await service.analyze_game(game.id)
+
+        moves = (
+            (
+                await db_session.execute(
+                    select(MoveEvaluation).where(MoveEvaluation.game_analysis_id == analysis.id)
+                )
+            )
+            .scalars()
+            .all()
+        )
+        assert moves[0].mate_swing is True
+        assert moves[0].classification == MoveClassification.BLUNDER
+
+    async def test_a_normal_move_is_not_flagged_mate_swing(self, db_session: AsyncSession) -> None:
+        profile = await _make_profile(db_session)
+        fens = ["fen0", "fen1"]
+        game = await _make_game_with_moves(db_session, profile, fens)
+        settings = EngineSettings(critical_swing_cp=999_999)
+        engine = FakeEngine(
+            {
+                ("fen0", settings.engine_depth): _eval(50, best="uci0"),
+                ("fen1", settings.engine_depth): _eval(-40, best="uci1"),
+            }
+        )
+        service = AnalysisService(db_session, engine, settings)
+
+        analysis = await service.analyze_game(game.id)
+
+        moves = (
+            (
+                await db_session.execute(
+                    select(MoveEvaluation).where(MoveEvaluation.game_analysis_id == analysis.id)
+                )
+            )
+            .scalars()
+            .all()
+        )
+        assert moves[0].mate_swing is False
+
+    async def test_best_move_san_is_computed_from_the_position_before_the_move(
+        self, db_session: AsyncSession
+    ) -> None:
+        profile = await _make_profile(db_session)
+        fens = ["fen0", "fen1"]
+        game = await _make_game_with_moves(db_session, profile, fens)
+        # Overwrite fen0 with the real starting position so python-chess can parse it —
+        # the other tests use placeholder "fen0"/"fen1" strings since the fake engine
+        # only keys off them as opaque dict lookups, but SAN computation needs a real FEN.
+        real_start = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+        game_move = (
+            await db_session.execute(
+                select(GameMove).where(GameMove.game_id == game.id, GameMove.ply == 0)
+            )
+        ).scalar_one()
+        game_move.fen_before = real_start
+        settings = EngineSettings(critical_swing_cp=999_999)
+        engine = FakeEngine(
+            {
+                (real_start, settings.engine_depth): _eval(0, best="e2e4"),
+                ("fen1", settings.engine_depth): _eval(0, best="uci1"),
+            }
+        )
+        service = AnalysisService(db_session, engine, settings)
+
+        analysis = await service.analyze_game(game.id)
+
+        moves = (
+            (
+                await db_session.execute(
+                    select(MoveEvaluation).where(MoveEvaluation.game_analysis_id == analysis.id)
+                )
+            )
+            .scalars()
+            .all()
+        )
+        assert moves[0].best_move_uci == "e2e4"
+        assert moves[0].best_move_san == "e4"
 
     async def test_raises_for_a_game_with_no_moves(self, db_session: AsyncSession) -> None:
         profile = await _make_profile(db_session)

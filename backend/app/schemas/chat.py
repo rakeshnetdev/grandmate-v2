@@ -48,6 +48,11 @@ class ChatTurnResponse(BaseModel):
 class ChatMessageOut(BaseModel):
     role: str
     content: str
+    # Only ever populated for `role == "assistant"`; defaulted rather than required so a
+    # message persisted before Phase 16a (no `citations`/`grounded` key at all) still
+    # validates as "unknown", not a broken row.
+    citations: list[ChatCitation] = Field(default_factory=list)
+    grounded: bool | None = None
 
 
 class ChatThreadHistory(BaseModel):

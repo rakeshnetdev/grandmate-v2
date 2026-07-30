@@ -13,6 +13,10 @@ export type PersonaValue = z.infer<typeof personaSchema>;
 const reportFindingSchema = z.object({
   fact_ids: z.array(z.string()),
   text: z.string(),
+  // Self-learner-game-format-only (Phase 16a, D-035 addendum): "strength" or "mistake",
+  // so ReportView can group findings under "What Went Well" vs "Mistakes & Blunders".
+  // null/absent for coach and kid, which don't use this format.
+  kind: z.enum(['strength', 'mistake']).nullish(),
 });
 
 export const gameReportSchema = z.object({

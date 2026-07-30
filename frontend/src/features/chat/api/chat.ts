@@ -35,9 +35,15 @@ export const chatTurnResponseSchema = z.object({
 });
 export type ChatTurnResponse = z.infer<typeof chatTurnResponseSchema>;
 
+// `citations`/`grounded` (Phase 16a) are only ever populated for `role: "assistant"` —
+// persisted alongside the message itself now, so a reloaded thread keeps them rather
+// than losing them the moment `ChatTurnResponse` (the live-turn-only shape above) goes
+// out of scope.
 const chatMessageSchema = z.object({
   role: z.string(),
   content: z.string(),
+  citations: z.array(chatCitationSchema).default([]),
+  grounded: z.boolean().nullable().default(null),
 });
 export type ChatMessage = z.infer<typeof chatMessageSchema>;
 

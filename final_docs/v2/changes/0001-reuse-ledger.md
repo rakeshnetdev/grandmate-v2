@@ -61,6 +61,18 @@ evaluated and not used
 | Detection tests | `evals/test_detection.py` | `evals/suites/chess_correctness/` | 6 | Planned | |
 | Synthetic generator | `evals/generate_synthetic.py` | `evals/harness/` | 16 | Planned | v2 derives reference answers from deterministic analysis rather than from a model — see `evaluation-strategy.md`. |
 
+## Design and frontend patterns
+
+Visual/CSS patterns noticed while reviewing the sibling `grandmate/frontend` app for
+inspiration, per the Phase 16a instruction to look at it without copying from it. No
+component code, markup, or data is carried over in this section — only a described visual
+formula, independently re-implemented against v2's own Tailwind theme tokens.
+
+| Item | Reference path | v2 destination | Phase | Status | Notes |
+|------|---------------|----------------|-------|--------|-------|
+| Classification pill-badge coloring | `grandmate/frontend` (move-classification badges) | `frontend/src/shared/lib/classification.ts`, `frontend/src/shared/components/ui/classification-badge.tsx` | 16a | Ported (pattern only) | The "10%-opacity background / full-opacity text / 20%-opacity border" Tailwind color formula was noticed in the reference app's badge styling and re-implemented from scratch as `CLASSIFICATION_BADGE_CLASS`, using v2's own Tailwind color scale and dark-mode variants. No CSS, class strings, or component code were copied. |
+| Chess-notation highlighting in prose | `grandmate/frontend` (analysis/report text rendering) | `frontend/src/shared/lib/prose.tsx` | 16a | Ported (pattern only) | The general idea of visually distinguishing SAN moves and classification words (blunder/mistake/inaccuracy/best) inline within prose was inspired by the reference app's report styling. The implementation — a `react-markdown` wrapper with a named-capture-group regex applied via component overrides — is new, written for v2's markdown-based analysis/report/chat text rather than adapted from any reference source. |
+
 ## Not carried over
 
 | Item | Reason |

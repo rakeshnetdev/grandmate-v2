@@ -7,7 +7,12 @@ from __future__ import annotations
 
 from app.core.config import EngineSettings
 from app.db.models import MoveClassification
-from app.domain.analysis.classification import classify_move, compute_cpl
+from app.domain.analysis.classification import (
+    classify_move,
+    compute_cpl,
+    display_swing_cp,
+    is_mate_swing,
+)
 from app.integrations.engine import EngineEvaluation
 
 
@@ -43,6 +48,28 @@ class TestComputeCpl:
     def test_missing_a_mate_and_walking_into_one_is_a_huge_swing(self) -> None:
         cpl = compute_cpl(_eval(cp=0), _eval(mate=2))
         assert cpl > 50_000
+
+
+class TestIsMateSwing:
+    def test_false_when_neither_side_is_a_mate_score(self) -> None:
+        assert is_mate_swing(_eval(cp=50), _eval(cp=20)) is False
+
+    def test_true_when_the_before_position_is_a_mate_score(self) -> None:
+        # The bug this guards: a player had a forced mate and let it slip. compute_cpl's
+        # huge, sentinel-derived return value here must never be shown as real
+        # centipawns — see TestDisplaySwingCp below.
+        assert is_mate_swing(_eval(mate=3), _eval(cp=0)) is True
+
+    def test_true_when_the_after_position_is_a_mate_score(self) -> None:
+        assert is_mate_swing(_eval(cp=0), _eval(mate=2)) is True
+
+
+class TestDisplaySwingCp:
+    def test_passes_through_a_real_swing_unchanged(self) -> None:
+        assert display_swing_cp(70, mate_swing=False) == 70
+
+    def test_hides_a_mate_swings_sentinel_derived_value(self) -> None:
+        assert display_swing_cp(99_470, mate_swing=True) is None
 
 
 class TestClassifyMove:

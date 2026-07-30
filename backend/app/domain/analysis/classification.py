@@ -40,10 +40,30 @@ def compute_cpl(eval_before: EngineEvaluation, eval_after: EngineEvaluation) -> 
     negated to compare on the same axis. Always >= 0: negative would mean the move
     somehow improved on the engine's own assessment of the starting position, which
     cannot happen against optimal defense.
+
+    When either side of the swing is a forced mate, this number is `_MATE_SCORE_CP`
+    arithmetic, not a real centipawn count — see `is_mate_swing`/`display_swing_cp`.
+    Callers that classify a move may use it as-is; callers that display it to a user or
+    an LLM must go through `display_swing_cp` first.
     """
     best = _comparable_cp(eval_before)
     played = -_comparable_cp(eval_after)
     return max(0, best - played)
+
+
+def is_mate_swing(eval_before: EngineEvaluation, eval_after: EngineEvaluation) -> bool:
+    """True when either side of this swing is a forced-mate evaluation, meaning
+    `compute_cpl`'s return value for it is `_MATE_SCORE_CP`-derived rather than a real
+    centipawn count."""
+    return eval_before.mate_in is not None or eval_after.mate_in is not None
+
+
+def display_swing_cp(eval_swing_cp: int, mate_swing: bool) -> int | None:
+    """The centipawn-loss value safe to surface to a user or an LLM prompt: unchanged, or
+    `None` when `mate_swing` is True and `eval_swing_cp` is really `_MATE_SCORE_CP`
+    arithmetic rather than a real evaluation swing (e.g. "costing 99,470 centipawns" for
+    a move that let a forced mate slip to a merely-winning position)."""
+    return None if mate_swing else eval_swing_cp
 
 
 def classify_move(
@@ -67,4 +87,4 @@ def classify_move(
     return MoveClassification.BLUNDER
 
 
-__all__ = ["classify_move", "compute_cpl"]
+__all__ = ["classify_move", "compute_cpl", "display_swing_cp", "is_mate_swing"]

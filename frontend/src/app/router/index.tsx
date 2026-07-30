@@ -8,29 +8,20 @@
 import { createBrowserRouter } from 'react-router-dom';
 
 import { RootLayout } from '@/app/layouts/RootLayout';
-import { ChatPage } from '@/pages/ChatPage';
-import { DashboardPage } from '@/pages/DashboardPage';
-import { GameDetailPage } from '@/pages/GameDetailPage';
-import { GamesPage } from '@/pages/GamesPage';
-import { HomePage } from '@/pages/HomePage';
-import { ImportsPage } from '@/pages/ImportsPage';
 import { LoginPage } from '@/pages/LoginPage';
-import { MemoryPage } from '@/pages/MemoryPage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
+import { WorkspacePage } from '@/pages/WorkspacePage';
 
 export const routes = [
   {
     path: '/',
     element: <RootLayout />,
     children: [
-      { index: true, element: <HomePage /> },
+      // Phase 16a (D-035): Import/Games/Dashboard/Chat/Memory/Game-Detail were six
+      // separate pages; all six are now panels/tabs inside `WorkspacePage`'s single
+      // three-panel shell — see the Phase 16a phase report for the retirement notes.
+      { index: true, element: <WorkspacePage /> },
       { path: 'login', element: <LoginPage /> },
-      { path: 'imports', element: <ImportsPage /> },
-      { path: 'games', element: <GamesPage /> },
-      { path: 'games/:gameId', element: <GameDetailPage /> },
-      { path: 'dashboard', element: <DashboardPage /> },
-      { path: 'chat', element: <ChatPage /> },
-      { path: 'memory', element: <MemoryPage /> },
       // Phase 9:  { path: 'players/:profileId', element: <PlayerPage /> }
       { path: '*', element: <NotFoundPage /> },
     ],

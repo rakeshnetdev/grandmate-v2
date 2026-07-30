@@ -175,8 +175,13 @@ class TestGetThreadHistory:
         assert response.status_code == 200
         messages = response.json()["messages"]
         assert messages == [
-            {"role": "user", "content": "hello"},
-            {"role": "assistant", "content": "A grounded answer."},
+            {"role": "user", "content": "hello", "citations": [], "grounded": None},
+            {
+                "role": "assistant",
+                "content": "A grounded answer.",
+                "citations": [],
+                "grounded": True,
+            },
         ]
 
     async def test_an_unknown_thread_is_not_found(self, chat_client: httpx.AsyncClient) -> None:

@@ -26,6 +26,7 @@ from app.db.models import (
     ReportSource,
     StrategicThemeFinding,
 )
+from app.domain.analysis import get_moves
 from app.domain.llm_usage import LLMBudgetTracker
 from app.domain.reports.critic import validate_report
 from app.domain.reports.facts import Fact, extract_facts
@@ -68,8 +69,14 @@ class ReportService:
         if existing is not None and existing.analysis_version == analysis.analysis_version:
             return existing
 
+        moves = await get_moves(self._session, game.id, game.profile_id)
         facts = extract_facts(
-            game=game, analysis=analysis, opening=opening, motifs=motifs, themes=themes
+            game=game,
+            analysis=analysis,
+            opening=opening,
+            motifs=motifs,
+            themes=themes,
+            moves_by_ply={move.ply: move for move in moves},
         )
         selected = select_for_persona(facts, persona, self._report_settings)
         content, source, model, grounded = await self._generate_content(selected, persona, game)

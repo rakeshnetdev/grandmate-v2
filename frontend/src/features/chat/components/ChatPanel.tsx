@@ -56,9 +56,13 @@ export function ChatPanel({
   };
 
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-[220px_1fr]">
-      <Card>
-        <CardContent className="pt-6">
+    // Stacked, not a side-by-side grid (Phase 16a): this panel's primary home is now a
+    // narrow docked side panel (`workspace/components/ChatDock.tsx`), where a
+    // viewport-width `md:` breakpoint would still trigger a cramped two-column layout
+    // regardless of how narrow the panel itself actually is.
+    <div className="flex h-full flex-col gap-3">
+      <Card className="max-h-32 shrink-0 overflow-y-auto">
+        <CardContent className="pt-4">
           <ThreadList
             threads={threads}
             selectedThreadId={selectedThreadId}
@@ -69,12 +73,12 @@ export function ChatPanel({
         </CardContent>
       </Card>
 
-      <Card>
-        <CardContent className="flex flex-col gap-4 pt-6">
+      <Card className="flex flex-1 flex-col overflow-hidden">
+        <CardContent className="flex flex-1 flex-col gap-4 overflow-hidden pt-4">
           {selectedThreadId ? (
             <>
               <PersonaSwitcher value={persona} onChange={setPersona} />
-              <div className="min-h-40">
+              <div className="flex-1 overflow-y-auto">
                 <ChatMessageList
                   messages={history?.messages ?? []}
                   pending={sendMessage.isPending}

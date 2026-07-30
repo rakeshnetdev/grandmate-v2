@@ -4,9 +4,11 @@
  * than deliver an ungrounded answer, so there is no "this might be wrong" state to
  * render, only "generating" and the final message.
  */
+import { Prose } from '@/shared/lib/prose';
 import { cn } from '@/shared/lib/utils';
 
 import type { ChatMessage } from '../api/chat';
+import { CitationList } from './CitationList';
 
 interface ChatMessageListProps {
   messages: ChatMessage[];
@@ -30,7 +32,11 @@ export function ChatMessageList({ messages, pending }: ChatMessageListProps) {
               : 'bg-muted text-foreground',
           )}
         >
-          {message.content}
+          {/* User messages are the caller's own typed text, not LLM prose — rendered
+              plain rather than through markdown, so a literal "*" the user typed isn't
+              reinterpreted as emphasis. */}
+          {message.role === 'assistant' ? <Prose>{message.content}</Prose> : message.content}
+          {message.role === 'assistant' && <CitationList citations={message.citations} />}
         </div>
       ))}
       {pending && (

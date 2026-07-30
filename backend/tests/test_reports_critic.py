@@ -18,13 +18,21 @@ def _settings(**overrides: object) -> ReportSettings:
 
 
 class TestValidateReport:
+    """Generic grounding mechanics (fact_id checks, cap enforcement, JSON shape) —
+    exercised via SELF_LEARNER with report_kind="training" so these keep testing the
+    original Phase 9 behaviour untouched by the Phase 16a self-learner-only game format
+    (see TestSelfLearnerGameFormat below for that)."""
+
     def test_a_well_formed_grounded_report_passes(self) -> None:
         parsed = {
             "summary": "A close game.",
             "findings": [{"fact_ids": ["move-4"], "text": "You blundered on move 4."}],
             "recommendations": ["Review move 4."],
         }
-        assert validate_report(parsed, _FACTS, Persona.SELF_LEARNER, _settings()) == []
+        violations = validate_report(
+            parsed, _FACTS, Persona.SELF_LEARNER, _settings(), report_kind="training"
+        )
+        assert violations == []
 
     def test_a_reference_to_an_unknown_fact_id_fails(self) -> None:
         parsed = {
@@ -32,7 +40,9 @@ class TestValidateReport:
             "findings": [{"fact_ids": ["move-999"], "text": "..."}],
             "recommendations": [],
         }
-        violations = validate_report(parsed, _FACTS, Persona.SELF_LEARNER, _settings())
+        violations = validate_report(
+            parsed, _FACTS, Persona.SELF_LEARNER, _settings(), report_kind="training"
+        )
         assert any("move-999" in v for v in violations)
 
     def test_a_finding_with_no_fact_ids_fails(self) -> None:
@@ -41,7 +51,9 @@ class TestValidateReport:
             "findings": [{"fact_ids": [], "text": "..."}],
             "recommendations": [],
         }
-        violations = validate_report(parsed, _FACTS, Persona.SELF_LEARNER, _settings())
+        violations = validate_report(
+            parsed, _FACTS, Persona.SELF_LEARNER, _settings(), report_kind="training"
+        )
         assert violations
 
     def test_a_finding_with_no_text_fails(self) -> None:
@@ -50,7 +62,9 @@ class TestValidateReport:
             "findings": [{"fact_ids": ["move-4"], "text": "  "}],
             "recommendations": [],
         }
-        violations = validate_report(parsed, _FACTS, Persona.SELF_LEARNER, _settings())
+        violations = validate_report(
+            parsed, _FACTS, Persona.SELF_LEARNER, _settings(), report_kind="training"
+        )
         assert violations
 
     def test_a_non_dict_response_fails(self) -> None:
@@ -69,7 +83,9 @@ class TestValidateReport:
             ],
             "recommendations": [],
         }
-        violations = validate_report(parsed, _FACTS, Persona.SELF_LEARNER, settings)
+        violations = validate_report(
+            parsed, _FACTS, Persona.SELF_LEARNER, settings, report_kind="training"
+        )
         assert violations
 
     def test_coach_has_no_finding_cap(self) -> None:
@@ -96,3 +112,134 @@ class TestValidateReport:
             "recommendations": ["Try spotting forks before you move."],
         }
         assert validate_report(parsed, _FACTS, Persona.KID, _settings()) == []
+
+
+_MISTAKE_FACT = Fact(
+    id="move-4",
+    kind="move",
+    severity="critical",
+    ply=4,
+    confidence=None,
+    data={"classification": "blunder"},
+)
+_STRENGTH_FACT = Fact(
+    id="move-6",
+    kind="move",
+    severity="notable",
+    ply=6,
+    confidence=None,
+    data={"classification": "best"},
+)
+
+
+class TestSelfLearnerGameFormat:
+    """Phase 16a, D-035 addendum: the self-learner-only game-review format's rules —
+    report_kind defaults to "game", so these don't need to pass it explicitly."""
+
+    def test_a_well_formed_report_with_kind_tags_passes(self) -> None:
+        parsed = {
+            "summary": "White pushed a strong attack; Black blundered late.",
+            "findings": [
+                {
+                    "fact_ids": ["move-6"],
+                    "text": "White's move 6 was best.",
+                    "kind": "strength",
+                },
+                {
+                    "fact_ids": ["move-4"],
+                    "text": "Black's move 4 was a blunder.",
+                    "kind": "mistake",
+                },
+            ],
+            "recommendations": ["Review Black's move 4."],
+        }
+        violations = validate_report(
+            parsed, [_MISTAKE_FACT, _STRENGTH_FACT], Persona.SELF_LEARNER, _settings()
+        )
+        assert violations == []
+
+    def test_a_finding_missing_kind_fails(self) -> None:
+        parsed = {
+            "summary": "...",
+            "findings": [{"fact_ids": ["move-4"], "text": "Black's move 4 was a blunder."}],
+            "recommendations": [],
+        }
+        violations = validate_report(parsed, [_MISTAKE_FACT], Persona.SELF_LEARNER, _settings())
+        assert any("kind" in v for v in violations)
+
+    def test_a_strength_kind_on_a_non_best_fact_fails(self) -> None:
+        parsed = {
+            "summary": "...",
+            "findings": [
+                {
+                    "fact_ids": ["move-4"],
+                    "text": "Black's move 4 was a blunder.",
+                    "kind": "strength",
+                }
+            ],
+            "recommendations": [],
+        }
+        violations = validate_report(parsed, [_MISTAKE_FACT], Persona.SELF_LEARNER, _settings())
+        assert any("strength" in v for v in violations)
+
+    def test_a_mistake_kind_on_a_best_fact_fails(self) -> None:
+        parsed = {
+            "summary": "...",
+            "findings": [
+                {"fact_ids": ["move-6"], "text": "White's move 6 was best.", "kind": "mistake"}
+            ],
+            "recommendations": [],
+        }
+        violations = validate_report(parsed, [_STRENGTH_FACT], Persona.SELF_LEARNER, _settings())
+        assert any("mistake" in v for v in violations)
+
+    def test_second_person_address_fails(self) -> None:
+        parsed = {
+            "summary": "Your game had a rough patch.",
+            "findings": [
+                {"fact_ids": ["move-4"], "text": "Black's move 4 was a blunder.", "kind": "mistake"}
+            ],
+            "recommendations": [],
+        }
+        violations = validate_report(parsed, [_MISTAKE_FACT], Persona.SELF_LEARNER, _settings())
+        assert any("second person" in v for v in violations)
+
+    def test_a_centipawn_number_fails(self) -> None:
+        parsed = {
+            "summary": "Black lost 320 centipawns on move 4.",
+            "findings": [
+                {"fact_ids": ["move-4"], "text": "Black's move 4 was a blunder.", "kind": "mistake"}
+            ],
+            "recommendations": [],
+        }
+        violations = validate_report(parsed, [_MISTAKE_FACT], Persona.SELF_LEARNER, _settings())
+        assert any("centipawn" in v for v in violations)
+
+    def test_the_split_cap_is_positive_plus_mistake_max(self) -> None:
+        settings = _settings(report_self_learner_positive_max=1, report_self_learner_mistake_max=1)
+        parsed = {
+            "summary": "...",
+            "findings": [
+                {"fact_ids": ["move-6"], "text": "Best move.", "kind": "strength"},
+                {"fact_ids": ["move-4"], "text": "Blunder.", "kind": "mistake"},
+                {"fact_ids": ["move-4"], "text": "Another one.", "kind": "mistake"},
+            ],
+            "recommendations": [],
+        }
+        violations = validate_report(
+            parsed, [_MISTAKE_FACT, _STRENGTH_FACT], Persona.SELF_LEARNER, settings
+        )
+        assert any("exceeds" in v for v in violations)
+
+    def test_training_report_kind_is_unaffected_by_the_game_format_rules(self) -> None:
+        """A training-plan self-learner report (Phase 15) never had a `kind` field or a
+        second-person ban — report_kind="training" must keep exempting it."""
+        parsed = {
+            "summary": "Your training plan for this window.",
+            "findings": [{"fact_ids": ["move-4"], "text": "You should review this."}],
+            "recommendations": [],
+        }
+        violations = validate_report(
+            parsed, [_MISTAKE_FACT], Persona.SELF_LEARNER, _settings(), report_kind="training"
+        )
+        assert violations == []

@@ -8,19 +8,19 @@ import { describe, expect, it, vi } from 'vitest';
 import { Route, Routes } from 'react-router-dom';
 
 import { RootLayout } from '@/app/layouts/RootLayout';
-import { HomePage } from '@/pages/HomePage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
+import { WorkspacePage } from '@/pages/WorkspacePage';
 import { renderWithProviders } from '@/test/render';
 
 function renderAt(path: string) {
-  // The home page renders the health card, which fetches. Park the request so these
-  // tests assert on routing rather than on network state.
+  // The workspace page's login gate reads the current user, which fetches. Park the
+  // request so these tests assert on routing rather than on network state.
   vi.stubGlobal('fetch', vi.fn().mockReturnValue(new Promise(() => {})));
 
   return renderWithProviders(
     <Routes>
       <Route path="/" element={<RootLayout />}>
-        <Route index element={<HomePage />} />
+        <Route index element={<WorkspacePage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Routes>,
@@ -29,17 +29,19 @@ function renderAt(path: string) {
 }
 
 describe('routing', () => {
-  it('renders the home page at /', () => {
+  it('renders the workspace page at /', () => {
     renderAt('/');
 
-    expect(screen.getByRole('heading', { level: 1, name: 'GrandMate' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'GrandMate' })).toBeInTheDocument();
   });
 
   it('renders the shell around every route', () => {
     renderAt('/');
 
+    // No footer (Phase 16a, D-035): the workspace shell fills the viewport under a
+    // fixed-height header, and a footer would eat into that height budget for no
+    // benefit in an app that has no more content below the fold to summarise.
     expect(screen.getByRole('banner')).toBeInTheDocument();
-    expect(screen.getByRole('contentinfo')).toBeInTheDocument();
   });
 
   it('renders the not-found page for an unknown route', () => {

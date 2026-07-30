@@ -97,7 +97,7 @@ async def test_a_direct_answer_skips_tool_calling(
     assert result["trace"] == ["classify_intent", "run_agent", "write_memory"]
     assert result["messages"][-2:] == [
         {"role": "user", "content": "what is a fork?"},
-        {"role": "assistant", "content": "Direct answer."},
+        {"role": "assistant", "content": "Direct answer.", "citations": [], "grounded": True},
     ]
 
 
@@ -243,9 +243,9 @@ async def test_thread_continuity_carries_prior_turns_into_the_next_llm_call(
 
     assert result["messages"] == [
         {"role": "user", "content": "first question"},
-        {"role": "assistant", "content": "First answer."},
+        {"role": "assistant", "content": "First answer.", "citations": [], "grounded": True},
         {"role": "user", "content": "second question"},
-        {"role": "assistant", "content": "Second answer."},
+        {"role": "assistant", "content": "Second answer.", "citations": [], "grounded": True},
     ]
     # The second turn's agent call (not its trailing write_memory call) carried the
     # first turn's exchange as context.
@@ -282,7 +282,7 @@ async def test_a_different_thread_id_starts_with_no_history(
 
     assert result["messages"] == [
         {"role": "user", "content": "q2"},
-        {"role": "assistant", "content": "Second answer."},
+        {"role": "assistant", "content": "Second answer.", "citations": [], "grounded": True},
     ]
 
 

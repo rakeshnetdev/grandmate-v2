@@ -75,6 +75,7 @@ async def _make_full_analysis(session: AsyncSession, game: Game) -> GameAnalysis
             pv=[],
             classification=MoveClassification.BLUNDER,
             eval_swing_cp=300,
+            mate_swing=False,
             is_critical_moment=True,
             deep_analyzed=True,
         )
@@ -173,6 +174,45 @@ class TestProjectGame:
             .all()
         )
         assert len(all_rows) == 4
+
+    async def test_a_mate_swing_critical_moment_never_projects_a_bogus_centipawn_number(
+        self, db_session: AsyncSession
+    ) -> None:
+        """Regression test: the RAG `analysis` bucket must never embed the mate-score
+        classification sentinel as if it were a real centipawn swing — it would then be
+        retrievable and citable to a user verbatim."""
+        profile = await _make_profile(db_session)
+        game = await _make_game(db_session, profile)
+        analysis = GameAnalysis(
+            game_id=game.id, analysis_version="test", engine_depth=12, summary={}
+        )
+        db_session.add(analysis)
+        await db_session.flush()
+        db_session.add(
+            MoveEvaluation(
+                game_analysis_id=analysis.id,
+                ply=19,
+                eval_cp=None,
+                mate_in=None,
+                best_move_uci="e2e4",
+                pv=[],
+                classification=MoveClassification.BLUNDER,
+                eval_swing_cp=99_470,
+                mate_swing=True,
+                is_critical_moment=True,
+                deep_analyzed=False,
+            )
+        )
+        await db_session.flush()
+
+        service = AnalysisProjectionService(db_session, FakeEmbeddingProvider())
+        rows = await service.project_game(game.id)
+
+        critical_moment = next(row for row in rows if row.kind == "critical_moment")
+        assert "99470" not in critical_moment.content
+        assert "forced mate" in critical_moment.content
+        assert critical_moment.chunk_metadata["mate_swing"] is True
+        assert critical_moment.chunk_metadata["eval_swing_cp"] is None
 
     async def test_a_game_with_no_analysis_yet_projects_nothing(
         self, db_session: AsyncSession

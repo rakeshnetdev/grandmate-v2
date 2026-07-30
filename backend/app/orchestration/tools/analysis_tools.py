@@ -13,7 +13,7 @@ from __future__ import annotations
 import uuid
 from typing import Any
 
-from app.domain.analysis import get_latest_analysis, get_moves
+from app.domain.analysis import display_swing_cp, get_latest_analysis, get_moves
 from app.domain.analytics import ProfileAnalyticsService
 from app.domain.patterns.queries import get_opening_match
 from app.integrations.llm.base import ToolSpec
@@ -114,7 +114,8 @@ async def get_game_analysis(ctx: ToolContext, *, game_id: str) -> dict[str, Any]
                 "classification": ev.classification.value,
                 "eval_cp": ev.eval_cp,
                 "mate_in": ev.mate_in,
-                "eval_swing_cp": ev.eval_swing_cp,
+                "eval_swing_cp": display_swing_cp(ev.eval_swing_cp, ev.mate_swing),
+                "mate_swing": ev.mate_swing,
                 "best_move_uci": ev.best_move_uci,
             }
             for ev in analysis.evaluations
@@ -138,7 +139,8 @@ async def list_critical_moments(ctx: ToolContext, *, game_id: str) -> dict[str, 
                 "ply": ev.ply,
                 "san": moves_by_ply[ev.ply].san if ev.ply in moves_by_ply else None,
                 "classification": ev.classification.value,
-                "eval_swing_cp": ev.eval_swing_cp,
+                "eval_swing_cp": display_swing_cp(ev.eval_swing_cp, ev.mate_swing),
+                "mate_swing": ev.mate_swing,
             }
             for ev in analysis.evaluations
             if ev.is_critical_moment

@@ -161,7 +161,9 @@ class TrainingService:
                 violations = (
                     ["response was not valid JSON"]
                     if parsed is None
-                    else validate_report(parsed, facts, persona, self._report_settings)
+                    else validate_report(
+                        parsed, facts, persona, self._report_settings, report_kind="training"
+                    )
                 )
                 if span:
                     span.set(violation_count=len(violations))

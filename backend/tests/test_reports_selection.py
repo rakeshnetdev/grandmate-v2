@@ -46,11 +46,70 @@ class TestSelectForPersona:
         ids = {f.id for f in selected}
         assert {"summary", "opening"} <= ids
 
-    def test_self_learner_caps_at_the_configured_max(self) -> None:
-        settings = _settings(report_self_learner_max_findings=2)
+    def test_self_learner_mistakes_cap_at_the_configured_max(self) -> None:
+        # None of self._facts()'s move facts are classification="best", so under the
+        # new positive/mistake split (Phase 16a, D-035 addendum) they all land in the
+        # mistakes pool, capped by report_self_learner_mistake_max — the old, now
+        # unused-for-self-learner report_self_learner_max_findings no longer applies here.
+        settings = _settings(report_self_learner_mistake_max=2)
         selected = select_for_persona(self._facts(5), Persona.SELF_LEARNER, settings)
         findings = [f for f in selected if f.kind == "move"]
         assert len(findings) == 2
+
+    def test_self_learner_positive_and_mistake_facts_are_capped_independently(self) -> None:
+        positive = [
+            Fact(
+                id=f"move-best-{i}",
+                kind="move",
+                severity="notable",
+                ply=i,
+                confidence=None,
+                data={"classification": "best"},
+            )
+            for i in range(4)
+        ]
+        mistakes = [
+            Fact(
+                id=f"move-bad-{i}",
+                kind="move",
+                severity="notable",
+                ply=100 + i,
+                confidence=None,
+                data={"classification": "blunder"},
+            )
+            for i in range(4)
+        ]
+        settings = _settings(report_self_learner_positive_max=2, report_self_learner_mistake_max=3)
+        selected = select_for_persona([*positive, *mistakes], Persona.SELF_LEARNER, settings)
+        selected_ids = {f.id for f in selected}
+        assert sum(1 for id_ in selected_ids if id_.startswith("move-best-")) == 2
+        assert sum(1 for id_ in selected_ids if id_.startswith("move-bad-")) == 3
+
+    def test_coach_never_receives_positive_move_facts(self) -> None:
+        """Coach's report is unaffected by the Phase 16a self-learner-only format
+        change — it never saw positive move facts before, and still shouldn't."""
+        positive = Fact(
+            id="move-best-0",
+            kind="move",
+            severity="notable",
+            ply=0,
+            confidence=None,
+            data={"classification": "best"},
+        )
+        selected = select_for_persona([positive], Persona.COACH, _settings())
+        assert not any(f.id == "move-best-0" for f in selected)
+
+    def test_kid_never_receives_positive_move_facts(self) -> None:
+        positive = Fact(
+            id="move-best-0",
+            kind="move",
+            severity="notable",
+            ply=0,
+            confidence=None,
+            data={"classification": "best"},
+        )
+        selected = select_for_persona([positive], Persona.KID, _settings())
+        assert not any(f.id == "move-best-0" for f in selected)
 
     def test_kid_caps_at_the_configured_max(self) -> None:
         settings = _settings(report_kid_max_findings=1)

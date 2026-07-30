@@ -17,13 +17,14 @@ from __future__ import annotations
 import uuid
 from collections import Counter
 
+import chess
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import EngineSettings
 from app.db.base import utc_now
 from app.db.models import GameAnalysis, GameMove, MoveClassification, MoveEvaluation
-from app.domain.analysis.classification import classify_move, compute_cpl
+from app.domain.analysis.classification import classify_move, compute_cpl, is_mate_swing
 from app.integrations.engine import EngineAdapter, EngineEvaluation
 
 
@@ -77,9 +78,11 @@ class AnalysisService:
                     eval_cp=evals[i].eval_cp,
                     mate_in=evals[i].mate_in,
                     best_move_uci=evals[i].best_move_uci,
+                    best_move_san=_move_san(positions[i], evals[i].best_move_uci),
                     pv=evals[i].pv,
                     classification=classification,
                     eval_swing_cp=cpl,
+                    mate_swing=is_mate_swing(evals[i], evals[i + 1]),
                     is_critical_moment=i in critical_plies,
                     # True if *either* endpoint of this ply's own swing was deepened —
                     # position i (this ply's eval_before) or position i+1 (its
@@ -136,6 +139,18 @@ class AnalysisService:
             "accuracy": accuracy,
             "critical_moments": sum(1 for r in records if r.is_critical_moment),
         }
+
+
+def _move_san(fen: str, uci: str | None) -> str | None:
+    """SAN for the engine's suggested move at `fen`, or `None` when there is no
+    suggestion (e.g. checkmate/stalemate) or it fails to parse against the position."""
+    if uci is None:
+        return None
+    try:
+        board = chess.Board(fen)
+        return board.san(chess.Move.from_uci(uci))
+    except ValueError:
+        return None
 
 
 __all__ = ["AnalysisService"]

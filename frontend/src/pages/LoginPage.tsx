@@ -25,7 +25,7 @@ export function LoginPage() {
   }, [user, navigate]);
 
   return (
-    <div className="mx-auto max-w-sm">
+    <div className="mx-auto max-w-sm p-6">
       <Card>
         <CardHeader>
           <CardTitle>Log in</CardTitle>

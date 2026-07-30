@@ -15,8 +15,8 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException, Request, status
 from app.api.dependencies.db import DbSessionDep
 from app.api.dependencies.profile_scope import ScopedProfileIdDep
 from app.api.dependencies.settings import SettingsDep
-from app.db.models import GameAnalysis, Job
-from app.domain.analysis import create_retry_job, get_analysis_job, get_latest_analysis
+from app.db.models import GameAnalysis, GameMove, Job
+from app.domain.analysis import create_retry_job, get_analysis_job, get_latest_analysis, get_moves
 from app.domain.analysis import run_pending_analysis_jobs as _run_pending_analysis_jobs
 from app.schemas.analysis import AnalysisJobSummary, GameAnalysisSummary, MoveEvaluationSummary
 
@@ -35,7 +35,9 @@ def _to_job_summary(job: Job) -> AnalysisJobSummary:
     )
 
 
-def _to_analysis_summary(analysis: GameAnalysis) -> GameAnalysisSummary:
+def _to_analysis_summary(
+    analysis: GameAnalysis, moves_by_ply: dict[int, GameMove]
+) -> GameAnalysisSummary:
     return GameAnalysisSummary(
         id=analysis.id,
         game_id=analysis.game_id,
@@ -46,12 +48,15 @@ def _to_analysis_summary(analysis: GameAnalysis) -> GameAnalysisSummary:
         moves=[
             MoveEvaluationSummary(
                 ply=move.ply,
+                san=moves_by_ply[move.ply].san if move.ply in moves_by_ply else None,
+                fen_after=moves_by_ply[move.ply].fen_after if move.ply in moves_by_ply else None,
                 eval_cp=move.eval_cp,
                 mate_in=move.mate_in,
                 best_move_uci=move.best_move_uci,
                 pv=move.pv,
                 classification=move.classification.value,
                 eval_swing_cp=move.eval_swing_cp,
+                mate_swing=move.mate_swing,
                 is_critical_moment=move.is_critical_moment,
                 deep_analyzed=move.deep_analyzed,
             )
@@ -82,7 +87,8 @@ async def get_game_analysis(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="No analysis found for this game",
         )
-    return _to_analysis_summary(analysis)
+    moves_by_ply = {m.ply: m for m in await get_moves(session, game_id, profile_id)}
+    return _to_analysis_summary(analysis, moves_by_ply)
 
 
 @router.post(

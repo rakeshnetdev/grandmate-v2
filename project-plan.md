@@ -1455,6 +1455,175 @@ the failure is reported. Evaluation is never run informally and discarded.
 
 ---
 
+## Phase 16a — Frontend Redesign (new, inserted before Phase 17)
+
+### Goal
+Consolidate the frontend's information architecture and visual design before production
+hardening begins. Frontend-only: no new backend capability, only the minimal, additive
+schema/endpoint changes needed to give the redesigned UI real data to render (D-035).
+
+### Why a lettered sub-phase, not a renumbered Phase 17
+The owner's request framed this as "consider this phase 17." A hard renumber (bumping
+today's Phase 17 → 18 and 18 → 19) would invalidate a large number of already-written
+cross-references by number — `decisions-log.md`'s D-033 ("Assigned to Phase 16... kept
+deliberately separate from Phase 17's tracing work", "Phase 17, not a new P15a
+sub-phase"), ADR-0017's own title and body, and `evaluation-strategy.md`. A lettered
+sub-phase (`claude.md`'s own convention: "Sub-phases append a letter: P1a-developer-
+insight") achieves the same practical effect — it runs before the existing Phase 17 —
+without that churn. Flagged as a proposal, not decided unilaterally; open to a real
+renumber if the owner prefers it.
+
+### Scope decisions confirmed with the owner before implementation (D-035)
+
+Four open questions were put to the owner directly; all four recommended defaults were
+accepted:
+
+1. **No visual chess board.** Moves render as a styled list (SAN + eval + classification
+   per ply), not an interactive rendered board. No new board-rendering dependency, no
+   position-navigation state. Matches both this app and the sibling reference today.
+2. **`react-markdown` for prose rendering**, not a hand-rolled parser. Chat answers and
+   any free-text LLM prose render through it; a custom chess-notation-aware highlighter
+   (move tokens, classification keywords) layers on top as a separate, focused piece —
+   not reinventing markdown parsing the way the sibling app's duplicated regex approach
+   did.
+3. **Profile-level analytics + training plan is the default middle-panel view** when no
+   game is selected — the existing `ProfileDashboard` becomes the dashboard's "Overview,"
+   never an empty state.
+4. **Memory lives as a second tab inside the right-hand chat panel**, not a separate page
+   or menu entry — it is chat-adjacent (what the assistant remembers about the profile),
+   not a distinct workspace.
+
+### Information architecture
+
+Collapses six top-level pages (Import, Games, Dashboard, Chat, Memory, plus the
+Game-Detail page that stacked analysis/report/chat-link in one long scroll) into **one
+post-login route**. "My Dashboard" and "Study Dashboard" are not two routes — they are
+the existing self/study `ProfileToggle` switching data within this one page, matching
+"minimize navigations" as literally as possible. Login stays a separate, unauthenticated
+route.
+
+Three-panel shell:
+- **Left — game list panel**, collapsible (icon rail when collapsed, full list on
+  hover/toggle). Lists all games for the active profile (reuses `useGames`). An "Import"
+  button opens a modal with the existing `SyncFromPlatform` / `UploadForm` as two tabs —
+  same components, same API calls, new container.
+- **Middle — content panel, tabbed**, not a long scroll:
+  - **Overview** (no game selected, or always-available): today's `ProfileDashboard`
+    (accuracy trends, recurring weaknesses, opening/color/time-control breakdowns,
+    training-plan panel) — all existing components, repositioned.
+  - **Analysis** (game selected): the persona report (`PersonaReportPanel`/
+    `ReportView`), reformatted — findings/recommendations rendered through the new
+    chess-notation-aware formatter, not plain paragraphs.
+  - **Moves** (game selected): move-by-move list — classification, eval, and now real
+    SAN notation (D-035, see Backend touches) instead of ply/UCI.
+  - **Patterns** (game selected): opening match, motifs, themes — today's
+    `PatternsSummary`, restyled with the shared severity/classification badge system.
+- **Right — chat panel**, persistent and docked, not a separate page. Two tabs:
+  **Chat** (`ChatPanel`, reused, with the new markdown+highlight rendering and citations
+  now surfaced per message) and **Memory** (`MemoryPanel`, reused). Opening a game
+  auto-scopes the chat's `activeGameId`, same as today's link-based flow does, just
+  without a navigation.
+
+### Backend touches (D-035 — additive only, no behaviour change)
+
+1. **Real move notation.** `GameMove.san` is already stored (Phase 4) but never
+   returned by any endpoint — the analysis response carries ply/UCI only. Add `san` (and
+   `fen_after`, useful for a future board without committing to one now) to the
+   move-evaluation payload `GET /analysis/games/{id}` returns.
+2. **Citations in chat history.** `POST /chat/threads/{id}/messages` already returns
+   `citations`/`grounded` for the turn just sent, but `GET /chat/threads/{id}` (history)
+   returns bare `role`/`content` — a reloaded thread loses citation data entirely. Persist
+   and return citations per stored assistant message so they survive a reload, not just
+   the live turn.
+
+Both are additive fields on existing responses — no new tables, no schema migration
+beyond what already exists (citations may already be stored somewhere in the message
+record; confirm during implementation before assuming a migration is needed), no change
+to existing callers' behaviour.
+
+### Theming
+
+Builds on the existing shadcn/oklch CSS-variable foundation (`index.css`) rather than
+replacing it — that system is already sound, just missing a manual switch. Add:
+- A `ThemeProvider` + toggle (header), persisting choice to `localStorage`.
+- `[data-theme="dark"]` / `[data-theme="light"]` selectors overriding the existing
+  `:root` variables, taking precedence over the current `prefers-color-scheme` media
+  query, which remains the default for a user who has never toggled.
+
+### Responsive design
+
+Neither this app nor the sibling reference solved mobile navigation — a real gap this
+phase closes rather than inherits:
+- Left panel becomes an off-canvas drawer below a breakpoint, toggled from the header.
+- Right chat panel becomes a toggleable overlay/bottom-sheet below the same breakpoint.
+- Middle panel takes full width when either side panel is closed on small screens.
+- Tabs in the middle panel scroll horizontally rather than wrapping on narrow viewports.
+
+### Visual design carried from the sibling reference (inspiration, not ported code)
+
+- The "10%-background / full-opacity-text / 20%-border" pill-badge formula for
+  classification/severity, applied consistently across move lists, findings, and chat
+  highlighting — replacing today's plain `text-{color}` classification styling.
+  `final_docs/v2/changes/` records this as a design-pattern reuse per the Migration Rule,
+  since no code is copied, only the visual formula.
+- Chess-notation-aware inline highlighting for free-text prose (move tokens,
+  blunder/mistake/inaccuracy keywords) — built fresh against `react-markdown`'s AST
+  rather than the sibling's duplicated regex-on-strings approach.
+- Structured backend data (findings, recommendations, weaknesses) stays rendered through
+  purpose-built components, never dumped as raw markdown — already this app's pattern
+  (`ReportView`, `TrainingPlanView`), extended more consistently across the redesign.
+
+### Tasks
+- `ThemeProvider`, toggle, `data-theme` CSS overrides
+- New `workspace` feature: three-panel shell, collapsible left panel, tabbed middle
+  panel, docked right panel with responsive drawer/overlay behaviour below breakpoint
+- Import modal (tabs: sync from platform, upload/paste) reusing existing components
+- Chess-notation-aware prose formatter (react-markdown + custom highlighting)
+  extracted as a shared utility, used by chat, reports, and training plans alike
+- Shared classification/severity badge component replacing scattered `text-{color}`
+  usage
+- Citation display per chat message (pending the backend addition above)
+- Backend: `san`/`fen_after` on move-evaluation payload; persisted citations on stored
+  chat messages
+- Retire the now-redundant standalone pages (`ImportsPage`, `GamesPage`, `ChatPage`,
+  `MemoryPage`, `GameDetailPage`) once their functionality is fully absorbed into the
+  workspace shell
+
+### Testing
+- Component tests for the new workspace shell (panel collapse/expand, tab switching,
+  responsive breakpoint behaviour)
+- Formatter tests: chess-notation highlighting against known inputs, markdown rendering
+  correctness
+- Theme toggle persistence test
+- E2E: import a game via the modal → select it → see analysis/moves/patterns tabs → chat
+  about it → switch to Study Dashboard and confirm isolation
+- Backend: tests for the two additive payload changes
+
+### Exit criteria
+- single post-login route replaces the six former top-level pages
+- dark/light toggle works and persists
+- responsive down to mobile width, both side panels usable via drawer/overlay
+- chat and report prose render as formatted text, not raw markdown syntax
+- sign-off required
+
+### Addendum: mate-swing display bug + self-learner-only game report format (D-036)
+
+Two more items folded into this same branch, raised by the owner during live review of
+the redesigned Analysis tab rather than split into a new phase:
+
+- **Bug fix**: a forced-mate classification sentinel (`_MATE_SCORE_CP`) was being
+  displayed as if it were a real centipawn count ("costing 99470 centipawns"). Fixed at
+  the source (`MoveEvaluation.mate_swing` + `display_swing_cp()`), backfilled for
+  existing analyses, not just for new ones.
+- **Format**: the self-learner persona's per-game report (only — not chat, not coach,
+  not kid, not the Phase 15 training plan) now follows a fixed Overview / What Went Well
+  / Mistakes & Blunders / Strategy to Improve structure, third person, no engine numbers,
+  exact classification-word tagging so the frontend can group and highlight findings.
+  Full rationale and the four scope decisions in `decisions-log.md` D-036 and
+  `persona-matrix.md`'s Phase 16a addendum.
+
+---
+
 ## Phase 17 — Observability, Security, and Production Hardening
 
 ### Goal
