@@ -81,10 +81,10 @@ export function ProfileDashboard({ profileId }: ProfileDashboardProps) {
           <section>
             <h2 className="mb-1 text-sm font-semibold">Move quality</h2>
             <SectionHint>
-              Every analyzed move is graded against the engine's best option: Best is the
-              engine's exact top move, Good is nearly as strong, and Inaccuracy, Mistake, and
-              Blunder mark increasingly costly errors. Rates are the share of all your moves
-              across this window's games.
+              Every analyzed move is graded against the engine's best option: Best is the engine's
+              exact top move, Good is nearly as strong, and Inaccuracy, Mistake, and Blunder mark
+              increasingly costly errors. Rates are the share of all your moves across this window's
+              games.
             </SectionHint>
             <ClassificationRateTable analytics={analytics} />
           </section>
@@ -92,8 +92,8 @@ export function ProfileDashboard({ profileId }: ProfileDashboardProps) {
           <section>
             <h2 className="mb-1 text-sm font-semibold">Recurring weaknesses</h2>
             <SectionHint>
-              Tactical and strategic problems that cost you points and keep showing up across
-              your games — patterns worth training, not one-off accidents.
+              Tactical and strategic problems that cost you points and keep showing up across your
+              games — patterns worth training, not one-off accidents.
             </SectionHint>
             <RecurringWeaknessList weaknesses={analytics.recurring_weaknesses} />
           </section>
