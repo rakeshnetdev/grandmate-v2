@@ -11,13 +11,19 @@ from app.db.models import GameReport, Persona, TrainingRecommendation
 
 
 async def get_latest_report(
-    session: AsyncSession, game_id: uuid.UUID, persona: Persona
+    session: AsyncSession, game_id: uuid.UUID, persona: Persona, *, report_type: str = "findings"
 ) -> GameReport | None:
-    """The most recent report for this game and persona — versioned, same convention as
-    `domain.analysis.queries.get_latest_analysis`."""
+    """The most recent report for this game, persona, and report type — versioned, same
+    convention as `domain.analysis.queries.get_latest_analysis`. `report_type` (Phase
+    16b) distinguishes the default findings-list report from the full game-story
+    narrative; the two coexist per (game_id, persona) without colliding."""
     result = await session.execute(
         select(GameReport)
-        .where(GameReport.game_id == game_id, GameReport.persona == persona)
+        .where(
+            GameReport.game_id == game_id,
+            GameReport.persona == persona,
+            GameReport.report_type == report_type,
+        )
         .order_by(GameReport.created_at.desc())
         .limit(1)
     )

@@ -22,6 +22,7 @@ import {
   fetchGame,
   fetchGameAnalysis,
   fetchGamePatterns,
+  fetchGamePgn,
   fetchGames,
   type GameAnalysis,
 } from '../api/games';
@@ -38,6 +39,8 @@ export const gameKeys = {
     [...gameKeys.all, 'analysis', profileId ?? SELF_KEY, gameId] as const,
   patterns: (gameId: string, profileId: string | undefined) =>
     [...gameKeys.all, 'patterns', profileId ?? SELF_KEY, gameId] as const,
+  pgn: (gameId: string, profileId: string | undefined) =>
+    [...gameKeys.all, 'pgn', profileId ?? SELF_KEY, gameId] as const,
 };
 
 const ANALYSIS_POLL_MS = 2000;
@@ -78,6 +81,16 @@ export function useGameAnalysis(gameId: string | undefined, profileId?: string) 
     queryFn: ({ signal }) => fetchGameAnalysisOrNull(gameId as string, profileId, signal),
     enabled: Boolean(gameId),
     refetchInterval: (query) => (query.state.data ? false : ANALYSIS_POLL_MS),
+  });
+}
+
+/** The raw PGN never changes after import, so it is fetched once and kept. */
+export function useGamePgn(gameId: string | undefined, profileId?: string) {
+  return useQuery({
+    queryKey: gameKeys.pgn(gameId ?? '', profileId),
+    queryFn: ({ signal }) => fetchGamePgn(gameId as string, profileId, signal),
+    enabled: Boolean(gameId),
+    staleTime: Infinity,
   });
 }
 

@@ -93,12 +93,33 @@ async function request<TSchema extends z.ZodTypeAny>(
   return parsed.data;
 }
 
+/** Fetches a plain-text endpoint (e.g. a game's raw PGN) — no Zod schema, since there
+ * is no JSON structure to validate; non-2xx still throws `ApiError`. */
+async function requestText(path: string, signal?: AbortSignal): Promise<string> {
+  const response = await fetch(`${env.VITE_API_BASE_URL}${path}`, {
+    signal,
+    credentials: 'include',
+  });
+  if (!response.ok) {
+    const raw: unknown = await response.json().catch(() => undefined);
+    throw new ApiError(
+      `Request to ${path} failed with ${response.status}`,
+      response.status,
+      path,
+      raw,
+    );
+  }
+  return response.text();
+}
+
 export const apiClient = {
   get: <TSchema extends z.ZodTypeAny>(
     path: string,
     schema: TSchema,
     signal?: AbortSignal,
   ): Promise<z.infer<TSchema>> => request(path, { schema, signal }),
+
+  getText: (path: string, signal?: AbortSignal): Promise<string> => requestText(path, signal),
 
   post: <TSchema extends z.ZodTypeAny>(
     path: string,

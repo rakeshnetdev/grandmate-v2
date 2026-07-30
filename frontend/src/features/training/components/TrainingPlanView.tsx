@@ -55,7 +55,7 @@ export function TrainingPlanView({ plan }: TrainingPlanViewProps) {
           <ul className="list-inside list-disc space-y-1 text-muted-foreground">
             {plan.recommendations.map((recommendation) => (
               <li key={recommendation}>
-                <Prose className="inline">{recommendation}</Prose>
+                <Prose inline>{recommendation}</Prose>
               </li>
             ))}
           </ul>

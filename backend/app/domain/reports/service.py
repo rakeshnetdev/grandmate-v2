@@ -34,6 +34,9 @@ from app.domain.reports.fallback import build_fallback_report
 from app.domain.reports.prompts import build_messages
 from app.domain.reports.queries import get_latest_report
 from app.domain.reports.selection import select_for_persona
+from app.domain.reports.story_facts import extract_story_facts
+from app.domain.reports.story_fallback import build_story_fallback_report
+from app.domain.reports.story_prompts import build_story_messages
 from app.integrations.llm.base import CompletionRequest, LLMProvider
 
 # One initial attempt plus one retry if the critic rejects the first — never more. A
@@ -94,6 +97,103 @@ class ReportService:
         self._session.add(report)
         await self._session.flush()
         return report
+
+    async def get_or_generate_story(
+        self,
+        *,
+        game: Game,
+        analysis: GameAnalysis,
+        opening: OpeningMatch | None,
+        motifs: list[MotifFinding],
+        themes: list[StrategicThemeFinding],
+    ) -> GameReport:
+        """The full opening/middlegame/endgame game-story report (Phase 16b) —
+        self-learner only, per the owner's scope decision; there is no coach/kid
+        equivalent to switch on here the way `get_or_generate` does.
+        """
+        existing = await get_latest_report(
+            self._session, game.id, Persona.SELF_LEARNER, report_type="story"
+        )
+        if existing is not None and existing.analysis_version == analysis.analysis_version:
+            return existing
+
+        moves = await get_moves(self._session, game.id, game.profile_id)
+        facts = extract_story_facts(
+            game=game,
+            analysis=analysis,
+            opening=opening,
+            motifs=motifs,
+            themes=themes,
+            moves_by_ply={move.ply: move for move in moves},
+        )
+        content, source, model, grounded = await self._generate_story_content(facts, game)
+
+        report = GameReport(
+            game_id=game.id,
+            persona=Persona.SELF_LEARNER,
+            report_type="story",
+            source=source,
+            model=model,
+            analysis_version=analysis.analysis_version,
+            content=content,
+            fact_ids_used=_collect_fact_ids(content),
+            grounded=grounded,
+        )
+        self._session.add(report)
+        await self._session.flush()
+        return report
+
+    async def _generate_story_content(
+        self, facts: list[Fact], game: Game
+    ) -> tuple[dict[str, Any], ReportSource, str | None, bool]:
+        focus_color = game.focus_color.value if game.focus_color is not None else None
+        for attempt in range(_MAX_LLM_ATTEMPTS):
+            if not await self._budget.has_budget():
+                break
+
+            messages = build_story_messages(
+                facts,
+                white=game.headers.get("White", "?"),
+                black=game.headers.get("Black", "?"),
+                result=game.headers.get("Result", "*"),
+                focus_color=focus_color,
+            )
+            with get_recorder().span(
+                SpanKind.LLM, "report.story.generate", attempt=attempt
+            ) as span:
+                response = await self._llm.complete(
+                    CompletionRequest(
+                        messages=messages,
+                        model=self._llm_settings.llm_model,
+                        response_format="json_object",
+                    )
+                )
+                if span:
+                    span.set(model=response.model)
+                    span.set_tokens(response.usage.prompt_tokens, response.usage.completion_tokens)
+            await self._budget.record_usage(
+                response.usage.prompt_tokens, response.usage.completion_tokens
+            )
+
+            with get_recorder().span(SpanKind.GROUNDING, "report.story.critic") as span:
+                parsed = _try_parse_json(response.content)
+                violations = (
+                    ["response was not valid JSON"]
+                    if parsed is None
+                    else validate_report(
+                        parsed,
+                        facts,
+                        Persona.SELF_LEARNER,
+                        self._report_settings,
+                        report_kind="story",
+                    )
+                )
+                if span:
+                    span.set(violation_count=len(violations))
+                if not violations and parsed is not None:
+                    return parsed, ReportSource.LLM, response.model, True
+
+        return build_story_fallback_report(facts), ReportSource.FALLBACK, None, True
 
     async def _generate_content(
         self, facts: list[Fact], persona: Persona, game: Game

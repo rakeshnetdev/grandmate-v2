@@ -5,5 +5,6 @@
  */
 export { PersonaReportPanel } from './components/PersonaReportPanel';
 export { PersonaSwitcher } from './components/PersonaSwitcher';
-export { useGameReport, reportKeys } from './hooks/useReports';
+export { StoryView } from './components/StoryView';
+export { useGameReport, useGameStory, reportKeys } from './hooks/useReports';
 export type { GameReport, PersonaValue, ReportFinding } from './api/reports';

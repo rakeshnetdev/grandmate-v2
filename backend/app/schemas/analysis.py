@@ -34,6 +34,9 @@ class MoveEvaluationSummary(BaseModel):
     eval_cp: int | None
     mate_in: int | None
     best_move_uci: str | None
+    # Readable notation for best_move_uci, stored at analysis time (Phase 16b) — what a
+    # UI should show next to a mistake; null on analyses predating the column.
+    best_move_san: str | None
     pv: list[str]
     classification: str
     eval_swing_cp: int

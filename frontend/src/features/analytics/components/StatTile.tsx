@@ -14,9 +14,19 @@ interface StatTileProps {
   /** Formats the delta's magnitude, e.g. `(d) => `${d.toFixed(1)} pts`` */
   formatDelta: (delta: number) => string;
   higherIsBetter: boolean;
+  /** Plain-language one-liner on what this number measures — bare metric labels like
+   * "Accuracy" mean nothing to a reader without it. */
+  description?: string;
 }
 
-export function StatTile({ label, value, delta, formatDelta, higherIsBetter }: StatTileProps) {
+export function StatTile({
+  label,
+  value,
+  delta,
+  formatDelta,
+  higherIsBetter,
+  description,
+}: StatTileProps) {
   const isGood = delta === null ? null : higherIsBetter ? delta > 0 : delta < 0;
   const deltaColor =
     delta === null || delta === 0
@@ -35,6 +45,7 @@ export function StatTile({ label, value, delta, formatDelta, higherIsBetter }: S
           ? 'not enough prior data'
           : `${arrow}${formatDelta(delta)} vs. prior window`}
       </p>
+      {description && <p className="mt-2 text-xs text-muted-foreground">{description}</p>}
     </div>
   );
 }

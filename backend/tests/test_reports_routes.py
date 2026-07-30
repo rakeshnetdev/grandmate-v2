@@ -128,6 +128,67 @@ async def _seed_game_with_analysis(session: AsyncSession, profile_id: uuid.UUID)
     return game
 
 
+class TestGetGameStory:
+    """HTTP-level tests for `/reports/games/{id}/story` (Phase 16b) — the fixture's
+    scripted `_GOOD_RESPONSE` is shaped for the findings format (`kind: "mistake"`), so
+    it fails the story critic's kind check and falls back deterministically; that's fine
+    here since generation correctness is `test_reports_story_service.py`'s job — these
+    tests are about the HTTP contract only.
+    """
+
+    async def test_returns_a_story_report_for_an_analyzed_game(
+        self, reports_client: httpx.AsyncClient, db_session: AsyncSession
+    ) -> None:
+        profile_id = uuid.UUID(reports_client.headers["X-Test-Profile-Id"])
+        game = await _seed_game_with_analysis(db_session, profile_id)
+
+        response = await reports_client.get(f"/api/v1/reports/games/{game.id}/story")
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body["game_id"] == str(game.id)
+        assert body["persona"] == "self_learner"
+
+    async def test_unknown_game_is_not_found(self, reports_client: httpx.AsyncClient) -> None:
+        response = await reports_client.get(f"/api/v1/reports/games/{uuid.uuid4()}/story")
+        assert response.status_code == 404
+
+    async def test_a_game_with_no_analysis_yet_is_not_found(
+        self, reports_client: httpx.AsyncClient, db_session: AsyncSession
+    ) -> None:
+        profile_id = uuid.UUID(reports_client.headers["X-Test-Profile-Id"])
+        game = Game(
+            profile_id=profile_id,
+            source=GameSource.UPLOAD,
+            content_hash=str(uuid.uuid4()),
+            headers={"White": "A", "Black": "B"},
+            raw_pgn_path="pgn/test.pgn",
+        )
+        db_session.add(game)
+        await db_session.flush()
+
+        response = await reports_client.get(f"/api/v1/reports/games/{game.id}/story")
+
+        assert response.status_code == 404
+
+    async def test_another_profiles_game_is_not_visible(
+        self, reports_client: httpx.AsyncClient, db_session: AsyncSession
+    ) -> None:
+        other_user = User()
+        db_session.add(other_user)
+        await db_session.flush()
+        other_profile = Profile(
+            owner_user_id=other_user.id, kind=ProfileKind.SELF, display_name="Other"
+        )
+        db_session.add(other_profile)
+        await db_session.flush()
+        game = await _seed_game_with_analysis(db_session, other_profile.id)
+
+        response = await reports_client.get(f"/api/v1/reports/games/{game.id}/story")
+
+        assert response.status_code == 404
+
+
 class TestGetGameReport:
     async def test_defaults_to_self_learner_persona(
         self, reports_client: httpx.AsyncClient, db_session: AsyncSession

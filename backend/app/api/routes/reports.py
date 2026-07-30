@@ -81,6 +81,41 @@ async def get_game_report(
     return _to_summary(report)
 
 
+@router.get("/games/{game_id}/story", response_model=GameReportSummary)
+async def get_game_story(
+    game_id: uuid.UUID,
+    profile_id: ScopedProfileIdDep,
+    session: DbSessionDep,
+    settings: SettingsDep,
+    llm_provider: LLMProviderDep,
+) -> GameReportSummary:
+    """The full opening/middlegame/endgame game-story report (Phase 16b) —
+    self-learner only, no `persona` query param (unlike `get_game_report`)."""
+    game = await session.get(Game, game_id)
+    if game is None or game.profile_id != profile_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Game not found")
+
+    analysis = await get_latest_analysis(session, game_id, profile_id)
+    if analysis is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No analysis found for this game yet",
+        )
+
+    opening = await get_opening_match(session, game_id, profile_id)
+    findings = await get_pattern_findings(session, game_id, profile_id)
+
+    service = ReportService(session, llm_provider, settings.reports, settings.llm)
+    report = await service.get_or_generate_story(
+        game=game,
+        analysis=analysis,
+        opening=opening,
+        motifs=findings.motifs,
+        themes=findings.themes,
+    )
+    return _to_summary(report)
+
+
 def _to_training_summary(recommendation: TrainingRecommendation) -> TrainingRecommendationSummary:
     content = recommendation.content
     return TrainingRecommendationSummary(

@@ -35,13 +35,13 @@ describe('ContentPanel', () => {
     expect(screen.queryByRole('tab', { name: 'Patterns' })).not.toBeInTheDocument();
   });
 
-  it('offers all four tabs once a game is selected', () => {
+  it('offers all six tabs once a game is selected', () => {
     stubHangingFetch();
     renderWithProviders(
       <ContentPanel selectedGameId="game-1" tab="analysis" onTabChange={() => {}} />,
     );
 
-    for (const label of ['Overview', 'Analysis', 'Moves', 'Patterns']) {
+    for (const label of ['Overview', 'Analysis', 'Moves', 'Patterns', 'Story', 'PGN']) {
       expect(screen.getByRole('tab', { name: label })).toBeInTheDocument();
     }
   });

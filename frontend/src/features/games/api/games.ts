@@ -29,6 +29,8 @@ const moveEvaluationSchema = z.object({
   eval_cp: z.number().nullable(),
   mate_in: z.number().nullable(),
   best_move_uci: z.string().nullable(),
+  // Readable notation for best_move_uci (Phase 16b); null on analyses predating it.
+  best_move_san: z.string().nullable(),
   pv: z.array(z.string()),
   classification: z.enum(['best', 'good', 'inaccuracy', 'mistake', 'blunder']),
   eval_swing_cp: z.number(),
@@ -109,6 +111,15 @@ export function fetchGame(
     gameSummarySchema,
     signal,
   );
+}
+
+/** The game's raw PGN, exactly as imported (Phase 16b follow-up) — plain text. */
+export function fetchGamePgn(
+  gameId: string,
+  profileId?: string,
+  signal?: AbortSignal,
+): Promise<string> {
+  return apiClient.getText(withProfileParam(`/api/v1/games/${gameId}/pgn`, profileId), signal);
 }
 
 export function fetchGameAnalysis(

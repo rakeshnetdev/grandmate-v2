@@ -48,6 +48,11 @@ class GameReport(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         UUID(as_uuid=True), ForeignKey("games.id", ondelete="CASCADE"), nullable=False, index=True
     )
     persona: Mapped[Persona] = mapped_column(pg_enum(Persona, "persona"), nullable=False)
+    # "findings" (Phase 9, the default) or "story" (Phase 16b — the full opening/
+    # middlegame/endgame narrative). Two report *shapes* can coexist for the same
+    # (game_id, persona) pair, so this is part of the lookup key, not just metadata —
+    # see get_latest_report.
+    report_type: Mapped[str] = mapped_column(String(20), nullable=False, default="findings")
     source: Mapped[ReportSource] = mapped_column(
         pg_enum(ReportSource, "report_source"), nullable=False
     )

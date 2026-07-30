@@ -11,14 +11,18 @@ import { AnalysisTab } from './AnalysisTab';
 import { MovesTab } from './MovesTab';
 import { OverviewTab } from './OverviewTab';
 import { PatternsTab } from './PatternsTab';
+import { PgnTab } from './PgnTab';
+import { StoryTab } from './StoryTab';
 
-export type ContentTab = 'overview' | 'analysis' | 'moves' | 'patterns';
+export type ContentTab = 'overview' | 'analysis' | 'moves' | 'patterns' | 'story' | 'pgn';
 
 const GAME_TABS: TabItem[] = [
   { value: 'overview', label: 'Overview' },
   { value: 'analysis', label: 'Analysis' },
   { value: 'moves', label: 'Moves' },
   { value: 'patterns', label: 'Patterns' },
+  { value: 'story', label: 'Story' },
+  { value: 'pgn', label: 'PGN' },
 ];
 const NO_GAME_TABS: TabItem[] = [{ value: 'overview', label: 'Overview' }];
 
@@ -51,6 +55,12 @@ export function ContentPanel({ profileId, selectedGameId, tab, onTabChange }: Co
         )}
         {activeTab === 'patterns' && selectedGameId && (
           <PatternsTab gameId={selectedGameId} profileId={profileId} />
+        )}
+        {activeTab === 'story' && selectedGameId && (
+          <StoryTab gameId={selectedGameId} profileId={profileId} />
+        )}
+        {activeTab === 'pgn' && selectedGameId && (
+          <PgnTab gameId={selectedGameId} profileId={profileId} />
         )}
       </div>
     </div>
