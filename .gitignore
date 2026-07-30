@@ -43,3 +43,7 @@ coverage/
 # Local dev storage — uploaded PGNs, generated reports (StorageBackend local adapter,
 # ADR-0015). Path matches STORAGE_LOCAL_PATH in backend/.env.example.
 backend/.storage/
+
+# Ignore skipped documentation
+docs_skipped/
+
