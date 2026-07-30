@@ -18,7 +18,6 @@ from app.domain.reports.facts import Fact
 # A structural heuristic, not full NLP faithfulness checking — good enough to catch the
 # kid persona's one hard rule (no raw centipawn numbers) without a second model call.
 _CENTIPAWN_PATTERN = re.compile(r"[+-]?\d+\s*(cp\b|centipawn)", re.IGNORECASE)
-_SECOND_PERSON_PATTERN = re.compile(r"\byou\b|\byour\b", re.IGNORECASE)
 
 # Per-report-kind finding vocabularies (Phase 16a's "game" format, Phase 16b's "story"
 # format). `None` means that report_kind doesn't use kind-tagged findings at all
@@ -58,7 +57,6 @@ def validate_report(
 
     facts_by_id = {f.id: f for f in facts}
     valid_kinds = _FINDING_KINDS.get(report_kind) if persona == Persona.SELF_LEARNER else None
-    uses_new_format = valid_kinds is not None
     violations: list[str] = []
     for finding in findings:
         violations.extend(_validate_finding(finding, facts_by_id, valid_kinds))
@@ -69,11 +67,15 @@ def validate_report(
             f"{len(findings)} findings exceeds the {persona.value} cap of {max_findings}"
         )
 
-    full_text = _full_text(parsed, findings)
-    if (persona == Persona.KID or uses_new_format) and _CENTIPAWN_PATTERN.search(full_text):
-        violations.append(f"{persona.value} persona output mentions a centipawn value")
-    if uses_new_format and _SECOND_PERSON_PATTERN.search(full_text):
-        violations.append(f"self_learner {report_kind} report uses second person (you/your)")
+    # Kid's centipawn ban is a `persona-matrix.md` *safety* rule, not a house style, so
+    # it stays enforced here. Self-learner and story style rules (no second person, no
+    # engine numbers) deliberately do not live here: once those prompts stopped stating
+    # the rules, a critic that still enforced them just burned both LLM attempts and
+    # dropped every report into the deterministic fallback. Prompt and critic have to
+    # agree about style; where they can't, the prompt wins and the critic keeps only
+    # what is actually unsafe or structurally required (grounding, caps, `kind` tags).
+    if persona == Persona.KID and _CENTIPAWN_PATTERN.search(_full_text(parsed, findings)):
+        violations.append("kid persona output mentions a centipawn value")
 
     return violations
 

@@ -1,7 +1,8 @@
 /**
- * TrainingPlanPanel tests: nothing is fetched on mount (D-032: on-demand only), an
- * explicit click generates a plan for the selected persona and the given window, and
- * the source-transparency badge reflects the backend's `source`.
+ * TrainingPlanPanel tests: the stored plan is restored on mount (the endpoint is
+ * get-or-generate, so this is free when one already exists), an explicit click
+ * regenerates for the selected persona and given window, and the source-transparency
+ * badge reflects the backend's `source`.
  */
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -22,9 +23,10 @@ function mockFetchRoutes(handlers: Record<string, RouteHandler>) {
     vi.fn((input: RequestInfo | URL) => {
       const url = typeof input === 'string' ? input : input.toString();
       const parsed = new URL(url, 'http://localhost');
+      const regenerate = parsed.searchParams.get('regenerate') ? '&regenerate=true' : '';
       const key = `${parsed.pathname}?persona=${parsed.searchParams.get(
         'persona',
-      )}&window=${parsed.searchParams.get('window')}`;
+      )}&window=${parsed.searchParams.get('window')}${regenerate}`;
       const handler = handlers[key];
       if (!handler) {
         throw new Error(`Unhandled fetch in test: ${key}`);
@@ -62,17 +64,7 @@ function plan(overrides: Record<string, unknown> = {}) {
 }
 
 describe('TrainingPlanPanel', () => {
-  it('fetches nothing until the user clicks generate', () => {
-    mockFetchRoutes({});
-
-    renderWithProviders(<TrainingPlanPanel windowSize={10} />);
-
-    expect(screen.getByRole('button', { name: 'Generate training plan' })).toBeInTheDocument();
-    expect(screen.queryByText('A recurring pattern to work on.')).not.toBeInTheDocument();
-  });
-
-  it('generates a plan for the default persona and given window on click', async () => {
-    const user = userEvent.setup();
+  it('restores the stored plan on mount without the user clicking anything', async () => {
     mockFetchRoutes({
       '/api/v1/reports/profile/training?persona=self_learner&window=10': {
         status: 200,
@@ -81,15 +73,33 @@ describe('TrainingPlanPanel', () => {
     });
 
     renderWithProviders(<TrainingPlanPanel windowSize={10} />);
-    await user.click(screen.getByRole('button', { name: 'Generate training plan' }));
 
     expect(await screen.findByText('A recurring pattern to work on.')).toBeInTheDocument();
     expect(screen.getByText('Study fork patterns this week.')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Regenerate' })).toBeInTheDocument();
+    // A plan is already showing, so the action is a regeneration, not a first generate.
+    expect(await screen.findByRole('button', { name: 'Regenerate' })).toBeInTheDocument();
+  });
+
+  it('sends regenerate=true when the user asks for a new plan', async () => {
+    const user = userEvent.setup();
+    mockFetchRoutes({
+      '/api/v1/reports/profile/training?persona=self_learner&window=10': {
+        status: 200,
+        body: plan(),
+      },
+      '/api/v1/reports/profile/training?persona=self_learner&window=10&regenerate=true': {
+        status: 200,
+        body: plan({ id: 'plan-2', summary: 'A freshly regenerated plan.' }),
+      },
+    });
+
+    renderWithProviders(<TrainingPlanPanel windowSize={10} />);
+    await user.click(await screen.findByRole('button', { name: 'Regenerate' }));
+
+    expect(await screen.findByText('A freshly regenerated plan.')).toBeInTheDocument();
   });
 
   it('shows the deterministic-summary badge for a fallback plan', async () => {
-    const user = userEvent.setup();
     mockFetchRoutes({
       '/api/v1/reports/profile/training?persona=self_learner&window=10': {
         status: 200,
@@ -98,14 +108,17 @@ describe('TrainingPlanPanel', () => {
     });
 
     renderWithProviders(<TrainingPlanPanel windowSize={10} />);
-    await user.click(screen.getByRole('button', { name: 'Generate training plan' }));
 
     expect(await screen.findByText('Deterministic summary')).toBeInTheDocument();
   });
 
-  it('generates for the selected persona and the window it was given', async () => {
+  it('loads the plan for the selected persona and the window it was given', async () => {
     const user = userEvent.setup();
     mockFetchRoutes({
+      '/api/v1/reports/profile/training?persona=self_learner&window=30': {
+        status: 200,
+        body: plan({ window_size: 30 }),
+      },
       '/api/v1/reports/profile/training?persona=kid&window=30': {
         status: 200,
         body: plan({ persona: 'kid', window_size: 30, summary: 'Great job noticing forks!' }),
@@ -114,7 +127,6 @@ describe('TrainingPlanPanel', () => {
 
     renderWithProviders(<TrainingPlanPanel windowSize={30} />);
     await user.click(screen.getByRole('button', { name: 'Kid' }));
-    await user.click(screen.getByRole('button', { name: 'Generate training plan' }));
 
     expect(await screen.findByText('Great job noticing forks!')).toBeInTheDocument();
   });

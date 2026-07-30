@@ -89,4 +89,47 @@ describe('SyncFromPlatform', () => {
       await screen.findByText(/No linked chesscom account for this profile/),
     ).toBeInTheDocument();
   });
+
+  describe('study mode', () => {
+    it('sends the typed username and chosen platform, not the caller’s own account', async () => {
+      const fetchMock = mockFetchOnce(pendingJob);
+      const user = userEvent.setup();
+
+      renderWithProviders(<SyncFromPlatform provider="lichess" username="magnus" studyMode />);
+      await user.selectOptions(screen.getByLabelText(/Platform/i), 'chesscom');
+      await user.type(screen.getByLabelText(/Username/i), 'hikaru');
+      await user.click(screen.getByRole('button', { name: /Import games/i }));
+
+      await waitFor(() => {
+        expect(fetchMock).toHaveBeenCalledWith(
+          expect.stringContaining('/api/v1/imports/chesscom/sync'),
+          expect.objectContaining({ method: 'POST' }),
+        );
+      });
+      const [, requestInit] = fetchMock.mock.calls[0] as [string, RequestInit];
+      expect(JSON.parse(requestInit.body as string)).toEqual({ window: 10, username: 'hikaru' });
+    });
+
+    it('trims surrounding whitespace off the username', async () => {
+      const fetchMock = mockFetchOnce(pendingJob);
+      const user = userEvent.setup();
+
+      renderWithProviders(<SyncFromPlatform provider="lichess" username="magnus" studyMode />);
+      await user.type(screen.getByLabelText(/Username/i), '  DrNykterstein  ');
+      await user.click(screen.getByRole('button', { name: /Import games/i }));
+
+      await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+      const [, requestInit] = fetchMock.mock.calls[0] as [string, RequestInit];
+      expect(JSON.parse(requestInit.body as string).username).toBe('DrNykterstein');
+    });
+
+    it('cannot submit an empty username', async () => {
+      const fetchMock = mockFetchOnce(pendingJob);
+
+      renderWithProviders(<SyncFromPlatform provider="lichess" username="magnus" studyMode />);
+
+      expect(screen.getByRole('button', { name: /Import games/i })).toBeDisabled();
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+  });
 });

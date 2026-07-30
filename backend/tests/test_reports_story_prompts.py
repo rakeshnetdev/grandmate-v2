@@ -22,10 +22,13 @@ class TestBuildStoryMessages:
         assert "endgame" in text
         assert "lesson" in text
 
-    def test_forbids_engine_numbers_and_second_person(self) -> None:
+    def test_states_the_grounding_contract(self) -> None:
+        """Tone/style wording is iterated on freely and deliberately not asserted here
+        (see `test_reports_prompts.py`'s module docstring) — grounding is the one thing
+        the critic will actually reject the model over, so it must be stated."""
         text = _system_text()
-        assert "No engine numbers" in text
-        assert 'say "you" or "your"' in text
+        assert "single JSON object" in text
+        assert "FACTS" in text
 
     def test_user_message_names_the_players_own_color(self) -> None:
         messages = build_story_messages(

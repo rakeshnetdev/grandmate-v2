@@ -51,6 +51,14 @@ export function ProfileDashboard({ profileId }: ProfileDashboardProps) {
         </p>
       ) : (
         <>
+          {/* Lead with the written analysis: it is what a reader actually acts on. The
+              accuracy / critical-moment numbers below are supporting context, so they
+              follow rather than open the dashboard. */}
+          <section>
+            <h2 className="mb-2 text-sm font-semibold">Training analysis</h2>
+            <TrainingPlanPanel profileId={profileId} windowSize={windowSize} />
+          </section>
+
           {!analytics.sufficient_sample && (
             <SampleSizeBanner gamesIncluded={analytics.games_included} />
           )}
@@ -96,11 +104,6 @@ export function ProfileDashboard({ profileId }: ProfileDashboardProps) {
               games — patterns worth training, not one-off accidents.
             </SectionHint>
             <RecurringWeaknessList weaknesses={analytics.recurring_weaknesses} />
-          </section>
-
-          <section>
-            <h2 className="mb-2 text-sm font-semibold">Training plan</h2>
-            <TrainingPlanPanel profileId={profileId} windowSize={windowSize} />
           </section>
 
           <section>

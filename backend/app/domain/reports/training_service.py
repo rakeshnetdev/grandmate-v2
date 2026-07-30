@@ -22,16 +22,25 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import AnalyticsSettings, LLMSettings, ReportSettings, RetrievalSettings
 from app.core.devinsight import SpanKind, get_recorder
-from app.db.models import KnowledgeBucket, Persona, ReportSource, TrainingRecommendation
+from app.db.models import (
+    KnowledgeBucket,
+    Persona,
+    Profile,
+    ReportSource,
+    TrainingRecommendation,
+)
 from app.domain.analytics import ProfileAnalyticsService
 from app.domain.analytics.metrics import WeaknessStats
 from app.domain.llm_usage import LLMBudgetTracker
 from app.domain.reports.critic import validate_report
 from app.domain.reports.facts import Fact
-from app.domain.reports.queries import get_recently_recommended_themes
+from app.domain.reports.queries import (
+    get_latest_training_plan,
+    get_recently_recommended_themes,
+)
 from app.domain.reports.training_facts import extract_training_facts
 from app.domain.reports.training_fallback import build_fallback_training_plan
-from app.domain.reports.training_prompts import build_training_messages
+from app.domain.reports.training_prompts import build_training_analysis_messages
 from app.domain.reports.training_selection import select_training_facts
 from app.domain.retrieval import RetrievedChunk, hybrid_search
 from app.integrations.llm.base import CompletionRequest, EmbeddingProvider, LLMProvider
@@ -61,7 +70,38 @@ class TrainingService:
         self._analytics_settings = analytics_settings
         self._budget = LLMBudgetTracker(session, llm_settings)
 
-    async def generate(
+    async def get_or_generate(
+        self,
+        *,
+        profile_id: uuid.UUID,
+        persona: Persona,
+        window_size: int,
+        regenerate: bool = False,
+    ) -> TrainingRecommendation:
+        """Return the stored plan when it is still current, otherwise build a new one.
+
+        Same get-or-generate shape `ReportService` uses for game reports, keyed on
+        `snapshot_version` the way that one keys on `analysis_version`: a plan is stale
+        exactly when the analytics window it was built from has moved on. D-032's
+        "on-demand only" means *no scheduler* — it was never a reason to spend an LLM
+        call re-deriving an identical plan on every dashboard render, which is what
+        this endpoint did before (two identical requests produced two rows).
+
+        `regenerate=True` is the explicit "Regenerate" action and always spends a call.
+        """
+        analytics_for_freshness = ProfileAnalyticsService(self._session, self._analytics_settings)
+        if not regenerate:
+            existing = await get_latest_training_plan(
+                self._session, profile_id, persona, window_size
+            )
+            if existing is not None:
+                current = await analytics_for_freshness.compute_snapshot(profile_id, window_size)
+                if existing.snapshot_version == current.snapshot_version:
+                    return existing
+
+        return await self._generate(profile_id=profile_id, persona=persona, window_size=window_size)
+
+    async def _generate(
         self, *, profile_id: uuid.UUID, persona: Persona, window_size: int
     ) -> TrainingRecommendation:
         analytics = ProfileAnalyticsService(self._session, self._analytics_settings)
@@ -77,8 +117,12 @@ class TrainingService:
         selected = select_training_facts(facts, persona, self._report_settings)
         has_weaknesses = any(f.kind == "recurring_weakness" for f in selected)
         if has_weaknesses:
+            # The prompt addresses the player by name; fall back to a neutral label
+            # rather than failing generation over a missing display name.
+            profile = await self._session.get(Profile, profile_id)
+            player_name = profile.display_name if profile else "the player"
             content, source, model, grounded = await self._generate_content(
-                selected, persona, window_size
+                selected, persona, window_size, player_name=player_name
             )
         else:
             # Nothing recurring to recommend yet — there is no chess truth for an LLM
@@ -130,13 +174,15 @@ class TrainingService:
         return retrieved
 
     async def _generate_content(
-        self, facts: list[Fact], persona: Persona, window_size: int
+        self, facts: list[Fact], persona: Persona, window_size: int, *, player_name: str
     ) -> tuple[dict[str, Any], ReportSource, str | None, bool]:
         for attempt in range(_MAX_LLM_ATTEMPTS):
             if not await self._budget.has_budget():
                 break
 
-            messages = build_training_messages(facts, persona, window_size=window_size)
+            messages = build_training_analysis_messages(
+                facts, persona, player_name=player_name, window_size=window_size
+            )
             with get_recorder().span(
                 SpanKind.LLM, "training.generate", persona=persona.value, attempt=attempt
             ) as span:

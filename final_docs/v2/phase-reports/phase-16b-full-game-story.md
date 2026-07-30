@@ -128,10 +128,10 @@ final_docs/v2/phase-reports/phase-16b-full-game-story.md    this file
 
 ## Tests
 
-- Backend: 853 passed (full suite, `uv run pytest -q`) — 826 before this phase, +27 new
+- Backend: 859 passed (full suite, `uv run pytest -q`) — 826 before this phase, +27 new
   (24 story, 3 PGN-endpoint), no regressions. `ruff check`, `ruff format --check`,
   `mypy` all clean.
-- Frontend: 112 passed (full suite) — 107 before this phase, +5 new
+- Frontend: 115 passed (full suite) — 107 before this phase, +5 new
   (`StoryView.test.tsx`, the updated `ContentPanel.test.tsx`, and two `Prose` inline-mode
   regression tests from the follow-ups). `npm run build` (`tsc -b` + Vite), `oxlint`,
   `prettier --check` all clean. Same pre-existing >500kB bundle-size warning as Phase
@@ -183,12 +183,71 @@ was not yet checked in:
    (with a distinct 404 for a row whose blob is missing), a `getText` method on the
    frontend API client, and a `useGamePgn` hook.
 
+## Second round of live-review follow-ups (same branch, pre-check-in)
+
+Continued owner review produced one more feature, three fixes, and a correction to a
+wrong diagnosis of my own:
+
+1. **Study-games import by username.** The import popup now asks for a platform and a
+   username when the study profile is active, instead of only syncing the caller's own
+   linked account. The backend needed just one optional `username` field on
+   `PlatformSyncRequest` — per-game routing (D-021) already sends anything that isn't
+   the caller's own play to the study profile, so no target-profile argument exists or
+   is needed. Verified live: 10 Chess.com games for an *unlinked* platform (previously a
+   404) all landed in the study profile, none in self.
+2. **Imported games didn't appear until a manual reload** — nothing invalidated the game
+   list when an import job finished, which reads as "the import did nothing".
+   `useImportJob` now refreshes it on a terminal job status. Fixes own-account syncs too.
+3. **Training analysis leads the Overview.** The owner supplied a rewritten
+   training-analysis prompt (adopted verbatim, `build_training_analysis_messages`, now
+   taking a `player_name` the service threads through from the profile), and asked for
+   the written analysis to come before the accuracy / critical-moment numbers. The panel
+   is button-triggered, so leading with it costs no LLM call on render.
+4. **Training plans were regenerated on every dashboard render.** Measured: two identical
+   requests produced two rows and two LLM calls despite an identical `snapshot_version`.
+   Rows were persisted but never read back. Now get-or-generate keyed on
+   `snapshot_version`, exactly as `ReportService` keys on `analysis_version`, with
+   `regenerate=true` for the explicit Regenerate action and the frontend restoring the
+   saved plan on mount. D-032 was re-read first: its "on-demand only, no scheduler"
+   governs *cadence* and it explicitly calls for persistence, so this closes a gap rather
+   than reversing the decision.
+5. **Prompt/critic disagreement resolved.** After the owner rewrote the report prompts,
+   the critic still enforced rules those prompts no longer stated (no second person, no
+   engine numbers), so conforming output was rejected and silently fell back. On the
+   owner's decision the critic was relaxed to match — keeping only what is unsafe or
+   structurally required (grounding, caps, `kind` tags), plus kid's centipawn ban, which
+   `persona-matrix.md` classes as a safety rule rather than house style. The prompt tests
+   were rewritten to assert structural guarantees instead of exact tone wording, which is
+   why they broke on every edit while protecting nothing.
+6. **A wrong diagnosis, corrected.** Analysis jobs were failing with
+   `engine process died unexpectedly (exit code: -11)`, which I attributed to a
+   Stockfish 18 / python-chess version mismatch. The owner's report that Lichess study
+   games showed nothing exposed the real cause: **chess variants**. Antichess games
+   import and canonicalize fine, then crash standard Stockfish — 18/18 Antichess games
+   unanalyzed versus 110/111 Standard. Ingestion accepting variants it can never analyze
+   is a real gap (see Known gaps); the 18 existing ones were deleted at the owner's
+   request.
+
+Also in this round: `scripts/clear_reports.py` (a dev helper for prompt iteration, since
+reports are cached and prompt edits otherwise look like no-ops), `strictPort: true` in
+`vite.config.ts` so a port collision fails loudly instead of producing opaque CORS 400s,
+and an `E501` per-file ignore for `app/domain/reports/*prompts.py` — prompt files are
+prose, and the only way to satisfy a 100-column limit there is to edit prompt content.
+
 ## Known gaps
 
 - **Coach/kid have no story tab equivalent** — deliberately out of scope per the owner's
   scope decision.
 - **Chat's "review my game" opening message doesn't use this format** — same as D-036,
   intentionally not extended to chat.
+- **Variant games are imported but can never be analyzed.** A Lichess sync ingests
+  Antichess/Crazyhouse/etc.; standard Stockfish then segfaults on their positions, so
+  the game sits with no analysis and its tabs are permanently empty with nothing
+  explaining why. Ingestion should reject or label variants — not implemented; the
+  existing 18 were deleted manually.
+- **Training analysis auto-generates on first view** of a profile/persona/window with no
+  stored plan, the same way the Analysis and Story tabs do. One-time per combination
+  rather than per render, but it is a generation the user did not explicitly ask for.
 - **No fresh browser E2E pass this round** — see "Live verification" above.
 - **500-word budget for the story is my own judgment call**, not something the owner
   was asked about directly — flagged here per the lighter-touch agreement.

@@ -15,6 +15,10 @@ export default defineConfig({
   },
   server: {
     port: 3535,
+    // Fail loudly if 3535 is taken instead of silently starting on 3536 — the backend's
+    // CORS allow-list only accepts :3535, so a bumped port turns every API call into an
+    // opaque 400 on the preflight.
+    strictPort: true,
   },
   test: {
     globals: true,

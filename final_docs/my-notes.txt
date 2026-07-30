@@ -68,3 +68,8 @@ So basically looking for:
 
     update the plan document and always ask me if you got any questions bbefore implemented.
         
+
+
+uv run python -m scripts.clear_reports            # Analysis-tab reports only
+uv run python -m scripts.clear_reports --story    # Story-tab reports only
+uv run python -m scripts.clear_reports --all      # everything

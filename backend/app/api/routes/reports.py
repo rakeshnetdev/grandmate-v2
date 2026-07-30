@@ -144,12 +144,18 @@ async def get_training_plan(
     embedding_provider: EmbeddingProviderDep,
     persona: Persona = Persona.SELF_LEARNER,
     window: int | None = None,
+    regenerate: bool = False,
 ) -> TrainingRecommendationSummary:
-    """A fresh training plan for the requested profile, persona, and analytics window —
-    always generated on demand (D-032: no caching, no scheduler), which is why this is
-    the one report-family endpoint with no "existing and fresh" branch. `window`
-    defaults and validates the same way `/analytics/profile` does, since the plan is
-    built directly from that same windowed snapshot."""
+    """The training plan for the requested profile, persona, and analytics window.
+
+    Get-or-generate, like `/reports/games/{id}`: the stored plan is returned while the
+    analytics snapshot it was built from is still current, and a new one is generated
+    otherwise. D-032's "on-demand, no scheduler" governs *cadence* — it never called for
+    re-deriving an identical plan (and spending an LLM call) on every dashboard render.
+    `regenerate=true` forces a fresh one for the explicit "Regenerate" action.
+
+    `window` defaults and validates the same way `/analytics/profile` does, since the
+    plan is built directly from that same windowed snapshot."""
     window_size = window if window is not None else settings.analytics.analytics_default_window
     allowed_windows = settings.analytics.window_sizes_list
     if window_size not in allowed_windows:
@@ -167,8 +173,11 @@ async def get_training_plan(
         settings.retrieval,
         settings.analytics,
     )
-    recommendation = await service.generate(
-        profile_id=profile_id, persona=persona, window_size=window_size
+    recommendation = await service.get_or_generate(
+        profile_id=profile_id,
+        persona=persona,
+        window_size=window_size,
+        regenerate=regenerate,
     )
     return _to_training_summary(recommendation)
 

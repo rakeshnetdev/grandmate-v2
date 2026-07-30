@@ -30,6 +30,27 @@ async def get_latest_report(
     return result.scalar_one_or_none()
 
 
+async def get_latest_training_plan(
+    session: AsyncSession, profile_id: uuid.UUID, persona: Persona, window_size: int
+) -> TrainingRecommendation | None:
+    """The most recent stored plan for this profile/persona/window, or `None`.
+
+    Keyed on all three because a plan is only interchangeable with another built from
+    the same inputs — a coach-persona plan or a different analytics window is a
+    different artifact, not a cache hit."""
+    result = await session.execute(
+        select(TrainingRecommendation)
+        .where(
+            TrainingRecommendation.profile_id == profile_id,
+            TrainingRecommendation.persona == persona,
+            TrainingRecommendation.window_size == window_size,
+        )
+        .order_by(TrainingRecommendation.created_at.desc())
+        .limit(1)
+    )
+    return result.scalar_one_or_none()
+
+
 async def get_recently_recommended_themes(session: AsyncSession, profile_id: uuid.UUID) -> set[str]:
     """Weakness names surfaced in the profile's own most recent prior training plan —
     across any persona or window size, per `training_facts.py`'s docstring: the point is
@@ -46,4 +67,8 @@ async def get_recently_recommended_themes(session: AsyncSession, profile_id: uui
     return set(row) if row else set()
 
 
-__all__ = ["get_latest_report", "get_recently_recommended_themes"]
+__all__ = [
+    "get_latest_report",
+    "get_latest_training_plan",
+    "get_recently_recommended_themes",
+]

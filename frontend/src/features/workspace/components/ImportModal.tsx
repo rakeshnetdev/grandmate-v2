@@ -22,9 +22,14 @@ const IMPORT_TABS = [
 interface ImportModalProps {
   open: boolean;
   onClose: () => void;
+  /** The workspace's active profile — `undefined` is the caller's own SELF profile, any
+   * id is the study profile (see `ProfileToggle`). Study mode asks for the studied
+   * player's platform + username instead of syncing the caller's own linked account. */
+  profileId?: string;
 }
 
-export function ImportModal({ open, onClose }: ImportModalProps) {
+export function ImportModal({ open, onClose, profileId }: ImportModalProps) {
+  const studyMode = profileId !== undefined;
   const { data: user } = useCurrentUser();
   const [tab, setTab] = useState<'sync' | 'upload'>('sync');
   const [jobId, setJobId] = useState<string>();
@@ -35,7 +40,11 @@ export function ImportModal({ open, onClose }: ImportModalProps) {
   }
 
   return (
-    <Dialog open={open} onClose={handleClose} title="Import games">
+    <Dialog
+      open={open}
+      onClose={handleClose}
+      title={studyMode ? 'Import study games' : 'Import games'}
+    >
       {!user ? (
         <p className="text-sm text-muted-foreground">
           Log in with Lichess or Chess.com to import games.
@@ -54,6 +63,7 @@ export function ImportModal({ open, onClose }: ImportModalProps) {
             <SyncFromPlatform
               provider={user.provider}
               username={user.username}
+              studyMode={studyMode}
               onSynced={(job) => setJobId(job.id)}
             />
           ) : (

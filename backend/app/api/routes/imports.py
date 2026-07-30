@@ -159,9 +159,10 @@ async def sync_from_platform(
     storage: StorageDep,
     opening_index: OpeningIndexDep,
 ) -> JobSummary:
-    """Import recent games from a linked Lichess or Chess.com account (Phase 14,
-    D-030/D-031). Reads each platform's public game-export endpoint for the profile's
-    already-linked username — no OAuth involved, see D-030.
+    """Import recent games from Lichess or Chess.com (Phase 14, D-030/D-031). Reads each
+    platform's public game-export endpoint — no OAuth involved, see D-030 — for either
+    the profile's already-linked username, or an explicit `username` in the body when
+    importing a player being studied (Phase 16b follow-up; see `PlatformSyncRequest`).
 
     Returns `202 Accepted` with a `PENDING` job immediately; the actual platform fetch
     and ingestion run in the background (`run_platform_import_job`) because, unlike a
@@ -174,12 +175,26 @@ async def sync_from_platform(
             detail=f"{provider.value!r} is not a syncable platform source",
         )
 
-    profile_source = await get_profile_source(session, current.profile.id, provider)
-    if profile_source is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No linked {provider.value} account for this profile",
-        )
+    # An explicit username (Phase 16b follow-up) is a player being *studied*, so there is
+    # no linked account to look up — and none is required, since per-game routing sends
+    # anything that isn't the caller's own play to their study profile by itself. A bad
+    # username surfaces as a `connector_error` on the job, the same way a platform outage
+    # does; validating it here would mean a second network call on the request path.
+    if body.username is not None:
+        username = body.username.strip()
+        if not username:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail="username must not be blank",
+            )
+    else:
+        profile_source = await get_profile_source(session, current.profile.id, provider)
+        if profile_source is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"No linked {provider.value} account for this profile",
+            )
+        username = profile_source.source_username
 
     window = body.window if body.window is not None else settings.analytics.analytics_default_window
     if window not in settings.analytics.window_sizes_list:
@@ -201,7 +216,7 @@ async def sync_from_platform(
         run_platform_import_job,
         job.id,
         provider=provider,
-        username=profile_source.source_username,
+        username=username,
         window=window,
         session_factory=request.app.state.db_session_factory,
         settings=settings,

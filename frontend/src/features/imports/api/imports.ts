@@ -59,17 +59,23 @@ export function fetchImportJobs(signal?: AbortSignal): Promise<JobSummary[]> {
 }
 
 /**
- * Sync recent games from a linked Lichess/Chess.com account (Phase 14, D-030/D-031).
+ * Sync recent games from Lichess/Chess.com (Phase 14, D-030/D-031).
  *
  * Returns immediately with a `pending` job — the platform fetch and ingestion run in
  * the background server-side, so callers should hand the returned job id to
  * `ImportJobStatus`/`useImportJob`, the same polling path a manual upload's job uses.
+ *
+ * `username` omitted syncs the caller's own linked account. Supplying one imports a
+ * player being studied; the backend routes those games to the study profile on its own
+ * (see `PlatformSyncRequest`), so there is no target-profile argument here.
  */
 export function syncFromPlatform(
   provider: 'lichess' | 'chesscom',
   window?: number,
+  username?: string,
 ): Promise<JobSummary> {
   return apiClient.post(`/api/v1/imports/${provider}/sync`, jobSummarySchema, {
     window,
+    username,
   });
 }

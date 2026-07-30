@@ -1,11 +1,11 @@
-"""Builds the LLM prompt for one persona's training plan (Phase 15, D-032).
+"""Builds the LLM prompt for one persona's training analysis (Phase 15, D-032).
 
 Same downstream-of-facts discipline `prompts.py` documents for game reports (rule 8 of
 `claude.md`): this module only ever sees `Fact` objects and a persona, never
 `WeaknessStats` or a `RetrievedChunk` directly. The output contract is identical to game
 reports' — `{"summary", "findings", "recommendations"}` with fact_id citations — so the
 existing grounding critic (`critic.py::validate_report`) needs no changes to check a
-training plan too.
+training analysis too.
 """
 
 from __future__ import annotations
@@ -17,64 +17,83 @@ from app.db.models import Persona
 from app.domain.reports.facts import Fact
 from app.integrations.llm.base import Message
 
-_SYSTEM_PROMPTS: dict[Persona, str] = {
+BASE_SYSTEM_PROMPT = (
+    "You are a chess coach writing a training analysis based on many recent games.\n"
+    "Use only the provided FACTS.\n"
+    "Do not invent moves, fact_ids, openings, weaknesses, motifs, or study material.\n"
+    "Every claim must be grounded in the FACTS.\n"
+    "Write concrete chess explanations, not generic advice."
+)
+
+PERSONA_GUIDES: dict[Persona, str] = {
     Persona.SELF_LEARNER: (
-        "You are a chess coach writing a training plan for the player, based on "
-        "patterns across their recent games — not one specific game. Audience: an "
-        "adult, chess-literate player. Each weakness fact names a recurring motif or "
-        "theme and how often it showed up; each knowledge_chunk fact is real study "
-        "material about that exact weakness. Recommend concrete drills and study "
-        "themes grounded in the knowledge_chunk content, not generic advice. Tone: "
-        "direct, encouraging, focused on what to practise next."
+        "Audience: an adult, chess-literate player studying their own recent games.\n"
+        "Tone: direct, encouraging, practical.\n"
+        "Focus on recurring weaknesses, opening patterns, and what to practise next.\n"
+        "Explain chess ideas clearly using plain language."
     ),
     Persona.COACH: (
-        "You are writing a training plan for a coach to hand to their student, based "
-        "on patterns across the student's recent games. Audience: an adult, "
-        "chess-expert coach. Name motifs/themes without re-explaining them — assume "
-        "expert knowledge. Recommendations should read as assignable drills and "
-        "session talking points, grounded in the knowledge_chunk study material "
-        "provided. Refer to the player in the third person as 'the student'."
+        "Audience: an expert coach preparing a student training report.\n"
+        "Tone: concise, technical, peer-to-peer.\n"
+        "Focus on recurring motifs, opening patterns, and assignable training priorities.\n"
+        "Use coach-friendly language and lesson framing."
     ),
     Persona.KID: (
-        "You are writing a training plan for a young player, roughly 8-14 years old, "
-        "based on patterns across their recent games. Use simple sentences. Never "
-        "show raw centipawn numbers or the word 'centipawn'. Pick the single most "
-        "important weakness and give exactly one concrete, achievable thing to "
-        "practise, grounded in the knowledge_chunk material for that weakness. Tone: "
-        "encouraging, never harsh — frame it as an exciting thing to get better at, "
-        "not a flaw."
+        "Audience: a young player, roughly 8-14 years old.\n"
+        "Tone: simple, kind, encouraging.\n"
+        "Focus on the biggest repeated pattern and one clear thing to practise.\n"
+        "Keep sentences short and easy to understand."
     ),
 }
 
-_OUTPUT_CONTRACT = (
-    "Respond with a single JSON object and nothing else, matching exactly this shape:\n"
-    '{"summary": "<1-2 sentence overview of the recurring pattern(s)>", '
-    '"findings": [{"fact_ids": ["<id>", ...], "text": "<prose>"}, ...], '
-    '"recommendations": ["<prose>", ...]}\n\n'
-    "Hard rules:\n"
-    "- Every fact_id you use MUST come from the FACTS list below, copied exactly. "
-    "Never invent a fact_id, a weakness, or a piece of study content not in FACTS.\n"
-    "- Every finding must reference at least one real fact_id — ideally the "
-    "recurring_weakness fact it is about, plus any knowledge_chunk facts backing the "
-    "specific drill or study point you recommend for it.\n"
-    "- Do not include any fact_id that is not in the FACTS list below.\n"
-    "- If a weakness has no knowledge_chunk facts, you may still name it as a finding, "
-    "but keep the recommendation general rather than inventing study material for it.\n"
-    "- Do not add commentary outside the JSON object."
-)
+OUTPUT_CONTRACT = """
+Respond with a single JSON object and nothing else.
+
+Shape:
+{
+  "summary": "<1-2 sentence overview of the recurring pattern(s)>",
+  "findings": [
+    {
+      "fact_ids": ["<id>", "..."],
+      "kind": "strength" or "mistake" or "opening" or "trend",
+      "text": "<prose>"
+    }
+  ],
+  "recommendations": ["<prose>"]
+}
+
+Rules:
+- Every fact_id you use MUST come from the FACTS list below, copied exactly.
+- Every finding must reference at least one real fact_id.
+- Use only the facts given. Do not invent weaknesses or study material that is not in FACTS.
+- Summary should describe the overall pattern across the games.
+- Findings should focus on recurring themes, openings, tactical motifs, and repeated errors.
+- Recommendations should be concrete and tied to the findings.
+- Do not add commentary outside the JSON object.
+""".strip()
 
 
-def build_training_messages(
-    facts: list[Fact], persona: Persona, *, window_size: int
+def build_training_analysis_messages(
+    facts: list[Fact],
+    persona: Persona,
+    *,
+    player_name: str,
+    window_size: int,
 ) -> list[Message]:
-    """The full message list for one persona's training-plan generation call."""
-    system = f"{_SYSTEM_PROMPTS[persona]}\n\n{_OUTPUT_CONTRACT}"
+    system = f"{BASE_SYSTEM_PROMPT}\n\n{PERSONA_GUIDES[persona]}\n\n{OUTPUT_CONTRACT}"
     facts_json = json.dumps([asdict(f) for f in facts], indent=2)
+
     user = (
-        f"Based on the player's last {window_size} analysed games.\n\n"
-        f"FACTS (the only things you may reference):\n{facts_json}"
+        f"Analyze the player's last {window_size} analysed games.\n"
+        f"Player: {player_name}\n\n"
+        "FACTS (the only things you may reference):\n"
+        f"{facts_json}"
     )
-    return [Message(role="system", content=system), Message(role="user", content=user)]
+
+    return [
+        Message(role="system", content=system),
+        Message(role="user", content=user),
+    ]
 
 
-__all__ = ["build_training_messages"]
+__all__ = ["build_training_analysis_messages"]
