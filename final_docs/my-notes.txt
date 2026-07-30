@@ -26,3 +26,45 @@ Phase 2:
 Instead of doing Phase 8 — Multi-Game Aggregation and Profile Analytics next, I really want to see this wofkflow so far completed on UI,
 with simple pgn upload and able to see the how its been analyzed and response. Is the RAG involved in it? how the the retrival? just introduce small early step or fist in this 
 phase 8 which shows that first , and once confirmed , we can start actual phase 8
+
+
+we have completed phase 16, 
+I see phase 17 and 18 is just cherry on the top right? we have completed most of the 
+functionality and features, interm of featurue wise what is left?
+
+Here i want to slightly deviate and work on frontend. 
+I really want to redesign the way its looking.
+Lets only focus on only frontend.
+- if at all there is a need to add few small changes on backend to accomodate frontend, that's ok. but no major functionality changes.
+- UI should be responsive.
+- UI should have dark/light theme
+- Especially i want to minimize many navigations.
+- I think we can stick with My Dashboard and Study Dashboard
+-
+
+Overal we need to leverage all the api we have build so far and UI features thats has been build
+My Dashboard and Study Dashboard mostly resemble same except My dashboard might have more features and analysis and pertain to user's games and analysis.
+
+So basically looking for:
+    - Left collapsable panel or (hover panel) to select game, which should show all games loaded.
+    - will have a button to load games((imports)) from the popup clicked from the left panel
+    - have clear what's loaded and ability to select and to see the game details in middle panel
+    -
+    - Middle panel 
+        -utilize tabs if neededd to show information across tabs rather having long scroll
+        - like showing moves from stockfish in one tabs
+        - main frofront tab, has analysis of the game.
+            - analysis should be formatted properly ((refer sibling prompts just to get some sense)
+            - the chess codes, chess relevant language can be coded or shown in nice format and colors
+            - should not show as markdown format without addditional characters.
+
+        - right panel can be used for chat 
+            - chatting also follow the formats of the analysis.
+            - should be intuitive while chatting.
+
+    Consider this as phase 17 - a before doing phassse 17. 
+    Refer to sibling front-end project, i have put lot of work to looks eligant. I am not saying to copy from it, but 
+    undersstand howiits been designed, and get some inspirations
+
+    update the plan document and always ask me if you got any questions bbefore implemented.
+        

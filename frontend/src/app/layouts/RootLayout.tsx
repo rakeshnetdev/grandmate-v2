@@ -1,52 +1,40 @@
 /**
- * Application shell: header, main content outlet, footer.
+ * Application shell: header + main content outlet (Phase 16a, D-035).
  *
- * Navigation grows here as features land. Kept structural — no data fetching.
+ * Navigation collapsed to just the header (logo, theme, user menu) — Import/Games/
+ * Dashboard/Chat/Memory used to each be a nav link to their own page; all five are now
+ * panels/tabs inside the single workspace at `/`, so there is nothing left to link to.
+ * `<main>` is full-bleed (no `max-w`/padding) so the workspace's three-panel layout can
+ * use the full viewport; `WorkspaceShell` sizes itself against the header height below.
  */
 import { Link, Outlet } from 'react-router-dom';
 
 import { UserMenu } from '@/features/auth';
 import { DevInsightPanel } from '@/features/devinsight';
+import { ThemeToggle } from '@/shared/theme';
 
 export function RootLayout() {
   return (
-    <div className="flex min-h-screen flex-col">
-      <header className="border-b border-border">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
+    <div className="flex h-screen flex-col">
+      <header className="h-16 shrink-0 border-b border-border">
+        <div className="flex h-full items-center justify-between px-4">
           <Link to="/" className="text-lg font-semibold tracking-tight">
             GrandMate
           </Link>
-          <nav className="flex items-center gap-4 text-sm text-muted-foreground">
-            <Link to="/imports" className="hover:text-foreground">
-              Import
-            </Link>
-            <Link to="/games" className="hover:text-foreground">
-              Games
-            </Link>
-            <Link to="/dashboard" className="hover:text-foreground">
-              Dashboard
-            </Link>
-            <Link to="/memory" className="hover:text-foreground">
-              Memory
-            </Link>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
             <UserMenu />
-          </nav>
+          </div>
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-8">
+      <main className="min-h-0 flex-1 overflow-hidden">
         <Outlet />
       </main>
 
       {/* Only bundled in development builds — `import.meta.env.DEV` is statically
           replaced, so the panel and its dependencies are tree-shaken out of production. */}
       {import.meta.env.DEV && <DevInsightPanel />}
-
-      <footer className="border-t border-border">
-        <div className="mx-auto max-w-5xl px-6 py-4 text-sm text-muted-foreground">
-          Chess analysis and coaching
-        </div>
-      </footer>
     </div>
   );
 }

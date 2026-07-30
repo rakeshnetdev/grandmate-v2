@@ -556,6 +556,111 @@ below where a real gap opens up.
 
 ---
 
+### D-035 — Phase 16a frontend redesign scope · Locked
+
+Raised by the owner directly: a frontend-only redesign, inserted before Phase 17,
+consolidating navigation around "My Dashboard" and "Study Dashboard." Four scope
+questions were put to the owner and all four recommended defaults were accepted.
+
+**1. No visual chess board.** Moves render as a styled list (SAN + eval + classification
+per ply), not an interactive rendered position. Matches both this app and the sibling
+`grandmate/` reference today — a real board is a materially bigger scope (a new
+rendering dependency, position-navigation state, board theming) not justified without a
+concrete need for it yet.
+
+**2. `react-markdown` for prose rendering**, not a hand-rolled parser. The sibling
+reference hand-rolled markdown-like parsing (bullet/paragraph detection) and a
+duplicated regex-based chess-notation highlighter in two separate files — a real,
+standard library plus one shared, focused highlighting utility on top is less to
+maintain and more correct.
+
+**3. Profile-level analytics (`ProfileDashboard`) is the default middle-panel view**
+when no game is selected. The panel is never empty; cross-game insight is the natural
+default for a dashboard, not a “nothing selected” placeholder.
+
+**4. Memory is a second tab inside the right-hand chat panel**, not a separate page or
+menu entry — it is what the assistant remembers about the profile, chat-adjacent by
+nature, not a distinct workspace.
+
+**Phase numbering, proposed not decided.** The owner's request read "consider this
+phase 17." Implemented as a lettered sub-phase (`P16a`, `claude.md`'s own convention)
+inserted before the existing Phase 17 rather than a hard renumber, since renumbering
+would invalidate D-033's and ADR-0017's existing by-number references to Phase 17/18.
+Flagged explicitly as a proposal in `project-plan.md`'s own Phase 16a section — open to
+a real renumber if the owner prefers it over the sub-phase.
+
+**Backend touches, additive only.** Two small backend changes accommodate the redesign
+without new functionality: real SAN move notation on the analysis payload (`GameMove.
+san` is already stored, Phase 4, but no endpoint returns it), and persisted citations on
+stored chat messages (currently only the live turn's response carries them — a reloaded
+thread loses citation data). Both are additive fields on existing responses.
+
+→ `project-plan.md` Phase 16a
+
+---
+
+### D-036 — Phase 16a addendum: self-learner-only game report format · Locked
+
+Raised by the owner mid-Phase-16a-review, after spotting a persona report saying "Your
+move 19 (Black) was a blunder, costing 99470 centipawns" while checking the redesigned
+Analysis tab, and separately asking for a fixed report format with an explicit spec
+(headers, word limit, exact classification-word tagging, no engine numbers, third
+person). Both were folded into the still-uncommitted `P16a-frontend-redesign` branch at
+the owner's direction rather than split into a new phase.
+
+**The centipawn bug** was `domain/analysis/classification.py`'s `_MATE_SCORE_CP =
+100_000` sentinel — used correctly to force mate-adjacent swings into the BLUNDER
+bucket for classification — being stored and displayed as if it were a real centipawn
+count (`MoveEvaluation.eval_swing_cp`) whenever either side of a swing was a forced
+mate. Fixed with a new `MoveEvaluation.mate_swing` flag and a `display_swing_cp()`
+helper every text-producing consumer now goes through (fallback report text, the LLM
+report prompt, the `analysis` RAG bucket's projected text, and chat-agent tool
+payloads). Backfilled for existing rows from data already on the table (both sides of a
+swing are independently recoverable from adjacent plies' own `mate_in` values), not just
+defaulted to false.
+
+**The format request, four scope questions put to the owner:**
+
+**1. Kid keeps its existing gentler format**, not this one. Kid already never says
+"blunder" and never blames the player (a locked persona rule) — incompatible with the
+new format's literal classification-word tagging requirement. Only self-learner adopts
+the new format.
+
+**2. Report tab only, not chat.** The new format's spec described both an "initial game
+review" structure and separate "chat follow-up" behavior, but chat's system prompt is
+untouched for now — scoped to `domain/reports` (the Analysis tab's report), deferred
+extending it to chat's own "review my game" opening message.
+
+**3. Coach stays on its Phase 9 "unbounded, high depth" design**, not the new fixed
+2-positive/3-mistake structure — the owner chose not to extend this format to coach when
+asked directly, since it would meaningfully cut coach's depth. `critic.py`'s new
+self-learner-only rules (a `kind` tag, no second person, the split cap) are gated by a
+`report_kind: "game" | "training"` parameter precisely so they can't leak into either
+coach or the (self-learner-persona-using) Phase 15 training plan, which shares the same
+critic function.
+
+**4. "What Went Well" facts require a landed tactic**, not merely "the engine's top
+choice" (`Best-move-facts` question) — a `BEST` classification plus a motif finding on
+the mover's own side at that ply. The originally recommended alternative
+(`BEST` + `is_critical_moment`) was implemented first, then found — via live
+verification against the real dev database, not a test — to structurally never fire (0
+of 1928 `BEST` rows were ever also `is_critical_moment`, since that flag is defined by a
+large centipawn *loss*, which a best move has essentially none of by construction).
+Corrected before shipping; documented in `persona-matrix.md`'s Phase 16a addendum as the
+reason `is_critical_moment` was rejected.
+
+**A fifth issue, found during the same live verification, not asked about:** the new
+`"kind"` field was described only in prose ahead of the shared JSON output contract;
+every real self-learner generation omitted it anyway, because the model pattern-matched
+against the contract's own concrete JSON template, which didn't mention `"kind"`. Fixed
+by giving self-learner its own copy of the output contract with `"kind"` in the literal
+JSON shape, not just a rule stated near it — re-verified against a real LLM call with
+zero critic violations after the fix.
+
+→ `final_docs/v2/persona-matrix.md`'s Phase 16a addendum, `project-plan.md` Phase 16a
+
+---
+
 ## Open questions raised back to the owner
 
 Recorded here so they are not lost between phases.

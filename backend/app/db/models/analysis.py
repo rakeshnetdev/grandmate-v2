@@ -80,6 +80,11 @@ class MoveEvaluation(Base):
     eval_cp: Mapped[int | None] = mapped_column(Integer, nullable=True)
     mate_in: Mapped[int | None] = mapped_column(Integer, nullable=True)
     best_move_uci: Mapped[str | None] = mapped_column(String(8), nullable=True)
+    # SAN for best_move_uci, computed once at analysis time (python-chess needs the
+    # position's FEN, which report generation shouldn't have to touch — rule 8's
+    # chess-computation/prompt-construction split). Null for pre-existing analyses from
+    # before this field existed, and whenever best_move_uci itself is null.
+    best_move_san: Mapped[str | None] = mapped_column(String(16), nullable=True)
     pv: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False, default=list)
     classification: Mapped[MoveClassification] = mapped_column(
         pg_enum(MoveClassification, "move_classification"), nullable=False
@@ -87,6 +92,11 @@ class MoveEvaluation(Base):
     # Centipawn loss for the move actually played, from the mover's own perspective.
     # Always >= 0. Also what is_critical_moment is thresholded against.
     eval_swing_cp: Mapped[int] = mapped_column(Integer, nullable=False)
+    # True when either side of this swing was a forced-mate evaluation — signals that
+    # eval_swing_cp above is domain/analysis/classification.py's _MATE_SCORE_CP
+    # arithmetic, not a real centipawn count. Consumers must go through
+    # classification.display_swing_cp before showing eval_swing_cp to a user or an LLM.
+    mate_swing: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     is_critical_moment: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     # Whether the tiered deep pass (ENGINE_DEEP_DEPTH) ran for this ply. Only
     # is_critical_moment plies get re-evaluated at depth; everything else is depth-only.

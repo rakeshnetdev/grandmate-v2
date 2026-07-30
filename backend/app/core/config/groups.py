@@ -441,6 +441,13 @@ class ReportSettings(BaseSettings):
     model_config = _BASE_CONFIG
 
     report_self_learner_max_findings: int = 5
+    # Phase 16a addendum: self-learner reports split their finding budget into a fixed
+    # "what went well" slice and a fixed "mistakes" slice (domain/reports/selection.py),
+    # each capped independently, rather than one severity-ranked pool — so a game with
+    # many mistakes never crowds out the (up to 2) positive moves, and vice versa. Coach
+    # and kid are unaffected: this format change is self-learner-only.
+    report_self_learner_positive_max: int = 2
+    report_self_learner_mistake_max: int = 3
     report_kid_max_findings: int = 3
     # Below this confidence, a finding is not merely under-detailed for the kid persona —
     # per persona-matrix.md's safety rules, it is suppressed entirely. A young player

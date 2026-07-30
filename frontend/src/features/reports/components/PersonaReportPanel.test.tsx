@@ -66,7 +66,15 @@ describe('PersonaReportPanel', () => {
     renderWithProviders(<PersonaReportPanel gameId="game-1" />);
 
     expect(await screen.findByText('A close game.')).toBeInTheDocument();
-    expect(screen.getByText('Your move 4 was a blunder.')).toBeInTheDocument();
+    // "blunder" renders as its own highlighted span (Phase 16a's `Prose`), so the
+    // finding's full sentence is split across nodes — match on the list item's whole
+    // text content rather than one exact text node.
+    expect(
+      screen.getByText(
+        (_, element) =>
+          element?.tagName === 'LI' && element.textContent === 'Your move 4 was a blunder.',
+      ),
+    ).toBeInTheDocument();
     expect(screen.getByText('Review move 4.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Self-learner' })).toHaveAttribute(
       'aria-pressed',
@@ -95,6 +103,31 @@ describe('PersonaReportPanel', () => {
     renderWithProviders(<PersonaReportPanel gameId="game-1" />);
 
     expect(await screen.findByText('Deterministic summary')).toBeInTheDocument();
+  });
+
+  it('groups findings under What Went Well / Mistakes & Blunders when kind-tagged', async () => {
+    // Phase 16a, D-035 addendum: the self-learner game format tags each finding
+    // "strength" or "mistake" — ReportView must group and header them accordingly
+    // instead of the flat list coach/kid still get.
+    mockFetchRoutes({
+      '/api/v1/reports/games/game-1?self_learner': {
+        status: 200,
+        body: report({
+          findings: [
+            { fact_ids: ['move-6'], text: "White's Qxe4 was best.", kind: 'strength' },
+            { fact_ids: ['move-4'], text: "Black's move 4 was a blunder.", kind: 'mistake' },
+          ],
+          recommendations: ["Review Black's move 4."],
+        }),
+      },
+    });
+
+    renderWithProviders(<PersonaReportPanel gameId="game-1" />);
+
+    expect(await screen.findByText('What Went Well')).toBeInTheDocument();
+    expect(screen.getByText('Mistakes & Blunders')).toBeInTheDocument();
+    expect(screen.getByText('Strategy to Improve')).toBeInTheDocument();
+    expect(screen.queryByText('Recommendations')).not.toBeInTheDocument();
   });
 
   it('re-fetches with the new persona when switched', async () => {

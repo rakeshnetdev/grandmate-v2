@@ -25,12 +25,22 @@ class AnalysisJobSummary(BaseModel):
 
 class MoveEvaluationSummary(BaseModel):
     ply: int
+    # SAN/FEN come from `GameMove`, not `MoveEvaluation` — merged in by ply at the route
+    # layer, the same pairing `orchestration/tools/analysis_tools.py`'s chat tool
+    # already does. `None` only if canonicalization produced an evaluation for a ply
+    # `GameMove` itself doesn't have, which should not happen in practice.
+    san: str | None
+    fen_after: str | None
     eval_cp: int | None
     mate_in: int | None
     best_move_uci: str | None
     pv: list[str]
     classification: str
     eval_swing_cp: int
+    # True when eval_swing_cp above is a forced-mate classification sentinel (see
+    # domain/analysis/classification.py), not a real centipawn count — a consumer must
+    # not display eval_swing_cp verbatim as centipawns when this is True.
+    mate_swing: bool
     is_critical_moment: bool
     deep_analyzed: bool
 

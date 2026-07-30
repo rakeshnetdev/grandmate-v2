@@ -39,7 +39,11 @@ from tests.fake_llm import FakeLLMProvider
 _GOOD_RESPONSE = json.dumps(
     {
         "summary": "A close game.",
-        "findings": [{"fact_ids": ["move-4"], "text": "Your move 4 was a blunder."}],
+        # "kind" and third-person phrasing satisfy the self-learner game format's rules
+        # (Phase 16a, D-035 addendum) — this fixture is used for self_learner requests.
+        "findings": [
+            {"fact_ids": ["move-4"], "text": "White's move 4 was a blunder.", "kind": "mistake"}
+        ],
         "recommendations": ["Review move 4."],
     }
 )

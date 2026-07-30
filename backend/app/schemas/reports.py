@@ -11,6 +11,10 @@ from pydantic import BaseModel
 class ReportFinding(BaseModel):
     fact_ids: list[str]
     text: str
+    # Self-learner-game-format-only (Phase 16a, D-035 addendum): "strength" or
+    # "mistake", so the frontend can group findings under "What Went Well" vs.
+    # "Mistakes & Blunders". `None` for coach/kid, which don't use this format.
+    kind: str | None = None
 
 
 class GameReportSummary(BaseModel):

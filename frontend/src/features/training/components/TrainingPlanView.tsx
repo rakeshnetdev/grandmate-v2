@@ -4,6 +4,7 @@
  * same source-transparency reasoning `features/reports/components/ReportView.tsx`
  * documents (an LLM claim's provenance is never hidden from the reader).
  */
+import { Prose } from '@/shared/lib/prose';
 import { cn } from '@/shared/lib/utils';
 
 import type { TrainingRecommendation } from '../api/training';
@@ -31,7 +32,7 @@ export function TrainingPlanView({ plan }: TrainingPlanViewProps) {
   return (
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-3">
-        <p className="text-sm">{plan.summary}</p>
+        <Prose className="flex-1">{plan.summary}</Prose>
         <SourceBadge source={plan.source} />
       </div>
 
@@ -40,9 +41,9 @@ export function TrainingPlanView({ plan }: TrainingPlanViewProps) {
           {plan.findings.map((finding, index) => (
             <li
               key={`${finding.fact_ids.join('-')}-${index}`}
-              className={cn('rounded-md border border-border px-3 py-2 text-sm')}
+              className={cn('rounded-md border border-border px-3 py-2')}
             >
-              {finding.text}
+              <Prose>{finding.text}</Prose>
             </li>
           ))}
         </ul>
@@ -51,9 +52,11 @@ export function TrainingPlanView({ plan }: TrainingPlanViewProps) {
       {plan.recommendations.length > 0 && (
         <div>
           <h3 className="mb-1 text-sm font-semibold">This week's focus</h3>
-          <ul className="list-inside list-disc space-y-1 text-sm text-muted-foreground">
+          <ul className="list-inside list-disc space-y-1 text-muted-foreground">
             {plan.recommendations.map((recommendation) => (
-              <li key={recommendation}>{recommendation}</li>
+              <li key={recommendation}>
+                <Prose className="inline">{recommendation}</Prose>
+              </li>
             ))}
           </ul>
         </div>

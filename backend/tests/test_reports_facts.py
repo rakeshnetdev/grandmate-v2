@@ -10,6 +10,7 @@ from app.db.models import (
     Game,
     GameAnalysis,
     GameColor,
+    GameMove,
     GameSource,
     MotifFinding,
     MotifType,
@@ -47,7 +48,12 @@ def _analysis(evaluations: list[MoveEvaluation] | None = None) -> GameAnalysis:
 
 
 def _move(
-    ply: int, classification: MoveClassification, *, critical: bool = False
+    ply: int,
+    classification: MoveClassification,
+    *,
+    critical: bool = False,
+    eval_swing_cp: int = 150,
+    mate_swing: bool = False,
 ) -> MoveEvaluation:
     return MoveEvaluation(
         ply=ply,
@@ -56,9 +62,23 @@ def _move(
         best_move_uci="e2e4",
         pv=[],
         classification=classification,
-        eval_swing_cp=150,
+        eval_swing_cp=eval_swing_cp,
+        mate_swing=mate_swing,
         is_critical_moment=critical,
+        best_move_san="Nf3",
         deep_analyzed=False,
+    )
+
+
+def _game_move(ply: int, san: str) -> GameMove:
+    return GameMove(
+        game_id=uuid.uuid4(),
+        ply=ply,
+        san=san,
+        uci="e2e4",
+        fen_before="fen-before",
+        fen_after="fen-after",
+        epd_after="epd-after",
     )
 
 
@@ -143,6 +163,145 @@ class TestExtractFactsMoves:
         assert by_id["move-0"].severity == "critical"
         assert by_id["move-2"].severity == "critical"
         assert by_id["move-4"].severity == "notable"
+
+    def test_a_mate_swing_never_carries_its_sentinel_derived_number(self) -> None:
+        """Regression test: a move fact for a mate-involving swing must not surface the
+        classification-only sentinel value as if it were a real centipawn count."""
+        evaluations = [
+            _move(0, MoveClassification.BLUNDER, eval_swing_cp=99_470, mate_swing=True)
+        ]
+        facts = extract_facts(
+            game=_game(GameColor.WHITE),
+            analysis=_analysis(evaluations),
+            opening=None,
+            motifs=[],
+            themes=[],
+        )
+        move_fact = next(f for f in facts if f.id == "move-0")
+        assert move_fact.data["mate_swing"] is True
+        assert move_fact.data["eval_swing_cp"] is None
+
+    def test_moves_by_ply_supplies_the_played_moves_san(self) -> None:
+        evaluations = [_move(4, MoveClassification.BLUNDER)]
+        facts = extract_facts(
+            game=_game(GameColor.WHITE),
+            analysis=_analysis(evaluations),
+            opening=None,
+            motifs=[],
+            themes=[],
+            moves_by_ply={4: _game_move(4, "Qxe4")},
+        )
+        move_fact = next(f for f in facts if f.id == "move-4")
+        assert move_fact.data["san"] == "Qxe4"
+        assert move_fact.data["best_move_san"] == "Nf3"
+
+    def test_a_ply_missing_from_moves_by_ply_has_a_null_san(self) -> None:
+        evaluations = [_move(4, MoveClassification.BLUNDER)]
+        facts = extract_facts(
+            game=_game(GameColor.WHITE),
+            analysis=_analysis(evaluations),
+            opening=None,
+            motifs=[],
+            themes=[],
+        )
+        move_fact = next(f for f in facts if f.id == "move-4")
+        assert move_fact.data["san"] is None
+
+
+class TestExtractFactsPositiveMoves:
+    """A BEST move becomes a "strength" fact only when it also landed a real tactic
+    (a motif finding at the same ply) — not `is_critical_moment`, which is defined by a
+    large centipawn *loss* a BEST move (near-zero loss, by definition) essentially never
+    has. Verified against the real dev database: 0 of 1928 BEST-classified rows there
+    were ever also `is_critical_moment`, which is what caught this originally."""
+
+    def test_a_best_move_that_landed_a_tactic_becomes_a_strength_fact(self) -> None:
+        evaluations = [_move(6, MoveClassification.BEST)]
+        fork = MotifFinding(
+            ply=6, side=GameColor.WHITE, motif=MotifType.FORK, confidence=0.9, evidence={}
+        )
+        facts = extract_facts(
+            game=_game(GameColor.WHITE),
+            analysis=_analysis(evaluations),
+            opening=None,
+            motifs=[fork],
+            themes=[],
+            moves_by_ply={6: _game_move(6, "Qxe4")},
+        )
+        move_fact = next(f for f in facts if f.id == "move-6")
+        assert move_fact.data["classification"] == "best"
+        assert move_fact.data["san"] == "Qxe4"
+        assert move_fact.data["motif"] == "fork"
+
+    def test_a_routine_best_move_with_no_tactic_is_not_a_fact(self) -> None:
+        """Most BEST moves in a game are unremarkable book/obvious moves — only ones
+        that landed a real tactic are worth a "What Went Well" bullet."""
+        evaluations = [_move(6, MoveClassification.BEST)]
+        facts = extract_facts(
+            game=_game(GameColor.WHITE),
+            analysis=_analysis(evaluations),
+            opening=None,
+            motifs=[],
+            themes=[],
+        )
+        assert not any(f.kind == "move" for f in facts)
+
+    def test_a_self_inflicted_motif_at_the_same_ply_does_not_count(self) -> None:
+        """HANGING_PIECE is the mover's own blunder, not a tactic they landed — a BEST
+        move can't plausibly coincide with one, but the exclusion is still asserted
+        directly so the criterion doesn't silently invert if SELF_INFLICTED_MOTIFS
+        grows."""
+        evaluations = [_move(6, MoveClassification.BEST)]
+        hanging = MotifFinding(
+            ply=6, side=GameColor.WHITE, motif=MotifType.HANGING_PIECE, confidence=0.9, evidence={}
+        )
+        facts = extract_facts(
+            game=_game(GameColor.WHITE),
+            analysis=_analysis(evaluations),
+            opening=None,
+            motifs=[hanging],
+            themes=[],
+        )
+        assert not any(f.kind == "move" for f in facts)
+
+    def test_a_tactic_suffered_by_the_mover_does_not_count(self) -> None:
+        """The motif must be on the mover's own side — a tactic the *opponent* landed
+        against them at a nearby ply must not be mistaken for the mover's own strength."""
+        evaluations = [_move(6, MoveClassification.BEST)]
+        fork_against_mover = MotifFinding(
+            ply=6, side=GameColor.BLACK, motif=MotifType.FORK, confidence=0.9, evidence={}
+        )
+        facts = extract_facts(
+            game=_game(GameColor.WHITE),
+            analysis=_analysis(evaluations),
+            opening=None,
+            motifs=[fork_against_mover],
+            themes=[],
+        )
+        assert not any(f.kind == "move" for f in facts)
+
+    def test_only_the_players_own_best_moves_are_candidates_when_side_is_known(self) -> None:
+        evaluations = [
+            _move(0, MoveClassification.BEST),
+            _move(1, MoveClassification.BEST),
+        ]
+        motifs = [
+            MotifFinding(
+                ply=0, side=GameColor.WHITE, motif=MotifType.FORK, confidence=0.9, evidence={}
+            ),
+            MotifFinding(
+                ply=1, side=GameColor.BLACK, motif=MotifType.FORK, confidence=0.9, evidence={}
+            ),
+        ]
+        facts = extract_facts(
+            game=_game(GameColor.WHITE),
+            analysis=_analysis(evaluations),
+            opening=None,
+            motifs=motifs,
+            themes=[],
+        )
+        move_ids = {f.id for f in facts if f.kind == "move"}
+        assert move_ids == {"move-0"}
 
 
 class TestExtractFactsMotifsAndThemes:

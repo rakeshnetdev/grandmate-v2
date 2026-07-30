@@ -8,10 +8,17 @@
  * an error state (see `domain/reports/fallback.py`'s own docstring) but it *is*
  * something a reader benefits from knowing, the same transparency reasoning
  * `claude.md`'s RAG rules apply everywhere else an LLM claim could be wrong.
+ *
+ * Phase 16a, D-035 addendum: self-learner reports tag each finding "strength" or
+ * "mistake" (backend: `domain/reports/critic.py`'s kind check). When that tagging is
+ * present, findings render grouped under "What Went Well" / "Mistakes & Blunders"
+ * headers instead of one flat list — coach and kid reports never carry this tag, so they
+ * keep the original flat rendering untouched.
  */
+import { Prose } from '@/shared/lib/prose';
 import { cn } from '@/shared/lib/utils';
 
-import type { GameReport } from '../api/reports';
+import type { GameReport, ReportFinding } from '../api/reports';
 
 function SourceBadge({ source }: { source: GameReport['source'] }) {
   if (source === 'fallback') {
@@ -28,37 +35,71 @@ function SourceBadge({ source }: { source: GameReport['source'] }) {
   );
 }
 
+function FindingList({ findings }: { findings: ReportFinding[] }) {
+  return (
+    <ul className="space-y-2">
+      {findings.map((finding, index) => (
+        <li
+          key={`${finding.fact_ids.join('-')}-${index}`}
+          className={cn('rounded-md border border-border px-3 py-2')}
+        >
+          <Prose>{finding.text}</Prose>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function FindingGroup({ title, findings }: { title: string; findings: ReportFinding[] }) {
+  if (findings.length === 0) {
+    return null;
+  }
+  return (
+    <div className="space-y-1">
+      <h3 className="text-sm font-semibold">{title}</h3>
+      <FindingList findings={findings} />
+    </div>
+  );
+}
+
 interface ReportViewProps {
   report: GameReport;
 }
 
 export function ReportView({ report }: ReportViewProps) {
+  const hasKindTags = report.findings.some((finding) => finding.kind != null);
+  const strengths = report.findings.filter((finding) => finding.kind === 'strength');
+  const mistakes = report.findings.filter((finding) => finding.kind === 'mistake');
+
   return (
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-3">
-        <p className="text-sm">{report.summary}</p>
+        <div className="flex-1 space-y-1">
+          {hasKindTags && <h3 className="text-sm font-semibold">Overview</h3>}
+          <Prose>{report.summary}</Prose>
+        </div>
         <SourceBadge source={report.source} />
       </div>
 
-      {report.findings.length > 0 && (
-        <ul className="space-y-2">
-          {report.findings.map((finding, index) => (
-            <li
-              key={`${finding.fact_ids.join('-')}-${index}`}
-              className={cn('rounded-md border border-border px-3 py-2 text-sm')}
-            >
-              {finding.text}
-            </li>
-          ))}
-        </ul>
+      {hasKindTags ? (
+        <>
+          <FindingGroup title="What Went Well" findings={strengths} />
+          <FindingGroup title="Mistakes & Blunders" findings={mistakes} />
+        </>
+      ) : (
+        report.findings.length > 0 && <FindingList findings={report.findings} />
       )}
 
       {report.recommendations.length > 0 && (
         <div>
-          <h3 className="mb-1 text-sm font-semibold">Recommendations</h3>
-          <ul className="list-inside list-disc space-y-1 text-sm text-muted-foreground">
+          <h3 className="mb-1 text-sm font-semibold">
+            {hasKindTags ? 'Strategy to Improve' : 'Recommendations'}
+          </h3>
+          <ul className="list-inside list-disc space-y-1 text-muted-foreground">
             {report.recommendations.map((recommendation) => (
-              <li key={recommendation}>{recommendation}</li>
+              <li key={recommendation}>
+                <Prose className="inline">{recommendation}</Prose>
+              </li>
             ))}
           </ul>
         </div>

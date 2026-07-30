@@ -128,6 +128,7 @@ class TestGetGameAnalysis:
                 "eval_cp": 30,
                 "mate_in": None,
                 "eval_swing_cp": 0,
+                "mate_swing": False,
                 "best_move_uci": "e2e4",
             }
         ]

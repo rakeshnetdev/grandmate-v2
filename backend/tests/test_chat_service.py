@@ -160,5 +160,10 @@ class TestGetHistory:
 
         assert history == [
             {"role": "user", "content": "hello"},
-            {"role": "assistant", "content": "A grounded answer."},
+            {
+                "role": "assistant",
+                "content": "A grounded answer.",
+                "citations": [],
+                "grounded": True,
+            },
         ]

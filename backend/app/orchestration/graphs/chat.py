@@ -76,9 +76,12 @@ class GraphState(TypedDict, total=False):
     active_game_id: str | None
     persona: str
 
-    # Accumulated across the thread's lifetime.
+    # Accumulated across the thread's lifetime. An assistant entry's `citations`/
+    # `grounded` (Phase 16a) ride along in the same dict as `role`/`content` rather than
+    # a separate keyed structure — `dict[str, Any]`, not `dict[str, str]`, to allow it;
+    # a user entry simply omits those keys.
     trace: Annotated[list[str], _append]
-    messages: Annotated[list[dict[str, str]], _append]
+    messages: Annotated[list[dict[str, Any]], _append]
 
     # This turn only.
     intent: str | None
@@ -238,7 +241,15 @@ async def _run_agent(state: GraphState, deps: ChatGraphDeps) -> GraphState:
             "trace": ["run_agent"],
             "messages": [
                 {"role": "user", "content": state["question"]},
-                {"role": "assistant", "content": final_parsed["answer"]},
+                {
+                    "role": "assistant",
+                    "content": final_parsed["answer"],
+                    # Persisted alongside the message (Phase 16a) so a reloaded thread
+                    # keeps citation/grounding data — previously only the live turn's
+                    # `ChatTurnResponse` carried it, lost the moment history was refetched.
+                    "citations": final_parsed.get("citations", []),
+                    "grounded": grounded,
+                },
             ],
             "context": turn_context,
             "citations": final_parsed.get("citations", []),

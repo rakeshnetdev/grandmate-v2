@@ -130,11 +130,12 @@ class ChatService:
 
     async def get_history(
         self, profile_id: uuid.UUID, thread_id: uuid.UUID
-    ) -> list[dict[str, str]] | None:
+    ) -> list[dict[str, Any]] | None:
         """The clean user/assistant transcript for a thread, or `None` if it does not
         exist or is not owned by `profile_id`. Reads the checkpointer's stored state
         directly rather than re-invoking the graph — a history fetch should never make an
-        LLM call."""
+        LLM call. Assistant entries carry their own `citations`/`grounded` (Phase 16a),
+        persisted in the same dict by `orchestration/graphs/chat.py`'s `_run_agent`."""
         thread = await get_owned_thread(self._session, thread_id, profile_id)
         if thread is None:
             return None
@@ -145,7 +146,7 @@ class ChatService:
             )
         if snapshot is None:
             return []
-        messages: list[dict[str, str]] = snapshot.checkpoint["channel_values"].get("messages", [])
+        messages: list[dict[str, Any]] = snapshot.checkpoint["channel_values"].get("messages", [])
         return messages
 
 

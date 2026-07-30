@@ -32,6 +32,7 @@ from app.db.models import (
     OpeningMatch,
     StrategicThemeFinding,
 )
+from app.domain.analysis.classification import display_swing_cp
 from app.domain.analysis.queries import get_latest_analysis
 from app.integrations.llm.base import EmbeddingProvider
 
@@ -71,18 +72,24 @@ def _project_critical_moments(analysis: GameAnalysis) -> list[ProjectedChunk]:
     for move in analysis.evaluations:
         if not (move.is_critical_moment or move.classification in _CRITICAL_CLASSIFICATIONS):
             continue
+        swing = display_swing_cp(move.eval_swing_cp, move.mate_swing)
+        swing_clause = (
+            "a forced mate was missed or allowed"
+            if move.mate_swing
+            else f"an eval swing of {swing} centipawns against the mover"
+        )
         chunks.append(
             ProjectedChunk(
                 kind="critical_moment",
                 content=(
                     f"At ply {move.ply}, the move played was classified as "
-                    f"{move.classification.value}, an eval swing of {move.eval_swing_cp} "
-                    "centipawns against the mover."
+                    f"{move.classification.value}, {swing_clause}."
                 ),
                 metadata={
                     "ply": move.ply,
                     "classification": move.classification.value,
-                    "eval_swing_cp": move.eval_swing_cp,
+                    "eval_swing_cp": swing,
+                    "mate_swing": move.mate_swing,
                 },
             )
         )

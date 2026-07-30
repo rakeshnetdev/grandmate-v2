@@ -9,6 +9,8 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
 
+import { ThemeProvider } from '@/shared/theme';
+
 import { createQueryClient } from './queryClient';
 
 interface AppProvidersProps {
@@ -22,5 +24,9 @@ export function AppProviders({ children, client }: AppProvidersProps) {
   // across test files and leak cached data between them.
   const [queryClient] = useState(() => client ?? createQueryClient());
 
-  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider>{children}</ThemeProvider>
+    </QueryClientProvider>
+  );
 }

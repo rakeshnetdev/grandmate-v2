@@ -17,11 +17,17 @@ from app.db.models import (
     Game,
     GameAnalysis,
     GameColor,
+    GameMove,
     MotifFinding,
     OpeningMatch,
     StrategicThemeFinding,
 )
-from app.domain.patterns.polarity import is_players_own_motif, is_players_own_theme
+from app.domain.analysis.classification import display_swing_cp
+from app.domain.patterns.polarity import (
+    SELF_INFLICTED_MOTIFS,
+    is_players_own_motif,
+    is_players_own_theme,
+)
 
 FactKind = Literal[
     "summary", "opening", "move", "motif", "theme", "recurring_weakness", "knowledge_chunk"
@@ -60,20 +66,27 @@ def extract_facts(
     opening: OpeningMatch | None,
     motifs: list[MotifFinding],
     themes: list[StrategicThemeFinding],
+    moves_by_ply: dict[int, GameMove] | None = None,
 ) -> list[Fact]:
     """The full candidate fact pool for a game — persona-independent. Persona-specific
     selection (caps, confidence floors) happens downstream in `selection.py`; every
     persona is generated from this exact same pool, which is what "fact-invariance"
     (`persona-matrix.md`) actually guarantees: no persona is shown a different truth,
     only a different-sized slice of the same one.
+
+    `moves_by_ply` (Phase 16a, D-035 addendum) supplies each ply's actual SAN — optional
+    and defaulted to `{}` so existing callers that only ever consumed `eval_swing_cp`/
+    `classification` keep working; a fact simply has no `san` when it's omitted.
     """
+    moves_by_ply = moves_by_ply or {}
     facts: list[Fact] = [_summary_fact(analysis)]
 
     if opening is not None:
         facts.append(_opening_fact(opening))
 
     focus_color = game.focus_color
-    facts.extend(_move_facts(analysis, focus_color))
+    facts.extend(_move_facts(analysis, focus_color, moves_by_ply))
+    facts.extend(_positive_move_facts(analysis, focus_color, moves_by_ply, motifs))
     facts.extend(_motif_facts(motifs, focus_color))
     facts.extend(_theme_facts(themes, focus_color))
 
@@ -112,7 +125,9 @@ def _side_to_move(ply: int) -> GameColor:
     return GameColor.WHITE if ply % 2 == 0 else GameColor.BLACK
 
 
-def _move_facts(analysis: GameAnalysis, focus_color: GameColor | None) -> list[Fact]:
+def _move_facts(
+    analysis: GameAnalysis, focus_color: GameColor | None, moves_by_ply: dict[int, GameMove]
+) -> list[Fact]:
     """One fact per notable move (inaccuracy or worse) the player themselves made — only
     their own moves (by ply parity) when their side is known. When it can't be
     determined, every notable move is a candidate rather than none — same "don't
@@ -130,6 +145,7 @@ def _move_facts(analysis: GameAnalysis, focus_color: GameColor | None) -> list[F
             if move.classification.value == "blunder" or move.is_critical_moment
             else "notable"
         )
+        played = moves_by_ply.get(move.ply)
         facts.append(
             Fact(
                 id=f"move-{move.ply}",
@@ -140,9 +156,67 @@ def _move_facts(analysis: GameAnalysis, focus_color: GameColor | None) -> list[F
                 data={
                     "ply": move.ply,
                     "classification": move.classification.value,
-                    "eval_swing_cp": move.eval_swing_cp,
+                    "san": played.san if played is not None else None,
+                    "eval_swing_cp": display_swing_cp(move.eval_swing_cp, move.mate_swing),
+                    "mate_swing": move.mate_swing,
                     "best_move_uci": move.best_move_uci,
+                    # The played move's own SAN doubles as "the better move" here — a
+                    # BEST-classified move already *is* the engine's suggestion, so this
+                    # is only meaningful (and only non-null) for a notable/worse move.
+                    "best_move_san": move.best_move_san,
                     "is_critical_moment": move.is_critical_moment,
+                },
+            )
+        )
+    return facts
+
+
+def _positive_move_facts(
+    analysis: GameAnalysis,
+    focus_color: GameColor | None,
+    moves_by_ply: dict[int, GameMove],
+    motifs: list[MotifFinding],
+) -> list[Fact]:
+    """One fact per strong move worth naming as a strength (Phase 16a, D-035 addendum):
+    the engine's own top choice (`BEST`), at a ply where the mover also executed a real
+    tactic (a motif finding recorded on their side, other than the self-inflicted
+    `HANGING_PIECE`) — a fork, pin, skewer, discovered attack, or back-rank threat they
+    landed, not just "the engine's suggested book move".
+
+    Deliberately not `is_critical_moment`, despite that reading as the natural pairing:
+    `is_critical_moment` fires on a large centipawn *loss* (`critical_swing_cp`), which a
+    BEST move — by definition close to zero loss — essentially never has. Verified
+    against real analysis data: 0 of 1928 BEST-classified rows in the dev database were
+    ever also `is_critical_moment`. Tying to a landed tactic instead is what actually
+    keeps "What Went Well" both meaningful (not just any book move) and non-empty.
+    """
+    tactics_by_ply: dict[int, MotifFinding] = {
+        finding.ply: finding
+        for finding in motifs
+        if finding.motif not in SELF_INFLICTED_MOTIFS
+    }
+    facts: list[Fact] = []
+    for move in analysis.evaluations:
+        if move.classification.value != "best":
+            continue
+        if focus_color is not None and _side_to_move(move.ply) != focus_color:
+            continue
+        tactic = tactics_by_ply.get(move.ply)
+        if tactic is None or tactic.side != _side_to_move(move.ply):
+            continue
+        played = moves_by_ply.get(move.ply)
+        facts.append(
+            Fact(
+                id=f"move-{move.ply}",
+                kind="move",
+                severity="notable",
+                ply=move.ply,
+                confidence=None,
+                data={
+                    "ply": move.ply,
+                    "classification": move.classification.value,
+                    "san": played.san if played is not None else None,
+                    "motif": tactic.motif.value,
                 },
             )
         )
