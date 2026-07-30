@@ -28,6 +28,13 @@ interface ProfileDashboardProps {
   profileId?: string;
 }
 
+/** Muted one-liner under a section heading saying what the numbers below actually
+ * measure. Copy stays honest to how the backend computes each metric (see
+ * `domain/analytics/metrics.py` and `domain/analysis/service.py`). */
+function SectionHint({ children }: { children: string }) {
+  return <p className="mb-2 text-xs text-muted-foreground">{children}</p>;
+}
+
 export function ProfileDashboard({ profileId }: ProfileDashboardProps) {
   const [windowSize, setWindowSize] = useState<number>(WINDOW_OPTIONS[0]);
   const { data: analytics, isLoading } = useProfileAnalytics(windowSize, profileId);
@@ -44,6 +51,14 @@ export function ProfileDashboard({ profileId }: ProfileDashboardProps) {
         </p>
       ) : (
         <>
+          {/* Lead with the written analysis: it is what a reader actually acts on. The
+              accuracy / critical-moment numbers below are supporting context, so they
+              follow rather than open the dashboard. */}
+          <section>
+            <h2 className="mb-2 text-sm font-semibold">Training analysis</h2>
+            <TrainingPlanPanel profileId={profileId} windowSize={windowSize} />
+          </section>
+
           {!analytics.sufficient_sample && (
             <SampleSizeBanner gamesIncluded={analytics.games_included} />
           )}
@@ -55,6 +70,7 @@ export function ProfileDashboard({ profileId }: ProfileDashboardProps) {
               delta={analytics.accuracy.delta}
               formatDelta={(d) => `${d > 0 ? '+' : ''}${d.toFixed(1)} pts`}
               higherIsBetter
+              description="Share of your moves that matched the engine's top choice or came close to it, averaged per game. Higher means fewer errors overall."
             />
             <StatTile
               label="Critical moments per game"
@@ -66,22 +82,28 @@ export function ProfileDashboard({ profileId }: ProfileDashboardProps) {
               delta={analytics.critical_moment_rate.delta}
               formatDelta={(d) => `${d > 0 ? '+' : ''}${d.toFixed(2)}`}
               higherIsBetter={false}
+              description="Average number of moves per game where the evaluation swung sharply — the turning points where a game was won or lost. Fewer means steadier play."
             />
           </div>
 
           <section>
-            <h2 className="mb-2 text-sm font-semibold">Move quality</h2>
+            <h2 className="mb-1 text-sm font-semibold">Move quality</h2>
+            <SectionHint>
+              Every analyzed move is graded against the engine's best option: Best is the engine's
+              exact top move, Good is nearly as strong, and Inaccuracy, Mistake, and Blunder mark
+              increasingly costly errors. Rates are the share of all your moves across this window's
+              games.
+            </SectionHint>
             <ClassificationRateTable analytics={analytics} />
           </section>
 
           <section>
-            <h2 className="mb-2 text-sm font-semibold">Recurring weaknesses</h2>
+            <h2 className="mb-1 text-sm font-semibold">Recurring weaknesses</h2>
+            <SectionHint>
+              Tactical and strategic problems that cost you points and keep showing up across your
+              games — patterns worth training, not one-off accidents.
+            </SectionHint>
             <RecurringWeaknessList weaknesses={analytics.recurring_weaknesses} />
-          </section>
-
-          <section>
-            <h2 className="mb-2 text-sm font-semibold">Training plan</h2>
-            <TrainingPlanPanel profileId={profileId} windowSize={windowSize} />
           </section>
 
           <section>

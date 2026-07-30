@@ -46,15 +46,21 @@ export type TrainingRecommendation = z.infer<typeof trainingRecommendationSchema
  * repeating itself). Called from a mutation, never an auto-firing query, so navigating
  * to or re-rendering the dashboard never silently spends an LLM call.
  */
-export function generateTrainingPlan(
+/** Fetches the stored plan, generating one only if none is current server-side.
+ * `regenerate` forces a fresh generation (the explicit "Regenerate" action). */
+export function fetchTrainingPlan(
   windowSize: number,
   persona: PersonaValue,
   profileId?: string,
+  options: { regenerate?: boolean } = {},
   signal?: AbortSignal,
 ): Promise<TrainingRecommendation> {
   const params = new URLSearchParams({ persona, window: String(windowSize) });
   if (profileId) {
     params.set('profile_id', profileId);
+  }
+  if (options.regenerate) {
+    params.set('regenerate', 'true');
   }
   return apiClient.get(
     `/api/v1/reports/profile/training?${params.toString()}`,

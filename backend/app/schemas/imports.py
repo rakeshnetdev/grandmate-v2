@@ -44,6 +44,13 @@ class PlatformSyncRequest(BaseModel):
     window-size concept is introduced for imports)."""
 
     window: int | None = None
+    # Phase 16b follow-up: whose games to fetch. Omitted means the caller's own linked
+    # account for this provider (Phase 14's only behaviour). Supplied means an arbitrary
+    # player being studied — the games land in the caller's study profile on their own,
+    # because `ImportService._target_profile_id` already routes per game on "do these
+    # headers match a linked username of mine" (D-021, ADR-0016). No target-profile
+    # field is needed here, and adding one would duplicate that routing decision.
+    username: str | None = None
 
 
 __all__ = ["JobProgress", "JobSummary", "PlatformSyncRequest", "RejectedGameSummary"]

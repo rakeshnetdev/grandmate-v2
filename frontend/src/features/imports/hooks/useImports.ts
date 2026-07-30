@@ -8,6 +8,9 @@
  * Phase 9's Lichess/Chess.com imports make jobs that genuinely take time.
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
+
+import { gameKeys } from '@/features/games';
 
 import { createImport, fetchImportJob, fetchImportJobs, syncFromPlatform } from '../api/imports';
 
@@ -37,8 +40,15 @@ export function useSyncFromPlatform() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ provider, window }: { provider: 'lichess' | 'chesscom'; window?: number }) =>
-      syncFromPlatform(provider, window),
+    mutationFn: ({
+      provider,
+      window,
+      username,
+    }: {
+      provider: 'lichess' | 'chesscom';
+      window?: number;
+      username?: string;
+    }) => syncFromPlatform(provider, window, username),
     onSuccess: (job) => {
       queryClient.setQueryData(importKeys.job(job.id), job);
       queryClient.invalidateQueries({ queryKey: importKeys.list() });
@@ -47,15 +57,29 @@ export function useSyncFromPlatform() {
 }
 
 export function useImportJob(jobId: string | undefined) {
-  return useQuery({
+  const queryClient = useQueryClient();
+  const query = useQuery({
     queryKey: importKeys.job(jobId ?? ''),
     queryFn: ({ signal }) => fetchImportJob(jobId as string, signal),
     enabled: Boolean(jobId),
-    refetchInterval: (query) => {
-      const status = query.state.data?.status;
+    refetchInterval: (queryState) => {
+      const status = queryState.state.data?.status;
       return status && TERMINAL_STATUSES.has(status) ? false : 1000;
     },
   });
+
+  // A platform sync ingests games in the background, so the game list a caller is
+  // looking at is stale the moment the job finishes — without this, freshly imported
+  // games only appear on a manual reload, which reads as "the import did nothing".
+  // Keyed on jobId + status so it fires once per job reaching a terminal state.
+  const status = query.data?.status;
+  useEffect(() => {
+    if (status && TERMINAL_STATUSES.has(status)) {
+      queryClient.invalidateQueries({ queryKey: gameKeys.all });
+    }
+  }, [jobId, status, queryClient]);
+
+  return query;
 }
 
 export function useImportJobs(options: { enabled?: boolean } = {}) {

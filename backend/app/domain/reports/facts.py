@@ -30,13 +30,20 @@ from app.domain.patterns.polarity import (
 )
 
 FactKind = Literal[
-    "summary", "opening", "move", "motif", "theme", "recurring_weakness", "knowledge_chunk"
+    "summary",
+    "opening",
+    "move",
+    "motif",
+    "theme",
+    "recurring_weakness",
+    "knowledge_chunk",
+    "phase",
 ]
 # `recurring_weakness`/`knowledge_chunk` are produced by `training_facts.py` (Phase 15),
-# not by `extract_facts` below — added here rather than as a second `Fact`-like type
-# because the vocabulary (id/kind/severity/confidence/data) and the grounding critic
-# (`critic.py`'s fact_id check) are already fully generic; a training plan is "a new
-# report type" (D-032), not a new fact model.
+# `phase` by `story_facts.py` (Phase 16b) — not by `extract_facts` below — added here
+# rather than as a second `Fact`-like type because the vocabulary (id/kind/severity/
+# confidence/data) and the grounding critic (`critic.py`'s fact_id check) are already
+# fully generic; each is "a new report type" (D-032), not a new fact model.
 Severity = Literal["info", "notable", "critical"]
 
 _NOTABLE_CLASSIFICATIONS = frozenset({"inaccuracy", "mistake", "blunder"})
@@ -155,6 +162,7 @@ def _move_facts(
                 confidence=None,
                 data={
                     "ply": move.ply,
+                    "side": _side_to_move(move.ply).value,
                     "classification": move.classification.value,
                     "san": played.san if played is not None else None,
                     "eval_swing_cp": display_swing_cp(move.eval_swing_cp, move.mate_swing),
@@ -212,6 +220,7 @@ def _positive_move_facts(
                 confidence=None,
                 data={
                     "ply": move.ply,
+                    "side": _side_to_move(move.ply).value,
                     "classification": move.classification.value,
                     "san": played.san if played is not None else None,
                     "motif": tactic.motif.value,

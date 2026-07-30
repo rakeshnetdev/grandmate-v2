@@ -1,9 +1,15 @@
-"""Unit tests for `domain/reports/prompts.py` (Phase 16a, D-035 addendum): the
-self-learner-only format change. Only checks the system prompt text — the JSON
-grounding contract itself is already exercised end-to-end via `test_reports_service.py`.
+"""Unit tests for `domain/reports/prompts.py`.
+
+Scoped to the *structural* guarantees the rest of the system depends on — the grounding
+instruction every persona needs, and the `kind` tag `ReportView` groups sections by.
+Deliberately not asserting on tone/style wording: that is iterated on freely, and tests
+pinned to exact phrasing only broke on every edit without protecting anything real
+(style is the prompt's job, not the critic's — see `critic.py`).
 """
 
 from __future__ import annotations
+
+import pytest
 
 from app.db.models import Persona
 from app.domain.reports.facts import Fact
@@ -17,33 +23,35 @@ def _system_text(persona: Persona) -> str:
     return messages[0].content
 
 
-class TestSelfLearnerFormat:
-    def test_requires_a_kind_field_on_findings(self) -> None:
+@pytest.mark.parametrize("persona", list(Persona))
+class TestEveryPersona:
+    def test_states_the_json_only_output_contract(self, persona: Persona) -> None:
+        text = _system_text(persona)
+        assert "single JSON object" in text
+        assert '"findings"' in text
+
+    def test_requires_fact_ids_to_come_from_the_facts_list(self, persona: Persona) -> None:
+        """The grounding rule the critic actually enforces — every persona must be told
+        it, or the retry-then-fallback path does the work instead."""
+        assert "FACTS" in _system_text(persona)
+
+
+class TestKindTaggedPersonas:
+    """`ReportView` groups findings into sections whenever they carry a `kind`, so a
+    persona whose contract promises one must actually ask for it."""
+
+    def test_self_learner_requires_a_kind_field(self) -> None:
         assert '"kind"' in _system_text(Persona.SELF_LEARNER)
 
-    def test_forbids_centipawn_numbers(self) -> None:
-        text = _system_text(Persona.SELF_LEARNER)
-        assert "Show centipawn values" not in text
-        assert "No engine numbers" in text
+    def test_kid_requires_a_kind_field(self) -> None:
+        assert '"kind"' in _system_text(Persona.KID)
 
-    def test_forbids_second_person_address(self) -> None:
-        assert 'Never "you" or "your"' in _system_text(Persona.SELF_LEARNER)
-
-    def test_caps_mistakes_at_three_and_positives_at_two(self) -> None:
-        text = _system_text(Persona.SELF_LEARNER)
-        assert "up to 2" in text
-        assert "3 MOST INSTRUCTIVE" in text
-
-
-class TestCoachAndKidUnaffected:
-    def test_coach_still_shows_centipawn_values(self) -> None:
-        """Coach was deliberately kept on its Phase 9 behavior — unbounded, still shows
-        engine numbers — the owner chose not to extend the new format to coach."""
-        assert "Show centipawn values" in _system_text(Persona.COACH)
-
-    def test_coach_prompt_has_no_kind_field_instruction(self) -> None:
+    def test_coach_does_not_use_kind_tagging(self) -> None:
         assert '"kind"' not in _system_text(Persona.COACH)
 
-    def test_kid_prompt_is_unchanged(self) -> None:
-        assert '"kind"' not in _system_text(Persona.KID)
-        assert "grab a free piece" in _system_text(Persona.KID)
+
+class TestUserMessage:
+    def test_carries_the_game_header_and_serialised_facts(self) -> None:
+        user = build_messages(_FACTS, Persona.SELF_LEARNER, white="A", black="B", result="1-0")[1]
+        assert "A vs B (1-0)" in user.content
+        assert '"id": "summary"' in user.content

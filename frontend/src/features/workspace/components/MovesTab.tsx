@@ -1,19 +1,14 @@
 /**
  * Move-by-move engine evaluation for the selected game (Phase 16a, D-035) — the
- * workspace's "Moves" tab. Adapted from `features/games/components/GameAnalysisView.tsx`
- * (which stays in place for now, retired once the workspace fully replaces the standalone
- * game-detail page): real SAN notation (D-035's backend addition) instead of ply/UCI
- * labels, and `ClassificationBadge`'s pill styling instead of plain colored text.
+ * workspace's "Moves" tab. Two-column layout (Phase 16b follow-up): one row per full
+ * move, White's ply on the left and Black's reply on the right, with a header naming
+ * each player — mirrors how a printed score sheet reads, instead of one long
+ * alternating list where the repeated move numbers (`1.` / `1…`) confused readers.
  */
 import { useGame, useGameAnalysis } from '@/features/games';
 import type { GameAnalysis, MoveEvaluation } from '@/features/games';
 import { ClassificationBadge } from '@/shared/components/ui/classification-badge';
 import { cn } from '@/shared/lib/utils';
-
-function moveLabel(ply: number): string {
-  const moveNumber = Math.floor(ply / 2) + 1;
-  return ply % 2 === 0 ? `${moveNumber}.` : `${moveNumber}…`;
-}
 
 function evalLabel(move: MoveEvaluation): string {
   if (move.mate_in !== null) {
@@ -37,27 +32,76 @@ function AnalysisSummaryBar({ analysis }: { analysis: GameAnalysis }) {
   );
 }
 
-function MoveList({ moves }: { moves: MoveEvaluation[] }) {
+const MISTAKE_TIER = new Set(['inaccuracy', 'mistake', 'blunder']);
+
+function PlyCell({ move }: { move: MoveEvaluation | undefined }) {
+  // A game can end on White's move, leaving the final row's Black cell empty.
+  if (!move) {
+    return <div className="flex-1 px-3 py-2" />;
+  }
+  // The engine's suggestion is only worth showing where the played move fell short —
+  // on a best/good move it would just restate (or nitpick) the move itself.
+  const showBest = MISTAKE_TIER.has(move.classification) && move.best_move_san;
   return (
-    <ul className="divide-y divide-border rounded-md border border-border">
-      {moves.map((move) => (
-        <li
-          key={move.ply}
-          className={cn(
-            'flex items-center justify-between gap-3 px-3 py-2 text-sm',
-            move.is_critical_moment && 'bg-accent/50',
-          )}
-        >
-          <span className="w-14 shrink-0 text-muted-foreground">{moveLabel(move.ply)}</span>
-          <span className="flex-1 font-mono font-medium">{move.san ?? '—'}</span>
-          <span className="w-14 shrink-0 text-xs text-muted-foreground">
-            {move.best_move_uci ? `best: ${move.best_move_uci}` : ''}
-          </span>
-          <span className="w-16 shrink-0 text-right font-mono tabular-nums">{evalLabel(move)}</span>
-          <ClassificationBadge classification={move.classification} className="w-20 shrink-0" />
-        </li>
-      ))}
-    </ul>
+    <div
+      className={cn(
+        'flex flex-1 items-center gap-2 px-3 py-2 text-sm',
+        move.is_critical_moment && 'bg-accent/50',
+      )}
+    >
+      <span className="w-14 shrink-0 font-mono font-medium">{move.san ?? '—'}</span>
+      <span className="w-12 shrink-0 text-right font-mono text-xs tabular-nums text-muted-foreground">
+        {evalLabel(move)}
+      </span>
+      <ClassificationBadge classification={move.classification} className="shrink-0" />
+      {showBest && (
+        <span className="shrink-0 text-xs text-muted-foreground">
+          best: <span className="font-mono">{move.best_move_san}</span>
+        </span>
+      )}
+    </div>
+  );
+}
+
+interface MoveListProps {
+  moves: MoveEvaluation[];
+  whiteName: string;
+  blackName: string;
+}
+
+function MoveList({ moves, whiteName, blackName }: MoveListProps) {
+  // Pair plies into full moves: even ply = White, odd ply = Black. Keyed by ply rather
+  // than array position so a gap (which should not happen) can't silently mispair.
+  const byPly = new Map(moves.map((move) => [move.ply, move]));
+  const moveCount = Math.ceil((Math.max(...moves.map((m) => m.ply)) + 1) / 2);
+  const rows = Array.from({ length: moveCount }, (_, i) => ({
+    number: i + 1,
+    white: byPly.get(i * 2),
+    black: byPly.get(i * 2 + 1),
+  }));
+
+  return (
+    <div className="overflow-x-auto rounded-md border border-border">
+      <div className="min-w-[28rem]">
+        <div className="flex border-b border-border bg-muted/50 text-xs font-semibold">
+          <span className="w-10 shrink-0 px-2 py-2 text-muted-foreground">#</span>
+          <span className="flex-1 px-3 py-2">{whiteName} (White)</span>
+          <span className="flex-1 border-l border-border px-3 py-2">{blackName} (Black)</span>
+        </div>
+        <ul className="divide-y divide-border">
+          {rows.map((row) => (
+            <li key={row.number} className="flex items-stretch">
+              <span className="w-10 shrink-0 px-2 py-2 text-sm text-muted-foreground">
+                {row.number}.
+              </span>
+              <PlyCell move={row.white} />
+              <div className="w-px shrink-0 bg-border" />
+              <PlyCell move={row.black} />
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
   );
 }
 
@@ -96,7 +140,11 @@ export function MovesTab({ gameId, profileId }: MovesTabProps) {
   return (
     <div className="space-y-4">
       <AnalysisSummaryBar analysis={analysis} />
-      <MoveList moves={analysis.moves} />
+      <MoveList
+        moves={analysis.moves}
+        whiteName={game?.headers['White'] ?? 'White'}
+        blackName={game?.headers['Black'] ?? 'Black'}
+      />
     </div>
   );
 }

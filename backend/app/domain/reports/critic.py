@@ -18,10 +18,16 @@ from app.domain.reports.facts import Fact
 # A structural heuristic, not full NLP faithfulness checking — good enough to catch the
 # kid persona's one hard rule (no raw centipawn numbers) without a second model call.
 _CENTIPAWN_PATTERN = re.compile(r"[+-]?\d+\s*(cp\b|centipawn)", re.IGNORECASE)
-_SECOND_PERSON_PATTERN = re.compile(r"\byou\b|\byour\b", re.IGNORECASE)
-_VALID_FINDING_KINDS = frozenset({"strength", "mistake"})
 
-ReportKind = Literal["game", "training"]
+# Per-report-kind finding vocabularies (Phase 16a's "game" format, Phase 16b's "story"
+# format). `None` means that report_kind doesn't use kind-tagged findings at all
+# (training plans keep their original Phase 15 shape).
+_FINDING_KINDS: dict[str, frozenset[str]] = {
+    "game": frozenset({"strength", "mistake"}),
+    "story": frozenset({"opening", "middlegame", "endgame", "lesson"}),
+}
+
+ReportKind = Literal["game", "training", "story"]
 
 
 def validate_report(
@@ -35,12 +41,12 @@ def validate_report(
     """Returns a list of violations; empty means the report is grounded and safe to
     persist and show.
 
-    `report_kind` (Phase 16a, D-035 addendum) distinguishes a per-game report
-    (`ReportService`) from a profile-level training plan (`TrainingService`) — both
-    share this one critic implementation (rule 13), but the self-learner-only format
-    rules below (the "kind" tag, no second person, the new positive/mistake cap) are
-    specific to the game-review format the owner approved; training plans keep their
-    original Phase 15 self-learner behaviour untouched.
+    `report_kind` (Phase 16a, D-035 addendum; extended Phase 16b) distinguishes a
+    per-game findings report and a per-game full-story report (`ReportService`) from a
+    profile-level training plan (`TrainingService`) — all three share this one critic
+    implementation (rule 13), but the self-learner-only format rules below (a "kind"
+    tag, no second person, a report-kind-specific cap) apply only to "game"/"story";
+    training plans keep their original Phase 15 self-learner behaviour untouched.
     """
     if not isinstance(parsed, dict):
         return ["response was not a JSON object"]
@@ -50,10 +56,10 @@ def validate_report(
         return ["missing or invalid 'findings' list"]
 
     facts_by_id = {f.id: f for f in facts}
-    is_self_learner_game = report_kind == "game" and persona == Persona.SELF_LEARNER
+    valid_kinds = _FINDING_KINDS.get(report_kind) if persona == Persona.SELF_LEARNER else None
     violations: list[str] = []
     for finding in findings:
-        violations.extend(_validate_finding(finding, facts_by_id, is_self_learner_game))
+        violations.extend(_validate_finding(finding, facts_by_id, valid_kinds))
 
     max_findings = _max_findings(persona, settings, report_kind)
     if max_findings is not None and len(findings) > max_findings:
@@ -61,17 +67,21 @@ def validate_report(
             f"{len(findings)} findings exceeds the {persona.value} cap of {max_findings}"
         )
 
-    full_text = _full_text(parsed, findings)
-    if (persona == Persona.KID or is_self_learner_game) and _CENTIPAWN_PATTERN.search(full_text):
-        violations.append(f"{persona.value} persona output mentions a centipawn value")
-    if is_self_learner_game and _SECOND_PERSON_PATTERN.search(full_text):
-        violations.append("self_learner game report uses second person (you/your)")
+    # Kid's centipawn ban is a `persona-matrix.md` *safety* rule, not a house style, so
+    # it stays enforced here. Self-learner and story style rules (no second person, no
+    # engine numbers) deliberately do not live here: once those prompts stopped stating
+    # the rules, a critic that still enforced them just burned both LLM attempts and
+    # dropped every report into the deterministic fallback. Prompt and critic have to
+    # agree about style; where they can't, the prompt wins and the critic keeps only
+    # what is actually unsafe or structurally required (grounding, caps, `kind` tags).
+    if persona == Persona.KID and _CENTIPAWN_PATTERN.search(_full_text(parsed, findings)):
+        violations.append("kid persona output mentions a centipawn value")
 
     return violations
 
 
 def _validate_finding(
-    finding: Any, facts_by_id: dict[str, Fact], is_self_learner_game: bool
+    finding: Any, facts_by_id: dict[str, Fact], valid_kinds: frozenset[str] | None
 ) -> list[str]:
     if not isinstance(finding, dict):
         return ["a finding was not an object"]
@@ -89,22 +99,33 @@ def _validate_finding(
     if not isinstance(finding.get("text"), str) or not finding["text"].strip():
         violations.append("a finding had no text")
 
-    if is_self_learner_game:
-        violations.extend(_validate_finding_kind(finding, fact_ids, facts_by_id))
+    if valid_kinds is not None:
+        violations.extend(_validate_finding_kind(finding, fact_ids, facts_by_id, valid_kinds))
 
     return violations
 
 
 def _validate_finding_kind(
-    finding: dict[str, Any], fact_ids: list[Any], facts_by_id: dict[str, Fact]
+    finding: dict[str, Any],
+    fact_ids: list[Any],
+    facts_by_id: dict[str, Fact],
+    valid_kinds: frozenset[str],
 ) -> list[str]:
-    """The self-learner game format tags every finding "strength" or "mistake" so the
-    frontend can group them under the right header — this checks the tag is present,
-    valid, and actually consistent with the fact(s) it cites, so a mislabelled finding
-    fails the critic instead of silently rendering under the wrong heading."""
+    """Every finding in a kind-tagged format is labelled so the frontend can group it
+    under the right section header — this checks the tag is present and valid; for the
+    "game" format's strength/mistake vocabulary specifically, also that it's actually
+    consistent with the fact(s) cited, so a mislabelled finding fails the critic instead
+    of silently rendering under the wrong heading. The "story" format's vocabulary
+    (opening/middlegame/endgame/lesson) has no single fact field to cross-check against
+    in the same way — a "lesson" finding can legitimately cite any kind of fact — so
+    presence/validity is the check there.
+    """
     kind = finding.get("kind")
-    if kind not in _VALID_FINDING_KINDS:
+    if kind not in valid_kinds:
         return [f"a self_learner finding had an invalid or missing kind: {kind!r}"]
+
+    if valid_kinds != _FINDING_KINDS["game"]:
+        return []
 
     referenced = [facts_by_id[fid] for fid in fact_ids if fid in facts_by_id]
     is_positive = any(f.data.get("classification") == "best" for f in referenced)
@@ -125,6 +146,8 @@ def _max_findings(
             return (
                 settings.report_self_learner_positive_max + settings.report_self_learner_mistake_max
             )
+        if report_kind == "story":
+            return settings.report_story_max_findings
         return settings.report_self_learner_max_findings
     return None
 

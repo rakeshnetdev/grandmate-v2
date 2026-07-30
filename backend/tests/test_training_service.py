@@ -170,8 +170,8 @@ class TestGenerate:
         await _seed_games_with_a_recurring_fork_weakness(db_session, profile_id)
         llm = FakeLLMProvider(responses=[_GOOD_RESPONSE])
 
-        recommendation = await _service(db_session, llm).generate(
-            profile_id=profile_id, persona=Persona.SELF_LEARNER, window_size=10
+        recommendation = await _service(db_session, llm).get_or_generate(
+            regenerate=True, profile_id=profile_id, persona=Persona.SELF_LEARNER, window_size=10
         )
 
         assert recommendation.source == ReportSource.LLM
@@ -187,8 +187,8 @@ class TestGenerate:
         await _seed_tactics_chunk_about_forks(db_session)
         llm = FakeLLMProvider(responses=[_GOOD_RESPONSE])
 
-        await _service(db_session, llm).generate(
-            profile_id=profile_id, persona=Persona.SELF_LEARNER, window_size=10
+        await _service(db_session, llm).get_or_generate(
+            regenerate=True, profile_id=profile_id, persona=Persona.SELF_LEARNER, window_size=10
         )
 
         prompt_user_content = llm.calls[0].messages[1].content
@@ -201,8 +201,8 @@ class TestGenerate:
         await _seed_games_with_a_recurring_fork_weakness(db_session, profile_id)
         llm = FakeLLMProvider(responses=[_UNGROUNDED_RESPONSE, _UNGROUNDED_RESPONSE])
 
-        recommendation = await _service(db_session, llm).generate(
-            profile_id=profile_id, persona=Persona.SELF_LEARNER, window_size=10
+        recommendation = await _service(db_session, llm).get_or_generate(
+            regenerate=True, profile_id=profile_id, persona=Persona.SELF_LEARNER, window_size=10
         )
 
         assert recommendation.source == ReportSource.FALLBACK
@@ -217,31 +217,72 @@ class TestGenerate:
             prompt_tokens=100, completion_tokens=0
         )
 
-        recommendation = await _service(db_session, llm, llm_daily_token_ceiling=100).generate(
-            profile_id=profile_id, persona=Persona.SELF_LEARNER, window_size=10
+        recommendation = await _service(
+            db_session, llm, llm_daily_token_ceiling=100
+        ).get_or_generate(
+            profile_id=profile_id,
+            persona=Persona.SELF_LEARNER,
+            window_size=10,
+            regenerate=True,
         )
 
         assert recommendation.source == ReportSource.FALLBACK
         assert llm.calls == []
 
-    async def test_each_call_inserts_a_new_row_rather_than_reusing_one(
+    async def test_a_current_plan_is_reused_instead_of_regenerated(
         self, db_session: AsyncSession
     ) -> None:
-        # D-032: on-demand, no caching — every request is a fresh generation, since
-        # history (not staleness detection) is what keeps a plan from repeating itself.
+        """D-032's "on-demand, no scheduler" is about cadence, not about re-deriving an
+        identical plan on every dashboard render — which cost an LLM call and wrote a
+        duplicate row each time. A stored plan whose analytics snapshot is unchanged is
+        served as-is."""
+        profile_id = await _seed_profile(db_session)
+        await _seed_games_with_a_recurring_fork_weakness(db_session, profile_id)
+        llm = FakeLLMProvider(responses=[_GOOD_RESPONSE])  # only one call available
+        service = _service(db_session, llm)
+
+        first = await service.get_or_generate(
+            profile_id=profile_id, persona=Persona.SELF_LEARNER, window_size=10
+        )
+        second = await service.get_or_generate(
+            profile_id=profile_id, persona=Persona.SELF_LEARNER, window_size=10
+        )
+
+        assert first.id == second.id
+        assert len(llm.calls) == 1
+
+    async def test_regenerate_forces_a_new_row(self, db_session: AsyncSession) -> None:
         profile_id = await _seed_profile(db_session)
         await _seed_games_with_a_recurring_fork_weakness(db_session, profile_id)
         llm = FakeLLMProvider(responses=[_GOOD_RESPONSE, _GOOD_RESPONSE])
         service = _service(db_session, llm)
 
-        first = await service.generate(
+        first = await service.get_or_generate(
             profile_id=profile_id, persona=Persona.SELF_LEARNER, window_size=10
         )
-        second = await service.generate(
-            profile_id=profile_id, persona=Persona.SELF_LEARNER, window_size=10
+        second = await service.get_or_generate(
+            profile_id=profile_id, persona=Persona.SELF_LEARNER, window_size=10, regenerate=True
         )
 
         assert first.id != second.id
+        assert len(llm.calls) == 2
+
+    async def test_a_different_persona_does_not_reuse_another_personas_plan(
+        self, db_session: AsyncSession
+    ) -> None:
+        profile_id = await _seed_profile(db_session)
+        await _seed_games_with_a_recurring_fork_weakness(db_session, profile_id)
+        llm = FakeLLMProvider(responses=[_GOOD_RESPONSE, _GOOD_RESPONSE])
+        service = _service(db_session, llm)
+
+        self_plan = await service.get_or_generate(
+            profile_id=profile_id, persona=Persona.SELF_LEARNER, window_size=10
+        )
+        coach_plan = await service.get_or_generate(
+            profile_id=profile_id, persona=Persona.COACH, window_size=10
+        )
+
+        assert self_plan.id != coach_plan.id
 
     async def test_a_theme_from_the_prior_plan_is_flagged_recently_recommended(
         self, db_session: AsyncSession
@@ -251,8 +292,12 @@ class TestGenerate:
         llm = FakeLLMProvider(responses=[_GOOD_RESPONSE, _GOOD_RESPONSE])
         service = _service(db_session, llm)
 
-        await service.generate(profile_id=profile_id, persona=Persona.SELF_LEARNER, window_size=10)
-        await service.generate(profile_id=profile_id, persona=Persona.SELF_LEARNER, window_size=10)
+        await service.get_or_generate(
+            regenerate=True, profile_id=profile_id, persona=Persona.SELF_LEARNER, window_size=10
+        )
+        await service.get_or_generate(
+            regenerate=True, profile_id=profile_id, persona=Persona.SELF_LEARNER, window_size=10
+        )
 
         user_content = llm.calls[1].messages[1].content
         second_call_facts = json.loads(user_content[user_content.index("[") :])
@@ -265,8 +310,8 @@ class TestGenerate:
         profile_id = await _seed_profile(db_session)
         llm = FakeLLMProvider(responses=[])
 
-        recommendation = await _service(db_session, llm).generate(
-            profile_id=profile_id, persona=Persona.SELF_LEARNER, window_size=10
+        recommendation = await _service(db_session, llm).get_or_generate(
+            regenerate=True, profile_id=profile_id, persona=Persona.SELF_LEARNER, window_size=10
         )
 
         assert recommendation.source == ReportSource.FALLBACK

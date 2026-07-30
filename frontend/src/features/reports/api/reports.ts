@@ -13,10 +13,11 @@ export type PersonaValue = z.infer<typeof personaSchema>;
 const reportFindingSchema = z.object({
   fact_ids: z.array(z.string()),
   text: z.string(),
-  // Self-learner-game-format-only (Phase 16a, D-035 addendum): "strength" or "mistake",
-  // so ReportView can group findings under "What Went Well" vs "Mistakes & Blunders".
-  // null/absent for coach and kid, which don't use this format.
-  kind: z.enum(['strength', 'mistake']).nullish(),
+  // "strength"/"mistake" (Phase 16a, D-035 addendum) group the per-game findings report
+  // under "What Went Well" vs "Mistakes & Blunders"; "opening"/"middlegame"/"endgame"/
+  // "lesson" (Phase 16b) do the same for the full game-story report. null/absent for
+  // coach and kid, which use neither format.
+  kind: z.enum(['strength', 'mistake', 'opening', 'middlegame', 'endgame', 'lesson']).nullish(),
 });
 
 export const gameReportSchema = z.object({
@@ -47,6 +48,25 @@ export function fetchGameReport(
   }
   return apiClient.get(
     `/api/v1/reports/games/${gameId}?${params.toString()}`,
+    gameReportSchema,
+    signal,
+  );
+}
+
+/** The full opening/middlegame/endgame game-story report (Phase 16b) — self-learner
+ * only, no `persona` param (unlike `fetchGameReport`). */
+export function fetchGameStory(
+  gameId: string,
+  profileId?: string,
+  signal?: AbortSignal,
+): Promise<GameReport> {
+  const params = new URLSearchParams();
+  if (profileId) {
+    params.set('profile_id', profileId);
+  }
+  const query = params.toString();
+  return apiClient.get(
+    `/api/v1/reports/games/${gameId}/story${query ? `?${query}` : ''}`,
     gameReportSchema,
     signal,
   );

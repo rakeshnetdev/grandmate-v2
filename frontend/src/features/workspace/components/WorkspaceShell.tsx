@@ -23,7 +23,7 @@ import { ContentPanel } from './ContentPanel';
 import { ChatDock } from './ChatDock';
 import { GameListPanel } from './GameListPanel';
 
-const VALID_TABS: ContentTab[] = ['overview', 'analysis', 'moves', 'patterns'];
+const VALID_TABS: ContentTab[] = ['overview', 'analysis', 'moves', 'patterns', 'story', 'pgn'];
 
 function parseTab(value: string | null): ContentTab {
   return VALID_TABS.includes(value as ContentTab) ? (value as ContentTab) : 'overview';

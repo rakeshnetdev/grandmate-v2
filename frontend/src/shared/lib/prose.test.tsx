@@ -46,4 +46,28 @@ describe('Prose', () => {
     // Sanity: renders without throwing and preserves the plain sentence.
     expect(screen.getByText(/Take your time and stay calm\.?/)).toBeInTheDocument();
   });
+
+  it('inline mode does not wrap a single-line finding in a block-level <p>', () => {
+    // Regression test: a bullet marker's text must stay on the same line as the
+    // marker, which a block-level <p> child breaks onto its own line.
+    const { container } = render(
+      <li>
+        <Prose inline>{'White blundered on move 4.'}</Prose>
+      </li>,
+    );
+    expect(container.querySelector('p')).not.toBeInTheDocument();
+    expect(screen.getByText(/White blundered on move 4\.?/)).toBeInTheDocument();
+  });
+
+  it('inline mode still highlights chess notation and keywords', () => {
+    render(
+      <ul>
+        <li>
+          <Prose inline>{'Nf3 was a mistake.'}</Prose>
+        </li>
+      </ul>,
+    );
+    expect(screen.getByText('Nf3')).toBeInTheDocument();
+    expect(screen.getByText('mistake')).toBeInTheDocument();
+  });
 });

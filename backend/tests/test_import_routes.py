@@ -251,6 +251,28 @@ class TestSyncFromPlatform:
 
         assert response.status_code == 202
 
+    async def test_an_explicit_username_needs_no_linked_account(
+        self, import_client: httpx.AsyncClient
+    ) -> None:
+        """Importing a player being studied (Phase 16b follow-up): chesscom is unlinked
+        for this profile — a 404 without a username, per the test above — but an explicit
+        username is a different question entirely and must not consult linked accounts."""
+        response = await import_client.post(
+            "/api/v1/imports/chesscom/sync", json={"username": "hikaru"}
+        )
+
+        assert response.status_code == 202
+        assert response.json()["status"] == "pending"
+
+    async def test_a_blank_explicit_username_is_rejected(
+        self, import_client: httpx.AsyncClient
+    ) -> None:
+        response = await import_client.post(
+            "/api/v1/imports/lichess/sync", json={"username": "   "}
+        )
+
+        assert response.status_code == 422
+
     async def test_sync_without_login_is_unauthorized(
         self, db_session: AsyncSession, tmp_path
     ) -> None:

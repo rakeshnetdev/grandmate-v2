@@ -193,27 +193,21 @@ class TestSelfLearnerGameFormat:
         violations = validate_report(parsed, [_STRENGTH_FACT], Persona.SELF_LEARNER, _settings())
         assert any("mistake" in v for v in violations)
 
-    def test_second_person_address_fails(self) -> None:
+    def test_style_rules_are_left_to_the_prompt_not_enforced_here(self) -> None:
+        """Second person and engine numbers are style, and style is the prompt's job:
+        when the self-learner prompt stopped stating those rules, enforcing them here
+        only burned both LLM attempts and forced the deterministic fallback. Kid's own
+        centipawn ban is different — a `persona-matrix.md` safety rule — and is still
+        enforced (see `TestValidateReport`)."""
         parsed = {
-            "summary": "Your game had a rough patch.",
+            "summary": "Your game had a rough patch — you lost 320 centipawns on move 4.",
             "findings": [
                 {"fact_ids": ["move-4"], "text": "Black's move 4 was a blunder.", "kind": "mistake"}
             ],
             "recommendations": [],
         }
         violations = validate_report(parsed, [_MISTAKE_FACT], Persona.SELF_LEARNER, _settings())
-        assert any("second person" in v for v in violations)
-
-    def test_a_centipawn_number_fails(self) -> None:
-        parsed = {
-            "summary": "Black lost 320 centipawns on move 4.",
-            "findings": [
-                {"fact_ids": ["move-4"], "text": "Black's move 4 was a blunder.", "kind": "mistake"}
-            ],
-            "recommendations": [],
-        }
-        violations = validate_report(parsed, [_MISTAKE_FACT], Persona.SELF_LEARNER, _settings())
-        assert any("centipawn" in v for v in violations)
+        assert violations == []
 
     def test_the_split_cap_is_positive_plus_mistake_max(self) -> None:
         settings = _settings(report_self_learner_positive_max=1, report_self_learner_mistake_max=1)

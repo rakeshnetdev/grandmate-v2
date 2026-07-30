@@ -16,7 +16,6 @@
  * keep the original flat rendering untouched.
  */
 import { Prose } from '@/shared/lib/prose';
-import { cn } from '@/shared/lib/utils';
 
 import type { GameReport, ReportFinding } from '../api/reports';
 
@@ -37,13 +36,10 @@ function SourceBadge({ source }: { source: GameReport['source'] }) {
 
 function FindingList({ findings }: { findings: ReportFinding[] }) {
   return (
-    <ul className="space-y-2">
+    <ul className="list-inside list-disc space-y-1">
       {findings.map((finding, index) => (
-        <li
-          key={`${finding.fact_ids.join('-')}-${index}`}
-          className={cn('rounded-md border border-border px-3 py-2')}
-        >
-          <Prose>{finding.text}</Prose>
+        <li key={`${finding.fact_ids.join('-')}-${index}`}>
+          <Prose inline>{finding.text}</Prose>
         </li>
       ))}
     </ul>
@@ -98,7 +94,7 @@ export function ReportView({ report }: ReportViewProps) {
           <ul className="list-inside list-disc space-y-1 text-muted-foreground">
             {report.recommendations.map((recommendation) => (
               <li key={recommendation}>
-                <Prose className="inline">{recommendation}</Prose>
+                <Prose inline>{recommendation}</Prose>
               </li>
             ))}
           </ul>

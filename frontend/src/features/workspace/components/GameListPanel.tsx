@@ -53,7 +53,7 @@ export function GameListPanel({
         >
           <Plus className="h-4 w-4" />
         </Button>
-        <ImportModal open={importOpen} onClose={() => setImportOpen(false)} />
+        <ImportModal open={importOpen} onClose={() => setImportOpen(false)} profileId={profileId} />
       </div>
     );
   }
@@ -109,7 +109,7 @@ export function GameListPanel({
         )}
       </div>
 
-      <ImportModal open={importOpen} onClose={() => setImportOpen(false)} />
+      <ImportModal open={importOpen} onClose={() => setImportOpen(false)} profileId={profileId} />
     </div>
   );
 }

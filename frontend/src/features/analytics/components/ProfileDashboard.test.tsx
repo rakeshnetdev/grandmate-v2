@@ -105,6 +105,11 @@ describe('ProfileDashboard', () => {
     expect(screen.getByText('Ruy Lopez')).toBeInTheDocument();
     expect(screen.getByText('Hanging Piece')).toBeInTheDocument();
     expect(screen.getByText(/2 of the window's games/)).toBeInTheDocument();
+    // Metric explainers: bare numbers must carry plain-language descriptions.
+    expect(screen.getByText(/matched the engine's top choice/)).toBeInTheDocument();
+    expect(screen.getByText(/turning points where a game was won or lost/)).toBeInTheDocument();
+    expect(screen.getByText(/graded against the engine's best option/)).toBeInTheDocument();
+    expect(screen.getByText(/patterns worth training/)).toBeInTheDocument();
   });
 
   it('shows the sample-size banner when the snapshot is not yet confident', async () => {

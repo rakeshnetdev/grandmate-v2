@@ -15,7 +15,7 @@ import { Button } from '@/shared/components/ui/button';
 
 import { PersonaSwitcher, type PersonaValue } from '@/features/reports';
 
-import { useGenerateTrainingPlan } from '../hooks/useTraining';
+import { useGenerateTrainingPlan, useTrainingPlan } from '../hooks/useTraining';
 import { TrainingPlanView } from './TrainingPlanView';
 
 interface TrainingPlanPanelProps {
@@ -28,7 +28,15 @@ interface TrainingPlanPanelProps {
 
 export function TrainingPlanPanel({ profileId, windowSize }: TrainingPlanPanelProps) {
   const [persona, setPersona] = useState<PersonaValue>('self_learner');
-  const { mutate, data: plan, isPending, isError } = useGenerateTrainingPlan(profileId);
+  // The stored plan is restored on mount — the server only spends an LLM call when it
+  // has nothing current for this profile/persona/window, so this is free on revisits.
+  const {
+    data: saved,
+    isLoading,
+    isError: loadFailed,
+  } = useTrainingPlan(windowSize, persona, profileId);
+  const { mutate, isPending, isError: regenerateFailed } = useGenerateTrainingPlan(profileId);
+  const plan = saved;
 
   return (
     <div className="space-y-4">
@@ -37,14 +45,17 @@ export function TrainingPlanPanel({ profileId, windowSize }: TrainingPlanPanelPr
         <Button
           type="button"
           size="sm"
-          disabled={isPending}
+          disabled={isPending || isLoading}
           onClick={() => mutate({ windowSize, persona })}
         >
           {isPending ? 'Generating…' : plan ? 'Regenerate' : 'Generate training plan'}
         </Button>
       </div>
 
-      {isError && <p className="text-sm text-destructive">Could not generate a plan.</p>}
+      {(loadFailed || regenerateFailed) && (
+        <p className="text-sm text-destructive">Could not generate a plan.</p>
+      )}
+      {isLoading && !plan && <p className="text-sm text-muted-foreground">Loading analysis…</p>}
       {plan && <TrainingPlanView plan={plan} />}
     </div>
   );

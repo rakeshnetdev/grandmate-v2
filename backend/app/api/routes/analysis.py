@@ -53,6 +53,7 @@ def _to_analysis_summary(
                 eval_cp=move.eval_cp,
                 mate_in=move.mate_in,
                 best_move_uci=move.best_move_uci,
+                best_move_san=move.best_move_san,
                 pv=move.pv,
                 classification=move.classification.value,
                 eval_swing_cp=move.eval_swing_cp,

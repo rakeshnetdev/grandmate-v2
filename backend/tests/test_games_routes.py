@@ -166,3 +166,46 @@ class TestGetMyGame:
         response = await games_client.get(f"/api/v1/games/{game.id}")
 
         assert response.status_code == 404
+
+
+class TestGetMyGamePgn:
+    async def test_returns_the_stored_pgn_as_plain_text(
+        self, games_client: httpx.AsyncClient, db_session: AsyncSession, tmp_path
+    ) -> None:
+        profile_id = uuid.UUID(games_client.headers["X-Test-Profile-Id"])
+        game = await _seed_game(db_session, profile_id)
+        pgn = '[White "Alice"]\n[Black "Bob"]\n\n1. e4 e5 1-0\n'
+        await LocalStorage(tmp_path).put(game.raw_pgn_path, pgn.encode())
+
+        response = await games_client.get(f"/api/v1/games/{game.id}/pgn")
+
+        assert response.status_code == 200
+        assert response.headers["content-type"].startswith("text/plain")
+        assert response.text == pgn
+
+    async def test_a_game_whose_blob_is_missing_is_not_found(
+        self, games_client: httpx.AsyncClient, db_session: AsyncSession
+    ) -> None:
+        profile_id = uuid.UUID(games_client.headers["X-Test-Profile-Id"])
+        game = await _seed_game(db_session, profile_id)  # row exists, no blob written
+
+        response = await games_client.get(f"/api/v1/games/{game.id}/pgn")
+
+        assert response.status_code == 404
+
+    async def test_another_profiles_pgn_is_not_visible(
+        self, games_client: httpx.AsyncClient, db_session: AsyncSession
+    ) -> None:
+        other_user = User()
+        db_session.add(other_user)
+        await db_session.flush()
+        other_profile = Profile(
+            owner_user_id=other_user.id, kind=ProfileKind.SELF, display_name="Other"
+        )
+        db_session.add(other_profile)
+        await db_session.flush()
+        game = await _seed_game(db_session, other_profile.id)
+
+        response = await games_client.get(f"/api/v1/games/{game.id}/pgn")
+
+        assert response.status_code == 404

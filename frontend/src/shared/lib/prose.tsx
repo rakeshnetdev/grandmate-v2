@@ -108,17 +108,33 @@ const markdownComponents: ComponentProps<typeof ReactMarkdown>['components'] = {
   ),
 };
 
+// `p` renders as `<p>` above — a block element, so even a single-sentence finding
+// forces a line break before its text starts. Used when `Prose` is embedded inside a
+// `<li>`/inline context (findings and recommendations lists): the paragraph wrapper is
+// dropped entirely so the bullet marker and its text share one line, matching plain
+// list-item text.
+const inlineMarkdownComponents: ComponentProps<typeof ReactMarkdown>['components'] = {
+  ...markdownComponents,
+  p: ({ children }) => <>{renderChildren(children, 'p')}</>,
+};
+
 interface ProseProps {
   children: string;
   className?: string;
+  /** Drops the block-level `<p>` wrapper so this renders inline within a `<li>` —
+   * see `inlineMarkdownComponents`'s comment. */
+  inline?: boolean;
 }
 
 /** Renders LLM-generated markdown prose with chess-notation-aware highlighting —
  * chat answers, report findings/recommendations, training-plan text. */
-export function Prose({ children, className }: ProseProps) {
+export function Prose({ children, className, inline = false }: ProseProps) {
   return (
-    <div className={cn('text-sm leading-relaxed', className)}>
-      <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+    <div className={cn('text-sm leading-relaxed', inline && 'inline', className)}>
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={inline ? inlineMarkdownComponents : markdownComponents}
+      >
         {children}
       </ReactMarkdown>
     </div>

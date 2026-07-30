@@ -1624,6 +1624,21 @@ the redesigned Analysis tab rather than split into a new phase:
 
 ---
 
+## Backlog (deferred enhancements)
+
+- **Analysis job reliability sweep.** Engine-analysis jobs are only ever picked up by a
+  one-shot FastAPI `BackgroundTask` fired right after import; there is no persistent
+  worker or retry. If the server restarts/is busy between job creation and that task
+  running, the job is orphaned at `pending` forever with no automatic recovery (observed
+  directly during Phase 16a's live verification — 25 games stuck this way, manually
+  requeued). Proposed fix: a periodic idle sweep (asyncio loop on FastAPI startup) that
+  finds `pending` jobs and stale `processing` jobs and reruns them through the *existing*
+  `run_pending_analysis_jobs`/`AnalysisService` — no new analysis logic or infrastructure
+  (no Redis/Celery) needed. Estimated ~half a day including tests. Parked, not scheduled
+  to a phase yet.
+
+---
+
 ## Phase 17 — Observability, Security, and Production Hardening
 
 ### Goal

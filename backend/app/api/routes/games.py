@@ -14,11 +14,14 @@ from __future__ import annotations
 import uuid
 
 from fastapi import APIRouter, HTTPException, status
+from fastapi.responses import PlainTextResponse
 
 from app.api.dependencies.db import DbSessionDep
 from app.api.dependencies.profile_scope import ScopedProfileIdDep
+from app.api.dependencies.storage import StorageDep
 from app.db.models import Game
 from app.domain.games import get_game, list_games
+from app.integrations.storage import ObjectNotFoundError
 from app.schemas.games import GameSummary
 
 router = APIRouter(prefix="/games", tags=["games"])
@@ -52,6 +55,30 @@ async def get_my_game(
     if game is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Game not found")
     return _to_summary(game)
+
+
+@router.get("/{game_id}/pgn", response_class=PlainTextResponse)
+async def get_my_game_pgn(
+    game_id: uuid.UUID,
+    profile_id: ScopedProfileIdDep,
+    session: DbSessionDep,
+    storage: StorageDep,
+) -> str:
+    """The game's raw PGN as plain text (Phase 16b follow-up) — exactly the bytes that
+    were imported, fetched from storage by the game's own `raw_pgn_path`."""
+    game = await get_game(session, game_id, profile_id)
+    if game is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Game not found")
+    try:
+        data = await storage.get(game.raw_pgn_path)
+    except ObjectNotFoundError:
+        # The row exists but its blob is gone (e.g. a wiped local storage dir) — a
+        # data-state gap, still a 404 from the caller's perspective, with a distinct
+        # detail so the two cases are tellable apart in logs.
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Stored PGN not found"
+        ) from None
+    return data.decode("utf-8", errors="replace")
 
 
 __all__ = ["router"]

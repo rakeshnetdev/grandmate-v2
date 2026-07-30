@@ -448,6 +448,11 @@ class ReportSettings(BaseSettings):
     # and kid are unaffected: this format change is self-learner-only.
     report_self_learner_positive_max: int = 2
     report_self_learner_mistake_max: int = 3
+    # Phase 16b: the full game-story report's total finding cap across its four
+    # sections (opening/middlegame/endgame/lesson combined) — one flat cap rather than
+    # per-section caps, since which sections even exist varies per game (a short game
+    # has no endgame section at all).
+    report_story_max_findings: int = 6
     report_kid_max_findings: int = 3
     # Below this confidence, a finding is not merely under-detailed for the kid persona —
     # per persona-matrix.md's safety rules, it is suppressed entirely. A young player
