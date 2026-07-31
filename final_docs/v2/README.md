@@ -50,6 +50,7 @@ Phase 0 documentation set. Start here.
 | 15 | [Training Plan and Coaching Recommendations](phase-reports/phase-15-training-plan-recommendations.md) | Pending sign-off |
 | 16 | [Evaluation, Synthetic Data, Golden Sets, and Fine-Tuning](phase-reports/phase-16-evaluation-golden-sets-finetuning.md) | Pending sign-off |
 | 17 | [Observability, Security, and Production Hardening](phase-reports/phase-17-observability-security-hardening.md) | Pending sign-off |
+| 18 | [Beta Rollout and Evaluation Loop](phase-reports/phase-18-beta-rollout.md) | Pending sign-off |
 
 ## Other
 
