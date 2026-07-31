@@ -35,6 +35,7 @@ from app.api.dependencies.patterns import OpeningIndexDep
 from app.api.dependencies.settings import SettingsDep
 from app.api.dependencies.storage import StorageDep
 from app.db.models import GameSource, Job, JobKind, JobStatus
+from app.core.correlation import run_with_correlation
 from app.domain.analysis import run_pending_analysis_jobs
 from app.domain.imports import ImportService, SourceText, TooManyGamesError, run_platform_import_job
 from app.domain.profiles import (
@@ -138,7 +139,7 @@ async def create_import(
         # the ambiguity outright.
         await session.commit()
         background_tasks.add_task(
-            run_pending_analysis_jobs,
+            run_with_correlation(run_pending_analysis_jobs),
             result.analysis_job_ids,
             session_factory=request.app.state.db_session_factory,
             settings=settings,
@@ -213,7 +214,7 @@ async def sync_from_platform(
     await session.commit()
 
     background_tasks.add_task(
-        run_platform_import_job,
+        run_with_correlation(run_platform_import_job),
         job.id,
         provider=provider,
         username=username,

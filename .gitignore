@@ -47,3 +47,7 @@ backend/.storage/
 # Ignore skipped documentation
 docs_skipped/
 
+# LangGraph Studio local checkpoints
+.langgraph_api/
+backend/.langgraph_api/
+

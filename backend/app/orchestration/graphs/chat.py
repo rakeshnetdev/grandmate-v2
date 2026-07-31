@@ -38,9 +38,7 @@ from langgraph.graph import END, StateGraph
 from app.core.config import AgentSettings, LLMSettings
 from app.core.devinsight import SpanKind, get_recorder
 from app.db.models import Persona
-from app.domain.chat.fallback import build_fallback_answer
-from app.domain.chat.guardrail import validate_answer
-from app.domain.chat.prompts import build_agent_system_message, build_intent_messages, parse_intent
+# Shifted chat domain imports to function local scopes to break circular dependency chain
 from app.domain.llm_usage import LLMBudgetTracker
 from app.domain.memory import MemoryService
 from app.domain.memory.prompts import build_extraction_messages, parse_candidate_memories
@@ -106,6 +104,8 @@ class ChatGraphDeps:
 
 
 async def _classify_intent(state: GraphState, deps: ChatGraphDeps) -> GraphState:
+    from app.domain.chat.prompts import build_intent_messages, parse_intent
+
     with get_recorder().span(SpanKind.GRAPH_NODE, "classify_intent") as span:
         if not await deps.budget.has_budget():
             # Loop protection doubles as the daily spend guard here too: with no budget,
@@ -152,6 +152,10 @@ async def _dispatch_tool(ctx: ToolContext, call: ToolCall) -> dict[str, Any]:
 
 
 async def _run_agent(state: GraphState, deps: ChatGraphDeps) -> GraphState:
+    from app.domain.chat.fallback import build_fallback_answer
+    from app.domain.chat.guardrail import validate_answer
+    from app.domain.chat.prompts import build_agent_system_message
+
     with get_recorder().span(SpanKind.AGENT, "run_agent", intent=state.get("intent")) as outer_span:
         persona = Persona(state["persona"])
         system_message = build_agent_system_message(

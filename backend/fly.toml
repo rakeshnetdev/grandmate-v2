@@ -1,0 +1,33 @@
+# fly.toml app configuration file for GrandMate v2
+
+app = 'grandmate-v2-backend'
+primary_region = 'ams'
+
+[build]
+  dockerfile = 'Dockerfile'
+
+[env]
+  PORT = '7575'
+  HOST = '0.0.0.0'
+  STORAGE_LOCAL_PATH = '/app/.storage'
+
+[[mounts]]
+  source = 'grandmate_storage'
+  destination = '/app/.storage'
+
+[http_service]
+  internal_port = 7575
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [[http_service.checks]]
+    interval = '30s'
+    timeout = '5s'
+    grace_period = '1m30s'
+    path = '/health'
+
+[[vm]]
+  size = 'shared-cpu-1x'
+  memory = '1gb'

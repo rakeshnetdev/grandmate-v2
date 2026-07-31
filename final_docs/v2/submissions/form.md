@@ -10,9 +10,9 @@
 
 ### Write a succinct 1-sentence description of the problem
 
-Chess engines tell a player *what* went wrong in one game, but nothing tells them *which of
-their mistakes are habits* — so players get a verdict on a single game instead of a
-diagnosis of how they actually play.
+Chess engines tell a player *what* went wrong in one game, but nothing tells them **which of
+their mistakes are habits** — leaving them with a raw, dry verdict on a single game instead
+of a diagnostic plan to improve how they actually play.
 
 ---
 

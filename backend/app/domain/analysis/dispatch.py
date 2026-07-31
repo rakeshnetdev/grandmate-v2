@@ -116,4 +116,48 @@ async def _process_one_job(
     job.completed_at = utc_now()
 
 
-__all__ = ["run_pending_analysis_jobs"]
+async def startup_analysis_sweep(
+    session_factory: async_sessionmaker[AsyncSession],
+    settings: Settings,
+) -> None:
+    """Find all pending or stale processing analysis jobs on startup,
+    reset the processing ones to pending, and trigger their execution in the background.
+    """
+    from sqlalchemy import select
+    from app.db.models import Job, JobKind, JobStatus
+
+    try:
+        async with session_scope(session_factory) as session:
+            stmt = select(Job).where(
+                Job.kind == JobKind.ENGINE_ANALYSIS,
+                Job.status.in_([JobStatus.PENDING, JobStatus.PROCESSING]),
+            )
+            result = await session.execute(stmt)
+            jobs = result.scalars().all()
+
+            if not jobs:
+                return
+
+            job_ids = []
+            for job in jobs:
+                if job.status == JobStatus.PROCESSING:
+                    job.status = JobStatus.PENDING
+                    job.error = None
+                job_ids.append(job.id)
+
+            await session.commit()
+
+        logger.info("startup_analysis_sweep_triggered", job_count=len(job_ids))
+        # Dispatch in background task so FastAPI startup is not blocked
+        asyncio.create_task(
+            run_pending_analysis_jobs(
+                job_ids,
+                session_factory=session_factory,
+                settings=settings,
+            )
+        )
+    except Exception as exc:
+        logger.error("startup_analysis_sweep_failed", reason=str(exc))
+
+
+__all__ = ["run_pending_analysis_jobs", "startup_analysis_sweep"]

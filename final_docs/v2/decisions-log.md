@@ -60,9 +60,12 @@ and lives in `.env`. Claude must prompt the owner to add the key when the backen
 lands in Phase 1, and must not invent placeholder values.
 → ADR-0006
 
-### D-006 — Hosting · Deferred to Phase 17
-No hosting target is chosen now. Containers stay portable in the meantime so the decision
-is not foreclosed.
+### D-006 — Hosting & Managed Data Platform · Locked
+The hosting target and database strategy are resolved in Phase 17:
+- **Backend Service**: Hosted on **Fly.io** using a unified Docker container bundled with Stockfish. Ephemeral container storage is backed by a persistent volume mount (`grandmate_storage` at `/app/.storage`) for raw PGN files and reports.
+- **Frontend Client**: Hosted on **Vercel** as a static Vite/React application.
+- **Database**: Plain **Postgres 17 with pgvector** (e.g., Fly Postgres, Neon, or Supabase Postgres without platform services). The full Supabase platform features (Auth, Storage, etc.) remain deferred to minimize network latency and architectural complexity.
+
 
 ### D-007 — Database · Locked
 Supabase Postgres, run **locally via the Supabase CLI** during development. The project

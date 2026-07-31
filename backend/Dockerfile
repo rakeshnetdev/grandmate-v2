@@ -16,14 +16,29 @@ RUN apt-get update \
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
+# Create a non-root user
+RUN groupadd -g 10001 grandmate && \
+    useradd -u 10001 -g grandmate -m -s /sbin/nologin grandmate
+
 WORKDIR /app
+
+# Ensure storage directory exists and is writable by non-root user
+RUN mkdir -p /app/.storage && chown -R grandmate:grandmate /app
 
 # Dependencies first so a source change does not invalidate the dependency layer.
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project
 
+# Copy application source and required assets
 COPY app ./app
+COPY data ./data
+COPY alembic ./alembic
+COPY alembic.ini ./
 RUN uv sync --frozen --no-dev
+
+RUN chown -R grandmate:grandmate /app
+
+USER grandmate
 
 # API_HOST overrides the loopback default from .env: a container must bind all interfaces
 # or the published port reaches nothing.
@@ -39,3 +54,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s \
 
 # Entrypoint reads host and port from configuration rather than repeating them here.
 CMD ["python", "-m", "app"]
+
