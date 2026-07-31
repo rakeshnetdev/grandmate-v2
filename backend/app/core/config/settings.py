@@ -29,6 +29,7 @@ from app.core.config.groups import (
     LLMSettings,
     MemorySettings,
     MultiAgentSettings,
+    ObservabilitySettings,
     PatternSettings,
     ReportSettings,
     RetrievalSettings,
@@ -60,6 +61,7 @@ class Settings(BaseModel):
     memory: MemorySettings = Field(default_factory=MemorySettings)
     evaluation: EvaluationSettings = Field(default_factory=EvaluationSettings)
     dev_insight: DevInsightSettings = Field(default_factory=DevInsightSettings)
+    observability: ObservabilitySettings = Field(default_factory=ObservabilitySettings)
 
     @property
     def dev_insight_active(self) -> bool:

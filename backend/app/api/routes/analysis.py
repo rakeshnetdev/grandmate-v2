@@ -16,6 +16,7 @@ from app.api.dependencies.db import DbSessionDep
 from app.api.dependencies.profile_scope import ScopedProfileIdDep
 from app.api.dependencies.settings import SettingsDep
 from app.db.models import GameAnalysis, GameMove, Job
+from app.core.correlation import run_with_correlation
 from app.domain.analysis import create_retry_job, get_analysis_job, get_latest_analysis, get_moves
 from app.domain.analysis import run_pending_analysis_jobs as _run_pending_analysis_jobs
 from app.schemas.analysis import AnalysisJobSummary, GameAnalysisSummary, MoveEvaluationSummary
@@ -114,7 +115,7 @@ async def retry_game_analysis(
     # comment in imports.py's create_import for why (Phase 5 defect, fixed here).
     await session.commit()
     background_tasks.add_task(
-        _run_pending_analysis_jobs,
+        run_with_correlation(_run_pending_analysis_jobs),
         [job.id],
         session_factory=request.app.state.db_session_factory,
         settings=settings,

@@ -1,0 +1,8 @@
+{
+  "dependencies": ["."],
+  "graphs": {
+    "chat": "./app/orchestration/graphs/factories.py:make_chat_graph",
+    "multi_agent": "./app/orchestration/graphs/factories.py:make_multi_agent_graph"
+  },
+  "env": ".env"
+}

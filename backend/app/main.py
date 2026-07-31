@@ -14,7 +14,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app import __version__
-from app.api.middleware import TRACE_HEADER, DevInsightMiddleware
+from app.api.middleware import CorrelationMiddleware, RateLimitMiddleware, TRACE_HEADER, DevInsightMiddleware
 from app.api.routes import build_root_router, build_v1_router
 from app.core.config import Settings, get_settings
 from app.core.devinsight import TraceStore
@@ -65,6 +65,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # tools (`search_knowledge`, `search_analysis`) need on every graph invocation.
     app.state.embedding_provider = build_embedding_provider(settings.llm, settings.retrieval)
 
+    from app.domain.analysis.dispatch import startup_analysis_sweep
+
+    await startup_analysis_sweep(app.state.db_session_factory, settings)
+
     logger.info(
         "application_started",
         environment=settings.app.app_env,
@@ -101,6 +105,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     # it simply stays empty when tracing is off.
     app.state.trace_store = TraceStore(max_traces=settings.dev_insight.dev_insight_max_traces)
 
+    app.add_middleware(CorrelationMiddleware)
+    app.add_middleware(
+        RateLimitMiddleware,
+        limit_per_minute=settings.observability.rate_limit_per_minute,
+    )
+
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.app.cors_origins_list,
@@ -109,7 +119,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         allow_headers=["*"],
         # The browser cannot read a custom response header unless it is exposed. Without
         # this the devinsight panel would never see the trace id.
-        expose_headers=[TRACE_HEADER],
+        expose_headers=[TRACE_HEADER, "X-Request-Id", "X-Trace-Id"],
     )
 
     # Developer insight is off in production regardless of configuration: these routes

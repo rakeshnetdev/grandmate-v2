@@ -269,6 +269,7 @@ class AgentSettings(BaseSettings):
     agent_max_steps: int = 8
     agent_max_tool_calls: int = 12
     agent_token_budget: int = 20_000
+    use_multi_agent: bool = False
 
 
 class MultiAgentSettings(BaseSettings):
@@ -506,6 +507,20 @@ class EvaluationSettings(BaseSettings):
     classifier_eval_sample_size: int = 24
 
 
+class ObservabilitySettings(BaseSettings):
+    """Observability, LangSmith tracing, and rate limiting (ADR-0017, D-033)."""
+
+    model_config = _BASE_CONFIG
+
+    langsmith_tracing: bool = False
+    langsmith_api_key: SecretStr = SecretStr("")
+    langsmith_project: str = "grandmate-v2"
+    langsmith_sample_rate: float = 1.0
+    langsmith_endpoint: str = "https://api.smith.langchain.com"
+    langsmith_capture_prompts: bool = False
+    rate_limit_per_minute: int = 60
+
+
 __all__ = [
     "AgentSettings",
     "AnalyticsSettings",
@@ -519,6 +534,7 @@ __all__ = [
     "LLMSettings",
     "MemorySettings",
     "MultiAgentSettings",
+    "ObservabilitySettings",
     "PatternSettings",
     "ReportSettings",
     "RetrievalSettings",

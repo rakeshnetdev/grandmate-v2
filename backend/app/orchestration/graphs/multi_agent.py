@@ -173,7 +173,11 @@ async def _dispatch_tool(
 
 async def _supervisor(state: MultiAgentState, deps: MultiAgentGraphDeps) -> MultiAgentState:
     with get_recorder().span(SpanKind.GRAPH_NODE, "supervisor") as span:
-        steps_taken = state.get("steps_taken", 0)
+        # Reset turn-level ceilings on the very first node of the new turn
+        # to prevent leakage from previous turns stored in the checkpoint.
+        state = {**state, "steps_taken": 0, "tokens_used": 0, "tool_call_count": 0}
+        steps_taken = 0
+
         if await _ceiling_exceeded(state, deps):
             # No budget left even to classify — route straight to the coach with
             # whatever context exists (none, this early), matching `chat.py`'s
@@ -182,6 +186,9 @@ async def _supervisor(state: MultiAgentState, deps: MultiAgentGraphDeps) -> Mult
                 span.set(skipped="budget_exhausted")
             return {
                 "trace": ["supervisor"],
+                "steps_taken": 0,
+                "tokens_used": 0,
+                "tool_call_count": 0,
                 "needs_retrieval": False,
                 "needs_analysis": False,
                 # Seeded here because the supervisor always runs first — a specialist
@@ -321,7 +328,7 @@ async def _coach(state: MultiAgentState, deps: MultiAgentGraphDeps) -> MultiAgen
 
         if await _ceiling_exceeded(state, deps):
             # No budget left to phrase anything further — degrade to the deterministic,
-            # tautologically-grounded fallback directly, same as `chat.py`'s own
+            # tautologically-grounded fallback directly, same as `chat.py`s own
             # `_run_agent` does when its loop exhausts without a grounded answer.
             # `skip_critic` is set because a fallback built entirely from tool results
             # already shown to be real needs no further verification.
@@ -335,6 +342,15 @@ async def _coach(state: MultiAgentState, deps: MultiAgentGraphDeps) -> MultiAgen
                 "citations": fallback.get("citations", []),
                 "grounded": True,
                 "skip_critic": True,
+                "messages": [
+                    {"role": "user", "content": state["question"]},
+                    {
+                        "role": "assistant",
+                        "content": fallback["answer"],
+                        "citations": fallback.get("citations", []),
+                        "grounded": True,
+                    },
+                ],
             }
 
         persona = Persona(state["persona"])
@@ -391,6 +407,15 @@ async def _critic(state: MultiAgentState, deps: MultiAgentGraphDeps) -> MultiAge
                 "answer": parsed["answer"],
                 "citations": parsed.get("citations", []),
                 "grounded": True,
+                "messages": [
+                    {"role": "user", "content": state["question"]},
+                    {
+                        "role": "assistant",
+                        "content": parsed["answer"],
+                        "citations": parsed.get("citations", []),
+                        "grounded": True,
+                    },
+                ],
             }
 
         if state.get("coach_attempts", 0) >= _MAX_COACH_ATTEMPTS:
@@ -400,6 +425,15 @@ async def _critic(state: MultiAgentState, deps: MultiAgentGraphDeps) -> MultiAge
                 "answer": fallback["answer"],
                 "citations": fallback.get("citations", []),
                 "grounded": True,
+                "messages": [
+                    {"role": "user", "content": state["question"]},
+                    {
+                        "role": "assistant",
+                        "content": fallback["answer"],
+                        "citations": fallback.get("citations", []),
+                        "grounded": True,
+                    },
+                ],
             }
 
         return {"trace": ["critic"], "grounded": False, "violations": violations}

@@ -14,20 +14,23 @@ import uuid
 from dataclasses import dataclass
 from typing import Any
 
+import structlog
+
+logger = structlog.get_logger(__name__)
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import Settings
+from app.core.observability import get_tracing_context
 from app.db.base import utc_now
 from app.db.models import ChatThread, Persona
 from app.domain.chat.queries import get_owned_thread, list_threads_for_profile
-from app.domain.llm_usage import LLMBudgetTracker
-from app.domain.memory import MemoryService
 from app.domain.patterns import OpeningIndex
 from app.integrations.llm.base import EmbeddingProvider, LLMProvider
 from app.orchestration.checkpointer import open_checkpointer
-from app.orchestration.graphs.chat import ChatGraphDeps, build_chat_graph
+from app.orchestration.dependencies import build_chat_graph_deps
+from app.orchestration.graphs.chat import build_chat_graph
 from app.orchestration.store import open_store
-from app.orchestration.tools import ToolContext
 
 # A thread with no title yet is titled from the first message it receives, truncated —
 # a full question is often too long for a thread-list row.
@@ -81,34 +84,46 @@ class ChatService:
             open_checkpointer(self._settings.database) as checkpointer,
             open_store(self._settings.database) as store,
         ):
-            deps = ChatGraphDeps(
-                llm=self._llm,
-                llm_settings=self._settings.llm,
-                agent_settings=self._settings.agents,
-                budget=LLMBudgetTracker(self._session, self._settings.llm),
-                tool_context=ToolContext(
-                    session=self._session,
-                    profile_id=profile_id,
+            if self._settings.agents.use_multi_agent:
+                logger.info("routing_to_multi_agent_graph", use_multi_agent=True)
+                from app.orchestration.dependencies import build_multi_agent_graph_deps
+                from app.orchestration.graphs.multi_agent import build_multi_agent_graph
+
+                deps = build_multi_agent_graph_deps(
                     settings=self._settings,
+                    session=self._session,
+                    llm=self._llm,
                     embedding_provider=self._embedding_provider,
                     opening_index=self._opening_index,
                     store=store,
-                ),
-                memory=MemoryService(self._session, store, self._settings.memory),
-            )
-            graph = build_chat_graph(deps, checkpointer)
-            result = await graph.ainvoke(
-                {
-                    "question": question,
-                    "profile_id": str(profile_id),
-                    "thread_id": str(thread.id),
-                    "active_game_id": (
-                        str(thread.active_game_id) if thread.active_game_id else None
-                    ),
-                    "persona": persona.value,
-                },
-                config={"configurable": {"thread_id": str(thread.id)}},
-            )
+                    profile_id=profile_id,
+                )
+                graph = build_multi_agent_graph(deps, checkpointer)
+            else:
+                logger.info("routing_to_single_agent_graph", use_multi_agent=False)
+                deps = build_chat_graph_deps(
+                    settings=self._settings,
+                    session=self._session,
+                    llm=self._llm,
+                    embedding_provider=self._embedding_provider,
+                    opening_index=self._opening_index,
+                    store=store,
+                    profile_id=profile_id,
+                )
+                graph = build_chat_graph(deps, checkpointer)
+            with get_tracing_context(self._settings):
+                result = await graph.ainvoke(
+                    {
+                        "question": question,
+                        "profile_id": str(profile_id),
+                        "thread_id": str(thread.id),
+                        "active_game_id": (
+                            str(thread.active_game_id) if thread.active_game_id else None
+                        ),
+                        "persona": persona.value,
+                    },
+                    config={"configurable": {"thread_id": str(thread.id)}},
+                )
 
         if thread.title is None:
             thread.title = question[:_TITLE_MAX_LENGTH]
