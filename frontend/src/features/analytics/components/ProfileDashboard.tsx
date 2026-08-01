@@ -16,7 +16,10 @@ import { useProfileAnalytics } from '../hooks/useAnalytics';
 import { WINDOW_OPTIONS } from '../lib/constants';
 import { ClassificationRateTable } from './ClassificationRateTable';
 import { ColorSegmentationTable } from './ColorSegmentationTable';
+import { ChartTableToggle } from './ChartTableToggle';
+import { OpeningFamilyChart } from './OpeningFamilyChart';
 import { OpeningFamilyTable } from './OpeningFamilyTable';
+import { RecurringWeaknessChart } from './RecurringWeaknessChart';
 import { RecurringWeaknessList } from './RecurringWeaknessList';
 import { SampleSizeBanner } from './SampleSizeBanner';
 import { StatTile } from './StatTile';
@@ -103,12 +106,20 @@ export function ProfileDashboard({ profileId }: ProfileDashboardProps) {
               Tactical and strategic problems that cost you points and keep showing up across your
               games — patterns worth training, not one-off accidents.
             </SectionHint>
-            <RecurringWeaknessList weaknesses={analytics.recurring_weaknesses} />
+            <ChartTableToggle
+              label="Recurring weaknesses"
+              chart={<RecurringWeaknessChart weaknesses={analytics.recurring_weaknesses} />}
+              table={<RecurringWeaknessList weaknesses={analytics.recurring_weaknesses} />}
+            />
           </section>
 
           <section>
             <h2 className="mb-2 text-sm font-semibold">Opening family performance</h2>
-            <OpeningFamilyTable families={analytics.opening_family_performance} />
+            <ChartTableToggle
+              label="Opening family performance"
+              chart={<OpeningFamilyChart families={analytics.opening_family_performance} />}
+              table={<OpeningFamilyTable families={analytics.opening_family_performance} />}
+            />
           </section>
 
           <div className="grid gap-6 sm:grid-cols-2">

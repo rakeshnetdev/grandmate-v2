@@ -25,23 +25,24 @@ function stubHangingFetch() {
 }
 
 describe('ContentPanel', () => {
-  it('only offers the Overview tab when no game is selected', () => {
+  it('offers only the profile-level tabs when no game is selected', () => {
     stubHangingFetch();
     renderWithProviders(<ContentPanel tab="overview" onTabChange={() => {}} />);
 
     expect(screen.getByRole('tab', { name: 'Overview' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Learning' })).toBeInTheDocument();
     expect(screen.queryByRole('tab', { name: 'Analysis' })).not.toBeInTheDocument();
     expect(screen.queryByRole('tab', { name: 'Moves' })).not.toBeInTheDocument();
     expect(screen.queryByRole('tab', { name: 'Patterns' })).not.toBeInTheDocument();
   });
 
-  it('offers all six tabs once a game is selected', () => {
+  it('offers every tab once a game is selected', () => {
     stubHangingFetch();
     renderWithProviders(
       <ContentPanel selectedGameId="game-1" tab="analysis" onTabChange={() => {}} />,
     );
 
-    for (const label of ['Overview', 'Analysis', 'Moves', 'Patterns', 'Story', 'PGN']) {
+    for (const label of ['Overview', 'Learning', 'Analysis', 'Moves', 'Patterns', 'Story']) {
       expect(screen.getByRole('tab', { name: label })).toBeInTheDocument();
     }
   });
@@ -51,6 +52,13 @@ describe('ContentPanel', () => {
     renderWithProviders(<ContentPanel tab="moves" onTabChange={() => {}} />);
 
     expect(screen.getByRole('tab', { name: 'Overview' })).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('keeps Learning selected with no game, since it is profile-level', () => {
+    stubHangingFetch();
+    renderWithProviders(<ContentPanel tab="learning" onTabChange={() => {}} />);
+
+    expect(screen.getByRole('tab', { name: 'Learning' })).toHaveAttribute('aria-selected', 'true');
   });
 
   it('marks the given tab active once a game is selected', () => {

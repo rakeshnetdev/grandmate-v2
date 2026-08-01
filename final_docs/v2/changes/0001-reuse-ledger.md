@@ -74,6 +74,12 @@ formula, independently re-implemented against v2's own Tailwind theme tokens.
 | Classification pill-badge coloring | `grandmate/frontend` (move-classification badges) | `frontend/src/shared/lib/classification.ts`, `frontend/src/shared/components/ui/classification-badge.tsx` | 16a | Ported (pattern only) | The "10%-opacity background / full-opacity text / 20%-opacity border" Tailwind color formula was noticed in the reference app's badge styling and re-implemented from scratch as `CLASSIFICATION_BADGE_CLASS`, using v2's own Tailwind color scale and dark-mode variants. No CSS, class strings, or component code were copied. |
 | Chess-notation highlighting in prose | `grandmate/frontend` (analysis/report text rendering) | `frontend/src/shared/lib/prose.tsx` | 16a | Ported (pattern only) | The general idea of visually distinguishing SAN moves and classification words (blunder/mistake/inaccuracy/best) inline within prose was inspired by the reference app's report styling. The implementation — a `react-markdown` wrapper with a named-capture-group regex applied via component overrides — is new, written for v2's markdown-based analysis/report/chat text rather than adapted from any reference source. |
 
+## Brand assets
+
+| Item | Reference path | v2 destination | Phase | Status | Notes |
+|------|---------------|----------------|-------|--------|-------|
+| Favicon / logo mark | `grandmate/frontend/public/favicon.svg` | `frontend/public/favicon.svg` | — | Ported (verbatim) | Copied at the owner's request. The one case on this ledger where a file is taken as-is rather than re-implemented: it is a brand asset, and the point is that both apps carry the same mark. v2's previous favicon was an unbranded placeholder. `public/icons.svg` was already byte-identical between the two projects and was not touched. |
+
 ## Not carried over
 
 | Item | Reason |

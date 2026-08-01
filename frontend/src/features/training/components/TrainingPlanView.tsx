@@ -3,9 +3,13 @@
  * profile's own recurring weaknesses plus cited study material, and recommendations —
  * same source-transparency reasoning `features/reports/components/ReportView.tsx`
  * documents (an LLM claim's provenance is never hidden from the reader).
+ *
+ * Findings are bulleted with chess pieces rather than boxed in borders. A stack of
+ * bordered rows read as a list of problems; the same text as knight-marked points reads
+ * as a list of things to work on, which is what a training plan is meant to be.
  */
+import { PieceList, PieceListItem } from '@/shared/components/ui/piece-list';
 import { Prose } from '@/shared/lib/prose';
-import { cn } from '@/shared/lib/utils';
 
 import type { TrainingRecommendation } from '../api/training';
 
@@ -30,36 +34,41 @@ interface TrainingPlanViewProps {
 
 export function TrainingPlanView({ plan }: TrainingPlanViewProps) {
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <div className="flex items-start justify-between gap-3">
         <Prose className="flex-1">{plan.summary}</Prose>
         <SourceBadge source={plan.source} />
       </div>
 
       {plan.findings.length > 0 && (
-        <ul className="space-y-2">
+        <PieceList>
           {plan.findings.map((finding, index) => (
-            <li
+            <PieceListItem
               key={`${finding.fact_ids.join('-')}-${index}`}
-              className={cn('rounded-md border border-border px-3 py-2')}
+              piece="knight"
+              tone="text-indigo-600/70 dark:text-indigo-400/70"
             >
               <Prose>{finding.text}</Prose>
-            </li>
+            </PieceListItem>
           ))}
-        </ul>
+        </PieceList>
       )}
 
       {plan.recommendations.length > 0 && (
-        <div>
-          <h3 className="mb-1 text-sm font-semibold">This week's focus</h3>
-          <ul className="list-inside list-disc space-y-1 text-muted-foreground">
+        <section className="space-y-2">
+          <h3 className="text-sm font-semibold">This week&apos;s focus</h3>
+          <PieceList>
             {plan.recommendations.map((recommendation) => (
-              <li key={recommendation}>
+              <PieceListItem
+                key={recommendation}
+                piece="pawn"
+                tone="text-emerald-600/70 dark:text-emerald-400/70"
+              >
                 <Prose inline>{recommendation}</Prose>
-              </li>
+              </PieceListItem>
             ))}
-          </ul>
-        </div>
+          </PieceList>
+        </section>
       )}
     </div>
   );

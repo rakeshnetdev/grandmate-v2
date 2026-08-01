@@ -3,7 +3,7 @@
  * list), the insufficient-sample banner, and switching windows re-fetches with the new
  * window size.
  */
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -95,7 +95,7 @@ describe('ProfileDashboard', () => {
     expect(await screen.findByText(/No analyzed games yet/)).toBeInTheDocument();
   });
 
-  it('renders stat tiles, tables, and the weakness list once data loads', async () => {
+  it('renders stat tiles, charts, and the weakness figures once data loads', async () => {
     mockFetchByWindow({ 10: POPULATED_SNAPSHOT });
 
     renderWithProviders(<ProfileDashboard />);
@@ -104,12 +104,30 @@ describe('ProfileDashboard', () => {
     expect(screen.getByText(/\+8.5 pts vs\. prior window/)).toBeInTheDocument();
     expect(screen.getByText('Ruy Lopez')).toBeInTheDocument();
     expect(screen.getByText('Hanging Piece')).toBeInTheDocument();
-    expect(screen.getByText(/2 of the window's games/)).toBeInTheDocument();
+    // Sections default to the chart view, which direct-labels the same figures the
+    // table carried — the count and the rate are both still on screen. Scoped to the
+    // weakness section: the opening chart labels its rows with a game count too.
+    const weaknessSection = screen.getByRole('group', { name: 'Recurring weaknesses view' })
+      .parentElement as HTMLElement;
+    expect(within(weaknessSection).getByText(/^2 games ·/)).toBeInTheDocument();
     // Metric explainers: bare numbers must carry plain-language descriptions.
     expect(screen.getByText(/matched the engine's top choice/)).toBeInTheDocument();
     expect(screen.getByText(/turning points where a game was won or lost/)).toBeInTheDocument();
     expect(screen.getByText(/graded against the engine's best option/)).toBeInTheDocument();
     expect(screen.getByText(/patterns worth training/)).toBeInTheDocument();
+  });
+
+  it('switches a section to its table view without losing the numbers', async () => {
+    mockFetchByWindow({ 10: POPULATED_SNAPSHOT });
+    const user = userEvent.setup();
+
+    renderWithProviders(<ProfileDashboard />);
+    await screen.findByText('88.5%');
+
+    const weaknessGroup = screen.getByRole('group', { name: 'Recurring weaknesses view' });
+    await user.click(within(weaknessGroup).getByRole('button', { name: 'Table' }));
+
+    expect(screen.getByText(/2 of the window's games/)).toBeInTheDocument();
   });
 
   it('shows the sample-size banner when the snapshot is not yet confident', async () => {

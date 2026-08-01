@@ -9,6 +9,7 @@ reviewable in a pull request.
 
 | Diagram | What it shows | Referenced from |
 |---|---|---|
+| [`system-flow.md`](system-flow.md) | Every feature in one diagram: what is deterministic, where the LLM is called, and which prompt builder each call uses | — (standalone) |
 | [`user-workflow-pain-points.md`](user-workflow-pain-points.md) | How a player tries to learn from their games today, and where that loop fails | `Deliverables.md` §1.3 |
 | [`system-infrastructure.md`](system-infrastructure.md) | The stack, one box per piece of infrastructure, with a one-sentence justification per choice | `Deliverables.md` §2.2 · `ARCHITECTURE.md` §2 |
 | [`component-architecture.md`](component-architecture.md) | Module-level view, and the one dependency edge that is a CI-enforced rule | `ARCHITECTURE.md` §2 |
