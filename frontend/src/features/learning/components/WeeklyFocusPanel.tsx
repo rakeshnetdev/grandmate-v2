@@ -7,16 +7,15 @@
  * ranking of aggregates that were already computed — see `lib/selection.ts`. This panel
  * decides *presentation order*, never chess truth.
  *
- * "Give me next" walks further down the same ranking rather than re-querying: the ranked
- * list is already in memory, so advancing a round is a slice, not a fetch. Everything
- * passed over collects in the completed panel at the bottom, still linked, so a reader
- * can go back to something they worked through earlier.
+ * "Give me next" marks the current items covered and shows the next ones down the same
+ * ranking rather than re-querying — the ranked list is already in memory, so advancing is
+ * a slice, not a fetch. Covered items persist across reloads (see `useCoveredFocus`) and
+ * collect in the panel at the bottom, still linked, so a reader can go back to something
+ * they worked through earlier.
  *
  * Each tile links out to Lichess so the next step after reading is one click, rather than
  * the reader having to translate "you keep missing forks" into a search.
  */
-import { useState } from 'react';
-
 import { BookOpen, ExternalLink, RotateCcw, Swords } from 'lucide-react';
 
 import { useProfileAnalytics } from '@/features/analytics';
@@ -27,12 +26,9 @@ import { Button } from '@/shared/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/components/ui/card';
 
 import { humaniseMotif, lichessOpeningUrl, lichessPuzzleUrl } from '../lib/lichess';
-import {
-  FOCUS_COUNT,
-  paginateFocus,
-  rankMotifsToLearn,
-  rankOpeningsToLearn,
-} from '../lib/selection';
+import { useCoveredFocus } from '../hooks/useCoveredFocus';
+import { motifKey, openingKey } from '../lib/covered-storage';
+import { rankMotifsToLearn, rankOpeningsToLearn, splitFocus } from '../lib/selection';
 
 interface WeeklyFocusPanelProps {
   profileId?: string;
@@ -144,7 +140,7 @@ function CompletedList({
     <section className="border-t border-border pt-4">
       <h3 className="text-sm font-semibold">Already covered</h3>
       <p className="mt-1 text-xs text-muted-foreground">
-        Items from earlier rounds. Still linked if you want another pass.
+        Items you have moved past. Still linked if you want another pass.
       </p>
       <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
         {items.map((item) => (
@@ -175,18 +171,23 @@ export function WeeklyFocusPanel({ profileId, persona = 'self_learner' }: Weekly
   const { data: analytics, isLoading } = useProfileAnalytics(windowSize, profileId);
   const { data: plan } = useTrainingPlan(windowSize, persona, profileId);
 
-  // Round state is intentionally in-memory: it is a reading position, not a record of
-  // work done, and persisting it would imply a completion the system cannot verify.
-  const [round, setRound] = useState(0);
+  const { covered, markCovered, reset } = useCoveredFocus(profileId);
 
   const rankedOpenings = rankOpeningsToLearn(analytics);
   const rankedMotifs = rankMotifsToLearn(analytics);
-  const openings = paginateFocus(rankedOpenings, round);
-  const motifs = paginateFocus(rankedMotifs, round);
+  const openings = splitFocus(rankedOpenings, (o) => openingKey(o.family), covered);
+  const motifs = splitFocus(rankedMotifs, (m) => motifKey(m.name), covered);
 
-  const hasNextRound =
-    rankedOpenings.length > (round + 1) * FOCUS_COUNT ||
-    rankedMotifs.length > (round + 1) * FOCUS_COUNT;
+  const anythingCovered = openings.completed.length + motifs.completed.length > 0;
+  // Something is showing now, so there is something to move past.
+  const canAdvance = openings.current.length + motifs.current.length > 0;
+
+  const handleNext = () => {
+    markCovered([
+      ...openings.current.map((o) => openingKey(o.family)),
+      ...motifs.current.map((m) => motifKey(m.name)),
+    ]);
+  };
 
   if (isLoading) {
     return <p className="text-sm text-muted-foreground">Computing…</p>;
@@ -204,9 +205,7 @@ export function WeeklyFocusPanel({ profileId, persona = 'self_learner' }: Weekly
     <div className="space-y-6">
       <section className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-sm font-semibold">
-            This week&apos;s focus{round > 0 && ` · round ${round + 1}`}
-          </h2>
+          <h2 className="text-sm font-semibold">This week&apos;s focus</h2>
           <p className="mt-1 text-xs text-muted-foreground">
             Drawn from your last {analytics.games_included} analyzed games. Each item opens the
             matching Lichess trainer.
@@ -218,21 +217,22 @@ export function WeeklyFocusPanel({ profileId, persona = 'self_learner' }: Weekly
           )}
         </div>
         <div className="flex items-center gap-2">
-          {round > 0 && (
-            <Button variant="ghost" size="sm" onClick={() => setRound(0)}>
+          {anythingCovered && (
+            <Button variant="ghost" size="sm" onClick={reset}>
               <RotateCcw className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
               Start over
             </Button>
           )}
-          <Button size="sm" onClick={() => setRound((r) => r + 1)} disabled={!hasNextRound}>
+          <Button size="sm" onClick={handleNext} disabled={!canAdvance}>
             Give me next
           </Button>
         </div>
       </section>
 
-      {!hasNextRound && round > 0 && (
+      {!canAdvance && anythingCovered && (
         <p className="text-xs text-muted-foreground">
-          That is everything your games support right now. Analyze more games for a longer list.
+          You have been through everything your games support right now. Analyze more games for a
+          longer list, or start over.
         </p>
       )}
 
@@ -250,7 +250,7 @@ export function WeeklyFocusPanel({ profileId, persona = 'self_learner' }: Weekly
       <section>
         <h3 className="mb-2 text-sm font-semibold">Openings to study</h3>
         {openings.current.length === 0 ? (
-          <p className="text-xs text-muted-foreground">Nothing further in this round.</p>
+          <p className="text-xs text-muted-foreground">Nothing further to cover here.</p>
         ) : (
           <ul className="grid gap-2 md:grid-cols-3">
             {openings.current.map((o) => (
@@ -274,7 +274,7 @@ export function WeeklyFocusPanel({ profileId, persona = 'self_learner' }: Weekly
       <section>
         <h3 className="mb-2 text-sm font-semibold">Tactics to drill</h3>
         {motifs.current.length === 0 ? (
-          <p className="text-xs text-muted-foreground">Nothing further in this round.</p>
+          <p className="text-xs text-muted-foreground">Nothing further to cover here.</p>
         ) : (
           <ul className="grid gap-2 md:grid-cols-3">
             {motifs.current.map((m) => (

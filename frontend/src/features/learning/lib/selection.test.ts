@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest';
 import type { ProfileAnalytics } from '@/features/analytics';
 
 import { lichessOpeningUrl, lichessPuzzleUrl } from './lichess';
-import { paginateFocus, rankMotifsToLearn, rankOpeningsToLearn } from './selection';
+import { rankMotifsToLearn, rankOpeningsToLearn, splitFocus } from './selection';
 
 function analytics(overrides: Partial<ProfileAnalytics>): ProfileAnalytics {
   return {
@@ -124,25 +124,40 @@ describe('lichess links', () => {
   });
 });
 
-describe('paginateFocus', () => {
+describe('splitFocus', () => {
   const ranked = ['a', 'b', 'c', 'd', 'e', 'f', 'g'];
+  const id = (s: string) => s;
 
-  it('shows the first three and nothing completed on round 0', () => {
-    expect(paginateFocus(ranked, 0)).toEqual({ current: ['a', 'b', 'c'], completed: [] });
+  it('shows the first three and nothing covered when nothing has been covered', () => {
+    expect(splitFocus(ranked, id, new Set())).toEqual({
+      current: ['a', 'b', 'c'],
+      completed: [],
+    });
   });
 
-  it('advances by three and moves the earlier round into completed', () => {
-    expect(paginateFocus(ranked, 1)).toEqual({
+  it('skips covered items and shows the next three', () => {
+    expect(splitFocus(ranked, id, new Set(['a', 'b', 'c']))).toEqual({
       current: ['d', 'e', 'f'],
       completed: ['a', 'b', 'c'],
     });
   });
 
-  it('returns a short final round rather than padding it', () => {
-    expect(paginateFocus(ranked, 2).current).toEqual(['g']);
+  it('stays correct when the ranking reorders around a covered item', () => {
+    // 'a' moved to the end after new games were analyzed; it is still covered, and the
+    // three current items are the next uncovered ones in the new order.
+    const reordered = ['d', 'b', 'e', 'c', 'f', 'g', 'a'];
+
+    const result = splitFocus(reordered, id, new Set(['a', 'b']));
+
+    expect(result.current).toEqual(['d', 'e', 'c']);
+    expect(result.completed).toEqual(['b', 'a']);
   });
 
-  it('runs out cleanly past the end', () => {
-    expect(paginateFocus(ranked, 5).current).toEqual([]);
+  it('returns a short list rather than padding it', () => {
+    expect(splitFocus(ranked, id, new Set(['a', 'b', 'c', 'd', 'e'])).current).toEqual(['f', 'g']);
+  });
+
+  it('runs out cleanly once everything is covered', () => {
+    expect(splitFocus(ranked, id, new Set(ranked)).current).toEqual([]);
   });
 });
