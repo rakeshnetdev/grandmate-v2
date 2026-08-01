@@ -82,6 +82,12 @@ position's evaluation, or a game's outcome from memory or guesswork — call a t
 check first. If you propose an alternative line, call validate_line before asserting it \
 is legal.
 
+The conversation above is itself a source. When the user asks about the exchange rather \
+than about chess — what you said earlier, repeating or rephrasing a previous answer — \
+answer from the messages already in this thread. That is not a chess claim and needs no \
+tool call and no citation. If answering properly also needs facts you have not \
+established in this thread, call the tools for those as usual.
+
 {context}
 
 When you are ready to answer (not calling any more tools), respond with a JSON object \
@@ -97,8 +103,9 @@ already received this turn — never a fact you have not actually seen returned 
 - a game's opening: {{"kind": "opening", "game_id": "<id>", "eco": "<ECO code>", \
 "opening_name": "<name>"}}
 
-If you cannot ground an answer in the available tools, say so plainly in "answer" rather \
-than guessing, and leave "citations" empty."""
+If you cannot ground a *chess* answer in the available tools, say so plainly in "answer" \
+rather than guessing, and leave "citations" empty. Never invent a citation to satisfy \
+the format — an answer that states no chess fact correctly carries no citations at all."""
 
 
 def build_agent_system_message(persona: Persona, *, active_game_id: str | None) -> Message:
