@@ -3,4 +3,5 @@
  *
  * Other features import from here, never from internal paths.
  */
+export { SignedOutIntro } from './components/SignedOutIntro';
 export { WorkspaceShell } from './components/WorkspaceShell';
