@@ -61,17 +61,25 @@ export function rankMotifsToLearn(analytics: ProfileAnalytics | undefined): Recu
 }
 
 /**
- * The slice shown in round `round` (0-based), and everything already worked through.
+ * Split a ranked list into what to show now and what has already been covered.
  *
- * "Completed" is by definition everything before the current round — the panel is a
- * record of what the reader has been shown and moved past, not a claim that they
- * actually solved the puzzles. There is no completion signal from Lichess to verify
- * against, and inventing one would be a claim the system cannot support.
+ * Driven by a set of covered keys rather than a round index, so the split stays correct
+ * when the ranking is recomputed — new games change the order, and a positional cursor
+ * would start describing items the reader never saw.
+ *
+ * "Covered" means shown and moved past, not verified as solved. There is no completion
+ * signal from Lichess to check against, and inventing one would be a claim the system
+ * cannot support.
  */
-export function paginateFocus<T>(ranked: T[], round: number): { current: T[]; completed: T[] } {
-  const start = round * FOCUS_COUNT;
-  return {
-    current: ranked.slice(start, start + FOCUS_COUNT),
-    completed: ranked.slice(0, start),
-  };
+export function splitFocus<T>(
+  ranked: T[],
+  keyOf: (item: T) => string,
+  covered: ReadonlySet<string>,
+): { current: T[]; completed: T[] } {
+  const remaining: T[] = [];
+  const completed: T[] = [];
+  for (const item of ranked) {
+    (covered.has(keyOf(item)) ? completed : remaining).push(item);
+  }
+  return { current: remaining.slice(0, FOCUS_COUNT), completed };
 }

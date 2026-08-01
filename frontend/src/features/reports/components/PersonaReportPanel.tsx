@@ -6,6 +6,8 @@ import { useState } from 'react';
 
 import type { PersonaValue } from '../api/reports';
 import { useGameReport } from '../hooks/useReports';
+import { isAnalysisPending } from '../lib/pending';
+import { AnalyzingNotice } from './AnalyzingNotice';
 import { PersonaSwitcher } from './PersonaSwitcher';
 import { ReportView } from './ReportView';
 
@@ -17,16 +19,24 @@ interface PersonaReportPanelProps {
 
 export function PersonaReportPanel({ gameId, profileId }: PersonaReportPanelProps) {
   const [persona, setPersona] = useState<PersonaValue>('self_learner');
-  const { data: report, isLoading, isError } = useGameReport(gameId, persona, profileId);
+  const { data: report, isLoading, isError, error } = useGameReport(gameId, persona, profileId);
+
+  // "The engine has not got here yet" is the normal state right after an import, not a
+  // failure — it only looked like one because both arrive as a 404.
+  const pending = isAnalysisPending(error);
 
   return (
     <div className="space-y-4">
       <PersonaSwitcher value={persona} onChange={setPersona} />
 
-      {isLoading ? (
+      {pending ? (
+        <AnalyzingNotice gameId={gameId} />
+      ) : isLoading ? (
         <p className="text-sm text-muted-foreground">Generating report…</p>
       ) : isError ? (
-        <p className="text-sm text-destructive">Could not load the report.</p>
+        <p className="text-sm text-destructive">
+          Could not load the report. The game may have failed to analyze — try re-importing it.
+        </p>
       ) : report ? (
         <ReportView report={report} />
       ) : null}

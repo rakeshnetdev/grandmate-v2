@@ -8,3 +8,5 @@ export { PersonaSwitcher } from './components/PersonaSwitcher';
 export { StoryView } from './components/StoryView';
 export { useGameReport, useGameStory, reportKeys } from './hooks/useReports';
 export type { GameReport, PersonaValue, ReportFinding } from './api/reports';
+export { AnalyzingNotice } from './components/AnalyzingNotice';
+export { isAnalysisPending } from './lib/pending';

@@ -1,13 +1,30 @@
 /**
  * Feature hook for persona game reports (Phase 9).
  *
- * No polling: unlike engine analysis, a report is generated synchronously within the
- * request (`domain/reports/service.py`'s get-or-generate) — slower than a cached fetch,
- * but there is no background job to wait on.
+ * Report *generation* is synchronous within the request (`domain/reports/service.py`'s
+ * get-or-generate), so there is no job to wait on there. What these hooks do wait on is
+ * the engine analysis the report is built from: that runs as a background job after
+ * import, and until it finishes the route answers 404 "no analysis found yet". So the
+ * queries poll while — and only while — the error says exactly that, and stop the moment
+ * they get a report or a genuine failure.
  */
 import { useQuery } from '@tanstack/react-query';
 
 import { fetchGameReport, fetchGameStory, type PersonaValue } from '../api/reports';
+import { isAnalysisPending } from '../lib/pending';
+
+/**
+ * How often to re-ask while the engine is still working. A game is roughly 7s of
+ * analysis and sits behind a bounded-concurrency queue, so a few seconds is responsive
+ * without hammering the API for the length of a large import.
+ */
+const ANALYSIS_POLL_MS = 4000;
+
+/** Retry only the "not analyzed yet" case, and keep retrying it — a real error stops. */
+const pollWhilePending = {
+  retry: (_failureCount: number, error: unknown) => isAnalysisPending(error),
+  retryDelay: ANALYSIS_POLL_MS,
+} as const;
 
 const SELF_KEY = 'self';
 
@@ -32,6 +49,7 @@ export function useGameReport(
     // analysis changes, so there is nothing to gain from refetching an already-loaded
     // report on window focus etc.
     staleTime: Infinity,
+    ...pollWhilePending,
   });
 }
 
@@ -43,5 +61,6 @@ export function useGameStory(gameId: string | undefined, profileId?: string) {
     queryFn: ({ signal }) => fetchGameStory(gameId as string, profileId, signal),
     enabled: Boolean(gameId),
     staleTime: Infinity,
+    ...pollWhilePending,
   });
 }
