@@ -4,7 +4,7 @@
  * wrapper so fetch/loading/error handling stays owned by the `reports` feature's own
  * hook, matching `AnalysisTab`'s pattern.
  */
-import { StoryView, useGameStory } from '@/features/reports';
+import { AnalyzingNotice, StoryView, isAnalysisPending, useGameStory } from '@/features/reports';
 
 interface StoryTabProps {
   gameId: string;
@@ -12,10 +12,20 @@ interface StoryTabProps {
 }
 
 export function StoryTab({ gameId, profileId }: StoryTabProps) {
-  const { data: story, isLoading, isError } = useGameStory(gameId, profileId);
+  const { data: story, isLoading, isError, error } = useGameStory(gameId, profileId);
 
+  // Same distinction the persona report makes: a game whose engine analysis has not
+  // finished is pending, not broken.
+  if (isAnalysisPending(error)) {
+    return <AnalyzingNotice gameId={gameId} />;
+  }
   if (isError) {
-    return <p className="text-sm text-destructive">Could not load this game's story.</p>;
+    return (
+      <p className="text-sm text-destructive">
+        Could not load this game&apos;s story. The game may have failed to analyze — try
+        re-importing it.
+      </p>
+    );
   }
   if (isLoading || !story) {
     return (
