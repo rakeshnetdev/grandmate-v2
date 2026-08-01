@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 from collections.abc import Iterator
 from contextlib import contextmanager
-from typing import Any
+from typing import Any, cast
 
 import structlog
 from langchain_core.tracers.context import tracing_v2_enabled
@@ -79,7 +79,12 @@ def get_tracing_context(settings: Settings) -> Iterator[None]:
     os.environ["LANGSMITH_TRACING_SAMPLING_RATE"] = str(obs.langsmith_sample_rate)
 
     def sanitize(data: dict[str, Any]) -> dict[str, Any]:
-        return sanitize_data(data, capture_sensitive=obs.langsmith_capture_prompts)
+        # `sanitize_data` is deliberately `Any`-typed — it recurses over arbitrary
+        # structures. A dict in always yields a dict out, so narrow here rather than
+        # loosening this callback's contract with LangSmith.
+        return cast(
+            "dict[str, Any]", sanitize_data(data, capture_sensitive=obs.langsmith_capture_prompts)
+        )
 
     client = Client(
         api_key=api_key,

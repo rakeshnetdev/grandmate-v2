@@ -88,7 +88,7 @@ class ChatService:
                 from app.orchestration.dependencies import build_multi_agent_graph_deps
                 from app.orchestration.graphs.multi_agent import build_multi_agent_graph
 
-                deps = build_multi_agent_graph_deps(
+                multi_deps = build_multi_agent_graph_deps(
                     settings=self._settings,
                     session=self._session,
                     llm=self._llm,
@@ -97,10 +97,10 @@ class ChatService:
                     store=store,
                     profile_id=profile_id,
                 )
-                graph = build_multi_agent_graph(deps, checkpointer)
+                graph = build_multi_agent_graph(multi_deps, checkpointer)
             else:
                 logger.info("routing_to_single_agent_graph", use_multi_agent=False)
-                deps = build_chat_graph_deps(
+                chat_deps = build_chat_graph_deps(
                     settings=self._settings,
                     session=self._session,
                     llm=self._llm,
@@ -109,7 +109,7 @@ class ChatService:
                     store=store,
                     profile_id=profile_id,
                 )
-                graph = build_chat_graph(deps, checkpointer)
+                graph = build_chat_graph(chat_deps, checkpointer)
             with get_tracing_context(self._settings):
                 result = await graph.ainvoke(
                     {

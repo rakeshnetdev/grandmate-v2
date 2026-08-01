@@ -1,0 +1,4 @@
+# file: /Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/app/orchestration/graphs/multi_agent.py
+# hypothesis_version: 6.161.6
+
+['MultiAgentGraphDeps', 'MultiAgentState', 'active_game_id', 'analysis_context', 'answer', 'arguments', 'assistant', 'budget_exhausted', 'chess_analyst', 'citations', 'coach', 'coach_attempts', 'content', 'critic', 'draft_raw', 'error', 'grounded', 'json_object', 'messages', 'needs_analysis', 'needs_retrieval', 'persona', 'question', 'result', 'retrieval_context', 'retriever', 'role', 'skip_critic', 'steps_taken', 'supervisor', 'tokens_used', 'tool', 'tool_call_count', 'trace', 'user', 'violations']

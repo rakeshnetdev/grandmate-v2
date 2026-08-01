@@ -1,0 +1,4 @@
+# file: /Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/app/domain/chat/service.py
+# hypothesis_version: 6.161.6
+
+['ChatService', 'ChatTurnResult', 'active_game_id', 'answer', 'channel_values', 'citations', 'configurable', 'grounded', 'messages', 'persona', 'profile_id', 'question', 'thread_id']
