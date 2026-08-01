@@ -42,6 +42,17 @@
   --border: oklch(0.9 0.005 260);
   --input: oklch(0.9 0.005 260);
   --ring: oklch(0.45 0.15 260);
+
+  /* Data-visualization palette (validated: lightness band, chroma floor, CVD
+     separation, normal-vision floor, contrast — see docs/diagrams/system-flow.md's
+     sibling note in the analytics components). Kept as tokens rather than literals in
+     components so light/dark swap in one place, like every other colour here. */
+  --viz-series-1: #2a78d6; /* categorical slot 1 — blue */
+  --viz-series-2: #eb6834; /* categorical slot 2 — orange */
+  --viz-win: #2a78d6; /* diverging pole: good */
+  --viz-draw: #a9a8a3; /* diverging neutral — achromatic by design */
+  --viz-loss: #e34948; /* diverging pole: bad */
+  --viz-track: oklch(0.94 0.005 260); /* unfilled meter/bar track */
 }
 
 @media (prefers-color-scheme: dark) {
@@ -70,6 +81,13 @@
     --border: oklch(0.28 0.01 260);
     --input: oklch(0.28 0.01 260);
     --ring: oklch(0.7 0.15 260);
+
+    --viz-series-1: #3987e5;
+    --viz-series-2: #d95926;
+    --viz-win: #3987e5;
+    --viz-draw: #7d7c77;
+    --viz-loss: #e66767;
+    --viz-track: oklch(0.28 0.01 260);
   }
 }
 
@@ -107,6 +125,17 @@
   --border: oklch(0.9 0.005 260);
   --input: oklch(0.9 0.005 260);
   --ring: oklch(0.45 0.15 260);
+
+  /* Data-visualization palette (validated: lightness band, chroma floor, CVD
+     separation, normal-vision floor, contrast — see docs/diagrams/system-flow.md's
+     sibling note in the analytics components). Kept as tokens rather than literals in
+     components so light/dark swap in one place, like every other colour here. */
+  --viz-series-1: #2a78d6; /* categorical slot 1 — blue */
+  --viz-series-2: #eb6834; /* categorical slot 2 — orange */
+  --viz-win: #2a78d6; /* diverging pole: good */
+  --viz-draw: #a9a8a3; /* diverging neutral — achromatic by design */
+  --viz-loss: #e34948; /* diverging pole: bad */
+  --viz-track: oklch(0.94 0.005 260); /* unfilled meter/bar track */
 }
 
 :root[data-theme='dark'] {
@@ -134,6 +163,13 @@
   --border: oklch(0.28 0.01 260);
   --input: oklch(0.28 0.01 260);
   --ring: oklch(0.7 0.15 260);
+
+  --viz-series-1: #3987e5;
+  --viz-series-2: #d95926;
+  --viz-win: #3987e5;
+  --viz-draw: #7d7c77;
+  --viz-loss: #e66767;
+  --viz-track: oklch(0.28 0.01 260);
 }
 
 @theme inline {
