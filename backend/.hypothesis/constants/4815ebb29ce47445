@@ -1,0 +1,4 @@
+# file: /Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/app/domain/chat/prompts.py
+# hypothesis_version: 6.161.6
+
+['INTENTS', 'PERSONA_VOICE', 'compare', 'conversational', 'explain', 'intent', 'parse_intent', 'summarise', 'system', 'train_next', 'user']

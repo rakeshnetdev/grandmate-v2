@@ -1,0 +1,4 @@
+# file: /Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/app/domain/reports/service.py
+# hypothesis_version: 6.161.6
+
+['*', '?', 'Black', 'ReportService', 'Result', 'White', 'fact_ids', 'findings', 'json_object', 'report.critic', 'report.generate', 'report.story.critic', 'story']

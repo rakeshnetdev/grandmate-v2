@@ -1,0 +1,4 @@
+# file: /Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/app/domain/auth/service.py
+# hypothesis_version: 6.161.6
+
+['AuthService', 'LoginResult', 'Me', 'Study games', 'kind', 'opponent', 'provider', 'purpose', 'study', 'user', 'username', 'username_claim']

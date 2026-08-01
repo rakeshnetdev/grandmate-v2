@@ -1,0 +1,4 @@
+# file: /Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/app/domain/patterns/themes/board_helpers.py
+# hypothesis_version: 6.161.6
+
+['CENTRE_SQUARES', 'HOME_MINOR_SQUARES', 'doubled_pawn_files', 'isolated_pawn_files', 'king_shield_squares', 'passed_pawn_squares', 'pawn_advancement', 'pawn_squares']

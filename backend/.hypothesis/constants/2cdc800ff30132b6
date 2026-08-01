@@ -1,0 +1,4 @@
+# file: /Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/app/domain/reports/fallback.py
+# hypothesis_version: 6.161.6
+
+[', ', '.', 'Black', 'Move quality: ', 'Notable finding.', 'White', '_', 'accuracy', 'best', 'best_move_san', 'classification', 'counts', 'eco', 'eval_swing_cp', 'fact_ids', 'findings', 'kind', 'mate_swing', 'mistake', 'motif', 'move', 'opening', 'opening_name', 'ply', 'recommendations', 'san', 'strength', 'summary', 'text', 'theme']

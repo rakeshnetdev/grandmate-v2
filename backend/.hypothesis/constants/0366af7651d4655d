@@ -1,0 +1,4 @@
+# file: /Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/app/core/logging.py
+# hypothesis_version: 6.161.6
+
+['%(message)s', 'configure_logging', 'get_logger', 'iso']

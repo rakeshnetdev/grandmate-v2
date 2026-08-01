@@ -1,0 +1,4 @@
+# file: /Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/app/workers/base.py
+# hypothesis_version: 6.161.6
+
+['Job', 'JobContext', 'JobResult', 'JobStatus', 'PayloadT', 'completed', 'failed', 'job_failed', 'job_finished', 'job_started', 'pending', 'running', 'skipped', 'type']

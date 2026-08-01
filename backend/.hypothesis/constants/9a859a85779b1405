@@ -1,0 +1,4 @@
+# file: /Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/evals/harness/ledger.py
+# hypothesis_version: 6.161.6
+
+[1.0, '*.json', '.', 'GateResult', 'LedgerReport', 'None.', 'Regression', 'RunRecord', '^\\d{8}T\\d{6}Z_', '_', '__main__', 'answer_accuracy', 'build_ledger_report', 'check_gates', 'context_precision', 'context_recall', 'discover_runs', 'fact_invariance_rate', 'faithfulness', 'find_regressions', 'kid_safety_rate', 'ledger.md', 'min', 'render_markdown', 'reports', 'results', 'reviewed_query_count', 'runs', 'staleness_resolved', 'timestamp', 'utf-8', '| Metric | Value |', '|--------|-------|']

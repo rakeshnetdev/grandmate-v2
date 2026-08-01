@@ -1,0 +1,4 @@
+# file: /Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/app/domain/analysis/classification.py
+# hypothesis_version: 6.161.6
+
+[100000, 'classify_move', 'compute_cpl', 'display_swing_cp', 'is_mate_swing']

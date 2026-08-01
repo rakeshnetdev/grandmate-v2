@@ -1,0 +1,4 @@
+# file: /Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/app/domain/patterns/motifs/removing_the_defender.py
+# hypothesis_version: 6.161.6
+
+[0.7, 'detect', 'newly_hanging_square']

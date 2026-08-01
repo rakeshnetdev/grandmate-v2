@@ -1,0 +1,4 @@
+# file: /Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/app/orchestration/tools/registry.py
+# hypothesis_version: 6.161.6
+
+['TOOL_DISPATCH', 'TOOL_SPECS', 'ToolFn']

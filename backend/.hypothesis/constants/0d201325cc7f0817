@@ -1,0 +1,4 @@
+# file: /Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/app/domain/auth/session.py
+# hypothesis_version: 6.161.6
+
+['ALGORITHM', 'COOKIE_NAME', 'HS256', 'Invalid session', 'InvalidSessionError', 'SessionToken', 'exp', 'grandmate_session', 'iat', 'issue_session', 'read_session', 'sub']

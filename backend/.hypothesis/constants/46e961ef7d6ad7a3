@@ -1,0 +1,4 @@
+# file: /Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/app/domain/patterns/motifs/discovered_attack.py
+# hypothesis_version: 6.161.6
+
+[0.65, 0.85, 'detect', 'target_square', 'vacated_square']

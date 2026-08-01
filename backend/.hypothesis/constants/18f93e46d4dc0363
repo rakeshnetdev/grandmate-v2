@@ -1,0 +1,4 @@
+# file: /Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/app/domain/patterns/motifs/back_rank_mate.py
+# hypothesis_version: 6.161.6
+
+[0.9, 'detect', 'king_square']

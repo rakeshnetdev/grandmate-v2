@@ -1,0 +1,4 @@
+# file: /Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/app/domain/analysis/dispatch.py
+# hypothesis_version: 6.161.6
+
+['analysis_job_failed', 'detail', 'engine_error', 'invalid_game_state', 'reason']

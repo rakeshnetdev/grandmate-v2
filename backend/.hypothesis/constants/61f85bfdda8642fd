@@ -1,0 +1,4 @@
+# file: /Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/app/domain/reports/__init__.py
+# hypothesis_version: 6.161.6
+
+['Fact', 'ReportService', 'TrainingService', 'extract_facts', 'get_latest_report']

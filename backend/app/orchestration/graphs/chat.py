@@ -38,6 +38,7 @@ from langgraph.graph import END, StateGraph
 from app.core.config import AgentSettings, LLMSettings
 from app.core.devinsight import SpanKind, get_recorder
 from app.db.models import Persona
+
 # Shifted chat domain imports to function local scopes to break circular dependency chain
 from app.domain.llm_usage import LLMBudgetTracker
 from app.domain.memory import MemoryService

@@ -1,0 +1,4 @@
+# file: /Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/app/core/config/settings.py
+# hypothesis_version: 6.161.6
+
+['DATABASE_URL', 'OPENAI_API_KEY', 'SESSION_JWT_SECRET', 'Settings', 'get_settings']

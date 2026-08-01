@@ -1,0 +1,4 @@
+# file: /Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/app/db/models/knowledge.py
+# hypothesis_version: 6.161.6
+
+[255, 1536, 2048, 'CASCADE', 'EMBEDDING_DIMENSIONS', 'KnowledgeBucket', 'KnowledgeChunk', 'KnowledgeDocument', 'chunk_index', 'content_hash', 'document_id', 'games.id', 'knowledge_bucket', 'knowledge_chunks', 'knowledge_documents', 'openings', 'profiles.id', 'rules', 'strategy', 'tactics']

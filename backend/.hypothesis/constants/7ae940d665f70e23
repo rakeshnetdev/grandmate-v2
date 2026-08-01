@@ -1,0 +1,4 @@
+# file: /Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/app/db/models/imports.py
+# hypothesis_version: 6.161.6
+
+[255, 'CASCADE', 'Game.job_id', 'Job', 'JobKind', 'JobStatus', 'done', 'engine_analysis', 'failed', 'games.id', 'job', 'job_kind', 'job_status', 'jobs', 'pending', 'pgn_import', 'processing', 'profiles.id', '{}']

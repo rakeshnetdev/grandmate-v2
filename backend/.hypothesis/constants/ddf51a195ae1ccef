@@ -1,0 +1,4 @@
+# file: /Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/app/domain/analytics/service.py
+# hypothesis_version: 6.161.6
+
+[0.0, 'SNAPSHOT_VERSION', 'accuracy', 'agg-v1', 'classification_rates', 'color_segmentation', 'critical_moment_rate', 'current', 'delta', 'previous', 'recurring_weaknesses']

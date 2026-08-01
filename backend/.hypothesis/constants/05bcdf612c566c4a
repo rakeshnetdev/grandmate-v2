@@ -1,0 +1,4 @@
+# file: /Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/app/domain/imports/dispatch.py
+# hypothesis_version: 6.161.6
+
+['connector_error', 'detail', 'duplicates', 'imported', 'profile_not_found', 'reason', 'rejected', 'total']

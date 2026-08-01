@@ -1,0 +1,4 @@
+# file: /Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/app/integrations/chesscom/client.py
+# hypothesis_version: 6.161.6
+
+[1.0, 30.0, 200, 404, 'CHESSCOM_API', 'User-Agent', 'archives', 'games', 'pgn']

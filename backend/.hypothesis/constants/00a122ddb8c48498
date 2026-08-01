@@ -1,0 +1,4 @@
+# file: /Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/app/db/models/llm_usage.py
+# hypothesis_version: 6.161.6
+
+['LLMUsageDaily', 'llm_usage_daily']

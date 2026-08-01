@@ -1,0 +1,4 @@
+# file: /Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/app/orchestration/tools/memory_tools.py
+# hypothesis_version: 6.161.6
+
+['RECALL_MEMORY', 'kind', 'memories', 'object', 'properties', 'recall_memory', 'required', 'type']

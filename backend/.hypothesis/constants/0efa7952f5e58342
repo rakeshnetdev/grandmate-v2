@@ -1,0 +1,4 @@
+# file: /Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/app/domain/knowledge/provenance.py
+# hypothesis_version: 6.161.6
+
+['.provenance', ':', '===', 'Provenance', 'ProvenanceError', 'licence', 'parse_provenance', 'retrieved', 'source', 'source-url', 'title', 'utf-8']

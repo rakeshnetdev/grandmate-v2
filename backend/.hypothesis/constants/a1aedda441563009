@@ -1,0 +1,4 @@
+# file: /Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/app/domain/reports/story_prompts.py
+# hypothesis_version: 6.161.6
+
+['build_story_messages', 'system', 'user']

@@ -1,0 +1,4 @@
+# file: /Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/app/domain/patterns/motifs/hanging_piece.py
+# hypothesis_version: 6.161.6
+
+[0.8, 'detect', 'hanging_square', 'piece']

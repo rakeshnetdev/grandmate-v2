@@ -1,0 +1,4 @@
+# file: /Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/app/core/config/groups.py
+# hypothesis_version: 6.161.6
+
+[0.0, 0.05, 0.2, 0.3, 0.6, 0.7, 0.75, 0.8, 0.85, 1.0, 1.5, 20.0, 100, 128, 150, 180, 200, 300, 480, 512, 1500, 1536, 2000, 7575, 20000, 30000, 60000, 604800, '+asyncpg', '+psycopg', ',', '.env', '.storage', '10,30,60', '127.0.0.1', 'AgentSettings', 'AnalyticsSettings', 'AppSettings', 'DatabaseSettings', 'DevInsightSettings', 'EngineSettings', 'EvaluationSettings', 'INFO', 'IdentitySettings', 'IngestionSettings', 'LLMSettings', 'MemorySettings', 'MultiAgentSettings', 'PatternSettings', 'ReportSettings', 'RetrievalSettings', 'StorageSettings', 'data/corpus', 'data/openings/dist', 'development', 'engine_deep_depth', 'engine_depth', 'evals/runs', 'gpt-4o-mini', 'grandmate-v2', 'ignore', 'local', 'openai', 'postgresql://', 'production', 'test', 'utf-8']

@@ -1,0 +1,4 @@
+# file: /Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/app/db/models/audit.py
+# hypothesis_version: 6.161.6
+
+['AuditAction', 'AuditEvent', 'SET NULL', 'audit_action', 'audit_events', 'identity_linked', 'profile_created', 'profile_viewed', 'relationship_granted', 'relationship_revoked', 'user_login', 'users.id', '{}']

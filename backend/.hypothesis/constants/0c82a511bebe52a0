@@ -1,0 +1,4 @@
+# file: /Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/app/domain/analysis/__init__.py
+# hypothesis_version: 6.161.6
+
+['AnalysisService', 'classify_move', 'compute_cpl', 'create_retry_job', 'display_swing_cp', 'get_analysis_job', 'get_latest_analysis', 'get_moves', 'is_mate_swing']

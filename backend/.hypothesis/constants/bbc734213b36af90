@@ -1,0 +1,4 @@
+# file: /Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/app/main.py
+# hypothesis_version: 6.161.6
+
+['*', '/docs', 'GrandMate API', 'X-Request-Id', 'X-Trace-Id', 'app', 'application_started', 'application_stopped', 'create_app']

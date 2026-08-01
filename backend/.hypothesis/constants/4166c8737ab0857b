@@ -1,0 +1,4 @@
+# file: /Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/app/core/devinsight/models.py
+# hypothesis_version: 6.161.6
+
+[0.0, 'Span', 'SpanKind', 'SpanStatus', 'TokenCount', 'Trace', 'TraceSummary', 'agent', 'db', 'engine', 'error', 'graph_node', 'grounding', 'http', 'job', 'llm', 'ok', 'retrieval']

@@ -1,0 +1,4 @@
+# file: /Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/app/orchestration/agents/__init__.py
+# hypothesis_version: 6.161.6
+
+['AgentSpec', 'CHESS_ANALYST', 'COACH', 'CRITIC', 'RETRIEVER', 'SUPERVISOR']

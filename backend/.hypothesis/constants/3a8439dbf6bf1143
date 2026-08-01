@@ -1,0 +1,4 @@
+# file: /Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/evals/harness/classifier_accuracy_eval.py
+# hypothesis_version: 6.161.6
+
+[180, 1337, 'SampledMove', 'ScoredMove', '__main__', 'detection', 'detection_f1', 'detection_precision', 'detection_recall', 'engine_timeout_s', 'f1', 'ground_truth_depth', 'harness_version', 'n_scored', 'note', 'per_class', 'phase-16-v1', 'precision', 'recall', 'results', 'run', 'runs', 'sample_moves', 'sample_size', 'severity_accuracy', 'support', 'timestamp', 'utf-8']

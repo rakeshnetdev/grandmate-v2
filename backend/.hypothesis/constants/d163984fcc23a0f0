@@ -1,0 +1,4 @@
+# file: /Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/.venv/bin/pytest
+# hypothesis_version: 6.161.6
+
+['-script.pyw', '.exe', '__main__']

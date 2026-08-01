@@ -1,0 +1,4 @@
+# file: /Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/app/core/devinsight/recorder.py
+# hypothesis_version: 6.161.6
+
+[0.0, 200, 1000, 2000, 'MAX_ATTRIBUTE_CHARS', 'NULL_RECORDER', 'NullRecorder', 'SpanHandle', 'SpanRecorder', 'TraceRecorder', 'answer', 'bind_recorder', 'content', 'context', 'devinsight_recorder', 'get_recorder', 'message', 'prompt', 'query', 'reset_recorder']

@@ -1,0 +1,4 @@
+# file: /Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/app/api/middleware/correlation.py
+# hypothesis_version: 6.161.6
+
+['-', 'REQUEST_ID_HEADER', 'TRACE_HEADER', 'X-Request-Id', 'X-Trace-Id']

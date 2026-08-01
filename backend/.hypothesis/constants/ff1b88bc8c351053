@@ -1,0 +1,4 @@
+# file: /Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/app/db/models/games.py
+# hypothesis_version: 6.161.6
+
+[100, 255, 500, 'CASCADE', 'Game', 'GameColor', 'GameMove', 'GameMove.ply', 'SET NULL', 'all, delete-orphan', 'black', 'content_hash', 'game', 'game_color', 'game_id', 'game_moves', 'game_source', 'games', 'games.id', 'jobs.id', 'moves', 'pk_game_moves', 'ply', 'profile_id', 'profiles.id', 'white']

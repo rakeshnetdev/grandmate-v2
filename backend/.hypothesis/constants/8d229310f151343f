@@ -1,0 +1,4 @@
+# file: /Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/app/domain/reports/training_selection.py
+# hypothesis_version: 6.161.6
+
+[0.0, 'critical', 'info', 'knowledge_chunk', 'name', 'notable', 'rank_weaknesses', 'recently_recommended', 'recurring_weakness', 'weakness_name']

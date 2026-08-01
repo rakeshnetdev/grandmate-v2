@@ -1,0 +1,4 @@
+# file: /Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/app/integrations/lichess/client.py
+# hypothesis_version: 6.161.6
+
+[30.0, 200, 404, 'Accept', 'LICHESS_GAMES_API', 'LichessGameConnector', 'User-Agent', 'max']

@@ -1,0 +1,4 @@
+# file: /Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/app/db/models/patterns.py
+# hypothesis_version: 6.161.6
+
+[255, 'CASCADE', 'MotifFinding', 'MotifType', 'OpeningMatch', 'StrategicThemeType', 'back_rank_mate', 'bad_bishop', 'centre_control', 'development_lag', 'discovered_attack', 'double_check', 'fork', 'game_analysis.id', 'game_color', 'game_id', 'game_openings', 'game_strategy_tags', 'game_tactics', 'games.id', 'hanging_piece', 'motif_type', 'open_file_control', 'passed_pawn_creation', 'pin', 'skewer', 'smothered_mate', 'space_advantage', 'strategic_theme_type', 'weak_king_safety', 'x_ray']

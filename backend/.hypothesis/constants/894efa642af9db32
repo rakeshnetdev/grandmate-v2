@@ -1,0 +1,4 @@
+# file: /Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/app/domain/chat/guardrail.py
+# hypothesis_version: 6.161.6
+
+['answer', 'citations', 'eco', 'eval_cp', 'evaluation', 'fen', 'game_id', 'kind', 'legal', 'mate_in', 'move', 'moves', 'opening', 'opening_name', 'ply', 'san', 'validate_answer', 'variation']

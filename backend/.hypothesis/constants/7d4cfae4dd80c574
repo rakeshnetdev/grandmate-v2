@@ -1,0 +1,4 @@
+# file: /Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/app/api/routes/__init__.py
+# hypothesis_version: 6.161.6
+
+['/api/v1', 'API_V1_PREFIX', 'build_root_router', 'build_v1_router']

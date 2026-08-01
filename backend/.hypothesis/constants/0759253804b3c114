@@ -1,0 +1,4 @@
+# file: /Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/app/domain/chat/multi_agent_prompts.py
+# hypothesis_version: 6.161.6
+
+['[]', 'needs_analysis', 'needs_clarification', 'needs_retrieval', 'system', 'user']

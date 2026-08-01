@@ -1,15 +1,18 @@
-"""Tests for correlation middleware, rate limiting, context propagation, and startup sweep (Phase 17)."""
+"""Correlation middleware, rate limiting, context propagation, and the startup sweep.
+
+Phase 17.
+"""
 
 from __future__ import annotations
 
 import asyncio
-import uuid
+from unittest.mock import AsyncMock, patch
+
 import pytest
 import structlog
-from unittest.mock import AsyncMock, MagicMock, patch
-from fastapi import FastAPI, status
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
+from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker
 
 from app.api.middleware.correlation import CorrelationMiddleware
 from app.api.middleware.rate_limit import RateLimitMiddleware
@@ -95,7 +98,7 @@ async def test_run_with_correlation_propagation() -> None:
 async def test_startup_analysis_sweep(
     db_engine: AsyncEngine,
 ) -> None:
-    """Test that startup_analysis_sweep resets stuck processing jobs and triggers analysis execution."""
+    """`startup_analysis_sweep` resets stuck processing jobs and triggers execution."""
     session_factory = async_sessionmaker(db_engine, expire_on_commit=False)
 
     user_id = None
@@ -140,7 +143,10 @@ async def test_startup_analysis_sweep(
         settings = Settings()
 
         # Mock run_pending_analysis_jobs to intercept execution calls
-        with patch("app.domain.analysis.dispatch.run_pending_analysis_jobs", new_callable=AsyncMock) as mock_run:
+        with patch(
+            "app.domain.analysis.dispatch.run_pending_analysis_jobs",
+            new_callable=AsyncMock,
+        ) as mock_run:
             await startup_analysis_sweep(session_factory, settings)
 
             # Allow background task to schedule/run
@@ -166,6 +172,7 @@ async def test_startup_analysis_sweep(
     finally:
         if user_id is not None:
             from sqlalchemy import delete
+
             async with session_scope(session_factory) as session:
                 await session.execute(delete(User).where(User.id == user_id))
                 await session.commit()

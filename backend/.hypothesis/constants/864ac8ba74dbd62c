@@ -1,0 +1,4 @@
+# file: /Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/app/domain/reports/critic.py
+# hypothesis_version: 6.161.6
+
+['ReportKind', 'best', 'classification', 'endgame', 'fact_ids', 'findings', 'game', 'kind', 'lesson', 'middlegame', 'mistake', 'opening', 'recommendations', 'story', 'strength', 'summary', 'text', 'training', 'validate_report']

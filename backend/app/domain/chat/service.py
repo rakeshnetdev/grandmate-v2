@@ -15,9 +15,6 @@ from dataclasses import dataclass
 from typing import Any
 
 import structlog
-
-logger = structlog.get_logger(__name__)
-
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import Settings
@@ -31,6 +28,8 @@ from app.orchestration.checkpointer import open_checkpointer
 from app.orchestration.dependencies import build_chat_graph_deps
 from app.orchestration.graphs.chat import build_chat_graph
 from app.orchestration.store import open_store
+
+logger = structlog.get_logger(__name__)
 
 # A thread with no title yet is titled from the first message it receives, truncated —
 # a full question is often too long for a thread-list row.

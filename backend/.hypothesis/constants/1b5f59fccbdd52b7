@@ -1,0 +1,4 @@
+# file: /Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/app/domain/imports/parsing.py
+# hypothesis_version: 6.161.6
+
+[1000, '*', '?', 'Black', 'Date', 'Game has no moves', 'ParseResult', 'ParsedGame', 'RejectedGame', 'RejectionReason', 'Result', 'UTCDate', 'White', 'duplicate_game', 'implausible_length', 'malformed_pgn', 'missing_required_tag', 'no_moves', 'parse_pgn_text', 'utf-8', '|']

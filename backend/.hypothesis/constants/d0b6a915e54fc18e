@@ -1,0 +1,4 @@
+# file: /Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/app/domain/patterns/polarity.py
+# hypothesis_version: 6.161.6
+
+['WEAKNESS_THEMES', 'is_players_own_motif', 'is_players_own_theme']

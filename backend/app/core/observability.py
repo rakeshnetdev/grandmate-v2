@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import os
+from collections.abc import Iterator
 from contextlib import contextmanager
-from typing import Any, Iterator
+from typing import Any
+
 import structlog
 from langchain_core.tracers.context import tracing_v2_enabled
 from langsmith import Client
@@ -24,7 +26,8 @@ def sanitize_data(data: Any, capture_sensitive: bool = False) -> Any:
         clean: dict[str, Any] = {}
         for k, v in data.items():
             lowered_k = k.lower()
-            if not capture_sensitive and any(hint in lowered_k for hint in SENSITIVE_ATTRIBUTE_HINTS):
+            is_sensitive = any(hint in lowered_k for hint in SENSITIVE_ATTRIBUTE_HINTS)
+            if not capture_sensitive and is_sensitive:
                 if isinstance(v, str):
                     clean[k] = f"<redacted, {len(v)} chars>"
                 elif isinstance(v, list):
@@ -98,4 +101,4 @@ def get_tracing_context(settings: Settings) -> Iterator[None]:
                     os.environ[k] = val
 
 
-__all__ = ["sanitize_data", "get_tracing_context"]
+__all__ = ["get_tracing_context", "sanitize_data"]

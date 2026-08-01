@@ -40,6 +40,9 @@ logger = get_logger(__name__)
 
 EngineFactory = Callable[[EngineSettings], EngineAdapter]
 
+# Strong references to in-flight startup sweeps — see `startup_analysis_sweep`.
+_background_tasks: set[asyncio.Task[None]] = set()
+
 
 async def run_pending_analysis_jobs(
     job_ids: list[uuid.UUID],
@@ -124,6 +127,7 @@ async def startup_analysis_sweep(
     reset the processing ones to pending, and trigger their execution in the background.
     """
     from sqlalchemy import select
+
     from app.db.models import Job, JobKind, JobStatus
 
     try:
@@ -148,14 +152,21 @@ async def startup_analysis_sweep(
             await session.commit()
 
         logger.info("startup_analysis_sweep_triggered", job_count=len(job_ids))
-        # Dispatch in background task so FastAPI startup is not blocked
-        asyncio.create_task(
+        # Dispatch in a background task so FastAPI startup is not blocked.
+        #
+        # The reference is held in a module-level set, and discarded only when the task
+        # finishes: asyncio keeps only a weak reference to a running task, so a bare
+        # `create_task(...)` can be garbage-collected mid-flight and the recovery sweep
+        # would vanish silently — exactly the failure this sweep exists to prevent.
+        task = asyncio.create_task(
             run_pending_analysis_jobs(
                 job_ids,
                 session_factory=session_factory,
                 settings=settings,
             )
         )
+        _background_tasks.add(task)
+        task.add_done_callback(_background_tasks.discard)
     except Exception as exc:
         logger.error("startup_analysis_sweep_failed", reason=str(exc))
 

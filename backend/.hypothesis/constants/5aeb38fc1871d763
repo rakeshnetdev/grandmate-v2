@@ -1,0 +1,4 @@
+# file: /Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/app/db/base.py
+# hypothesis_version: 6.161.6
+
+['Base', 'NAMING_CONVENTION', 'TimestampMixin', 'UUIDPrimaryKeyMixin', '_EnumT', 'ck', 'fk', 'ix', 'pg_enum', 'pk', 'pk_%(table_name)s', 'uq', 'utc_now']

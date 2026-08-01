@@ -1,0 +1,4 @@
+# file: /Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/app/db/models/identity.py
+# hypothesis_version: 6.161.6
+
+[255, 320, 'AuthProvider', 'CASCADE', 'GameSource', 'Persona', 'Profile', 'ProfileKind', 'ProfileRelationship', 'ProfileSource', 'RelationshipRole', 'User', 'UserIdentity', 'all, delete-orphan', 'auth_provider', 'chesscom', 'child', 'coach', 'game_source', 'identities', 'kid', 'lichess', 'opponent', 'owner', 'parent', 'persona', 'profile', 'profile_id', 'profile_kind', 'profile_sources', 'profiles', 'profiles.id', 'provider', 'provider_user_id', 'relationship_role', 'role', 'self', 'self_learner', 'shared', 'source', 'source_username', 'sources', 'student', 'subject_profile_id', 'upload', 'user', 'user_identities', 'users', 'users.id', 'viewer', 'viewer_user_id']

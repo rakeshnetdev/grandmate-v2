@@ -1,0 +1,4 @@
+# file: /Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/app/domain/patterns/motifs/smothered_mate.py
+# hypothesis_version: 6.161.6
+
+[0.95, 'detect', 'king_square']

@@ -1,0 +1,4 @@
+# file: /Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/app/api/routes/chat.py
+# hypothesis_version: 6.161.6
+
+['/chat', '/threads', '/threads/{thread_id}', 'Game not found', 'Thread not found', 'chat', 'router']

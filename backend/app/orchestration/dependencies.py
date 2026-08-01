@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import uuid
 from typing import TYPE_CHECKING
+
+from langgraph.store.base import BaseStore
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import Settings
@@ -11,7 +13,6 @@ from app.domain.llm_usage import LLMBudgetTracker
 from app.domain.memory import MemoryService
 from app.domain.patterns import OpeningIndex
 from app.integrations.llm.base import EmbeddingProvider, LLMProvider
-from langgraph.store.base import BaseStore
 from app.orchestration.tools import ToolContext
 
 if TYPE_CHECKING:

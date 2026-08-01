@@ -1,0 +1,4 @@
+# file: /Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/app/db/models/__init__.py
+# hypothesis_version: 6.161.6
+
+['AuditAction', 'AuditEvent', 'AuthProvider', 'ChatThread', 'Game', 'GameAnalysis', 'GameColor', 'GameMove', 'GameReport', 'GameSource', 'Job', 'JobKind', 'JobStatus', 'KnowledgeBucket', 'KnowledgeChunk', 'KnowledgeDocument', 'LLMUsageDaily', 'LongTermMemory', 'MemoryKind', 'MotifFinding', 'MotifType', 'MoveClassification', 'MoveEvaluation', 'OpeningMatch', 'Persona', 'Profile', 'ProfileKind', 'ProfileRelationship', 'ProfileSource', 'RelationshipRole', 'ReportSource', 'StrategicThemeType', 'User', 'UserIdentity']

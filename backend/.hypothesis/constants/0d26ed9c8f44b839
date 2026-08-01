@@ -1,0 +1,4 @@
+# file: /Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/app/api/middleware/tracing.py
+# hypothesis_version: 6.161.6
+
+[500, 'DevInsightMiddleware', 'TRACE_HEADER', 'X-Trace-Id', 'method', 'path', 'status_code']

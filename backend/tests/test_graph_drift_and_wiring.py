@@ -3,14 +3,11 @@
 from __future__ import annotations
 
 from pathlib import Path
-import pytest
+
 from langgraph.graph.state import CompiledStateGraph
 
-from app.core.config import get_settings
 from app.orchestration.dependencies import build_chat_graph_deps, build_multi_agent_graph_deps
 from app.orchestration.graphs.factories import make_chat_graph, make_multi_agent_graph
-from app.orchestration.graphs.chat import ChatGraphDeps
-from app.orchestration.graphs.multi_agent import MultiAgentGraphDeps
 
 BACKEND_ROOT = Path(__file__).resolve().parents[2]
 DIAGRAMS_DIR = BACKEND_ROOT / "docs" / "diagrams"

@@ -1,0 +1,4 @@
+# file: /Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/app/api/routes/analytics.py
+# hypothesis_version: 6.161.6
+
+['/analytics', '/profile', 'analytics', 'computed_at', 'games_included', 'profile_id', 'router', 'snapshot_version', 'sufficient_sample', 'window_size']

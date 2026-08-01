@@ -1,0 +1,4 @@
+# file: /Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/app/db/models/analysis.py
+# hypothesis_version: 6.161.6
+
+['CASCADE', 'GameAnalysis', 'MotifFinding.ply', 'MoveClassification', 'MoveEvaluation', 'MoveEvaluation.ply', 'all, delete-orphan', 'analysis', 'best', 'blunder', 'evaluations', 'game_analysis', 'game_analysis.id', 'game_analysis_id', 'games.id', 'good', 'inaccuracy', 'mistake', 'move_classification', 'move_evaluations', 'pk_move_evaluations', 'ply']

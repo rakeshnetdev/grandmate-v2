@@ -1,0 +1,4 @@
+# file: /Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/app/domain/analytics/metrics.py
+# hypothesis_version: 6.161.6
+
+[0.0, '+', '-', '0-1', '1-0', '1/2-1/2', ':', 'ColorSegmentStats', 'GameForAnalytics', 'OpeningFamilyStats', 'Outcome', 'Result', 'TimeControl', 'TimeControlBucket', 'Unclassified', 'WeaknessStats', 'accuracy', 'average_accuracy', 'blitz', 'blunder', 'bullet', 'classical', 'classification_rates', 'color_segmentation', 'counts', 'critical_moments', 'determine_outcome', 'draw', 'loss', 'mistake', 'motif', 'opening_family', 'rapid', 'recurring_weaknesses', 'theme', 'unknown', 'win']

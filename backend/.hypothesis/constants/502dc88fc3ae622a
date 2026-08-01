@@ -1,0 +1,4 @@
+# file: /Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/app/domain/reports/facts.py
+# hypothesis_version: 6.161.6
+
+['Fact', 'FactKind', 'Severity', 'best', 'best_move_san', 'best_move_uci', 'blunder', 'classification', 'critical', 'eco', 'eval_swing_cp', 'evidence', 'extract_facts', 'inaccuracy', 'info', 'is_critical_moment', 'knowledge_chunk', 'matched_ply', 'mate_swing', 'mistake', 'motif', 'move', 'notable', 'opening', 'opening_name', 'phase', 'ply', 'recurring_weakness', 'san', 'side', 'summary', 'theme']

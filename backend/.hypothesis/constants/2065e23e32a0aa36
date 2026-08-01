@@ -1,0 +1,4 @@
+# file: /Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/app/domain/reports/story_facts.py
+# hypothesis_version: 6.161.6
+
+['black', 'black_counts', 'endgame', 'extract_story_facts', 'info', 'middlegame', 'opening', 'phase', 'ply_end', 'ply_start', 'white', 'white_counts']

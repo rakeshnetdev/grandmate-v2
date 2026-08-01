@@ -1,0 +1,4 @@
+# file: /Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/app/api/routes/patterns.py
+# hypothesis_version: 6.161.6
+
+['/games/{game_id}', '/patterns', 'Game not found', 'patterns', 'router']

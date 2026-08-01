@@ -1,0 +1,4 @@
+# file: /Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/evals/harness/synthetic_generator.py
+# hypothesis_version: 6.161.6
+
+['GENERATOR_VERSION', 'SampledGame', '__main__', 'classification', 'compare', 'critical', 'datasets', 'eco', 'eval_cp', 'eval_swing_cp', 'evaluations', 'explain', 'generate_scenarios', 'generated_at', 'generator_version', 'headers', 'is_critical_moment', 'matched_ply', 'mate_in', 'move', 'moves', 'opening', 'opening_name', 'phase-16-v1', 'ply', 'provenance', 'question', 'reference_facts', 'reviewed_by', 'run', 'scenario_id', 'source_analysis_id', 'source_game_id', 'summarise', 'synthetic', 'that move', 'the first mistake', 'the later mistake', 'train_next', 'utf-8', 'w']

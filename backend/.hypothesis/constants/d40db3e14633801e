@@ -1,0 +1,4 @@
+# file: /Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/app/domain/reports/training_facts.py
+# hypothesis_version: 6.161.6
+
+[0.5, 'content', 'critical', 'games_with_finding', 'info', 'knowledge_chunk', 'metadata', 'name', 'notable', 'occurrence_rate', 'recently_recommended', 'recurring_weakness', 'retrieved_by', 'weakness_kind', 'weakness_name']

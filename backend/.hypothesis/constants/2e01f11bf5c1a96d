@@ -1,0 +1,4 @@
+# file: /Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/app/integrations/llm/openai_provider.py
+# hypothesis_version: 6.161.6
+
+['OpenAIChatProvider', 'arguments', 'build_llm_provider', 'complete', 'content', 'description', 'function', 'id', 'max_tokens', 'messages', 'model', 'name', 'parameters', 'response_format', 'role', 'temperature', 'tool_call_id', 'tool_calls', 'tools', 'type']

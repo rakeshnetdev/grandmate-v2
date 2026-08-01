@@ -1,0 +1,4 @@
+# file: /Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/app/domain/patterns/__init__.py
+# hypothesis_version: 6.161.6
+
+['OpeningDatasetError', 'OpeningEntry', 'OpeningIndex', 'OpeningMatchResult', 'load_opening_index']
