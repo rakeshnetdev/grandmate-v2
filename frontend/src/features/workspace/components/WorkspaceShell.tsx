@@ -23,7 +23,7 @@ import { ContentPanel } from './ContentPanel';
 import { ChatDock } from './ChatDock';
 import { GameListPanel } from './GameListPanel';
 
-const VALID_TABS: ContentTab[] = ['overview', 'analysis', 'moves', 'patterns', 'story', 'pgn'];
+const VALID_TABS: ContentTab[] = ['overview', 'learning', 'analysis', 'moves', 'patterns', 'story'];
 
 function parseTab(value: string | null): ContentTab {
   return VALID_TABS.includes(value as ContentTab) ? (value as ContentTab) : 'overview';
@@ -132,7 +132,10 @@ export function WorkspaceShell() {
           />
         </div>
 
-        <div className="hidden w-96 shrink-0 border-l border-border lg:block">
+        {/* Chat is a reading-and-typing surface, so it gets more room than the 24rem
+            default it had: 28rem at lg, 32rem once the viewport can spare it without
+            squeezing the content panel. */}
+        <div className="hidden w-[28rem] shrink-0 border-l border-border lg:block xl:w-[32rem]">
           <ChatDock profileId={profileId} activeGameId={selectedGameId} />
         </div>
       </div>
@@ -165,7 +168,7 @@ export function WorkspaceShell() {
             className="absolute inset-0 bg-background/80 backdrop-blur-sm"
             onClick={() => setMobileRightOpen(false)}
           />
-          <div className="absolute top-0 right-0 flex h-full w-full max-w-sm flex-col bg-background shadow-lg">
+          <div className="absolute top-0 right-0 flex h-full w-full max-w-md flex-col bg-background shadow-lg">
             <div className="flex items-center justify-end border-b border-border p-2">
               <Button
                 type="button"

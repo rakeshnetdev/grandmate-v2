@@ -4,5 +4,5 @@
  * Other features import from here, never from internal paths.
  */
 export { TrainingPlanPanel } from './components/TrainingPlanPanel';
-export { useGenerateTrainingPlan } from './hooks/useTraining';
+export { useGenerateTrainingPlan, useTrainingPlan } from './hooks/useTraining';
 export type { TrainingRecommendation } from './api/training';

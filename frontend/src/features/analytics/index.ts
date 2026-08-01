@@ -5,4 +5,8 @@
  */
 export { ProfileDashboard } from './components/ProfileDashboard';
 export { useProfileAnalytics, analyticsKeys } from './hooks/useAnalytics';
-export type { ProfileAnalytics } from './api/analytics';
+export type {
+  OpeningFamilyPerformance,
+  ProfileAnalytics,
+  RecurringWeakness,
+} from './api/analytics';
