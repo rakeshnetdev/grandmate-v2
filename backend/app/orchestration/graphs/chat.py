@@ -38,6 +38,7 @@ from langgraph.graph import END, StateGraph
 from app.core.config import AgentSettings, LLMSettings
 from app.core.devinsight import SpanKind, get_recorder
 from app.db.models import Persona
+
 # Shifted chat domain imports to function local scopes to break circular dependency chain
 from app.domain.llm_usage import LLMBudgetTracker
 from app.domain.memory import MemoryService
@@ -158,8 +159,12 @@ async def _run_agent(state: GraphState, deps: ChatGraphDeps) -> GraphState:
 
     with get_recorder().span(SpanKind.AGENT, "run_agent", intent=state.get("intent")) as outer_span:
         persona = Persona(state["persona"])
+        # Intent reaches the system message so a question about the conversation is
+        # sourced from the thread rather than hunted for in the analysis tools.
         system_message = build_agent_system_message(
-            persona, active_game_id=state.get("active_game_id")
+            persona,
+            active_game_id=state.get("active_game_id"),
+            intent=state.get("intent"),
         )
         history = [Message(role=m["role"], content=m["content"]) for m in state.get("messages", [])]
         working_messages: list[Message] = [

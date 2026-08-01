@@ -18,17 +18,20 @@ import json
 from app.db.models import Persona
 from app.integrations.llm.base import Message
 
-INTENTS = ("explain", "compare", "summarise", "train_next")
+INTENTS = ("explain", "compare", "summarise", "train_next", "conversational")
 _DEFAULT_INTENT = "explain"
 
 _INTENT_SYSTEM_PROMPT = (
     "You are an intent classifier for a chess coaching assistant. Classify the user's "
-    "latest message into exactly one of: explain, compare, summarise, train_next.\n"
+    "latest message into exactly one of: explain, compare, summarise, train_next, "
+    "conversational.\n"
     "- explain: why a move, position, or concept is good or bad\n"
     "- compare: compare two games, moves, lines, or periods of play\n"
     "- summarise: an overview of a game or a stretch of recent play\n"
     "- train_next: what to study or practise next\n"
-    'Respond as JSON: {"intent": "<one of the four>"}. If uncertain, choose "explain".'
+    "- conversational: about this conversation itself rather than about chess — what "
+    "you said earlier, repeating or rephrasing a previous answer, or a greeting\n"
+    'Respond as JSON: {"intent": "<one of the five>"}. If uncertain, choose "explain".'
 )
 
 
@@ -98,14 +101,36 @@ already received this turn — never a fact you have not actually seen returned 
 "opening_name": "<name>"}}
 
 If you cannot ground an answer in the available tools, say so plainly in "answer" rather \
-than guessing, and leave "citations" empty."""
+than guessing, and leave "citations" empty.{conversational}"""
+
+# Appended only for the `conversational` intent. The transcript is a legitimate source
+# for a question *about the conversation* — "what did you say earlier" is answerable from
+# the thread and has nothing to verify against the analysis database. Without this the
+# model hunts for tool results it cannot find, emits citations it cannot support, and the
+# guardrail correctly rejects them — leaving the reader with the ungrounded fallback in
+# answer to a question that was never about chess.
+#
+# This does not loosen grounding. Chess claims still require verified citations; the only
+# change is that recalling the conversation is not treated as a chess claim.
+_CONVERSATIONAL_BLOCK = """
+
+This message is about the conversation itself, not a new chess question. Answer it from \
+the conversation so far, which is a valid source for what was said earlier — you do not \
+need a tool result to repeat, rephrase, or summarise your own previous answers.
+
+Still call tools if answering properly needs facts you have not already established this \
+thread — a game's moves, an evaluation, the profile overview, an existing report. Any \
+chess fact you state still needs its citation, exactly as above. Statements about what \
+was said earlier need none."""
 
 
-def build_agent_system_message(persona: Persona, *, active_game_id: str | None) -> Message:
+def build_agent_system_message(
+    persona: Persona, *, active_game_id: str | None, intent: str | None = None
+) -> Message:
     """The system message that opens every agent turn. Re-sent every call rather than
-    relying on the checkpointer to remember it — persona or active game can change
-    between turns in the same thread, and a stale system message would silently keep
-    instructing the old voice or the old game."""
+    relying on the checkpointer to remember it — persona, active game, or intent can
+    change between turns in the same thread, and a stale system message would silently
+    keep instructing the old voice, the old game, or the wrong sourcing rules."""
     context = (
         f"The user currently has a game open (id: {active_game_id}). Prefer tools scoped "
         "to that game when the question is about 'this game' or 'my game'."
@@ -113,7 +138,11 @@ def build_agent_system_message(persona: Persona, *, active_game_id: str | None) 
         else "No specific game is currently open. Use profile-wide or general-knowledge "
         "tools unless the user names a specific game."
     )
-    content = _AGENT_SYSTEM_PROMPT_TEMPLATE.format(voice=PERSONA_VOICE[persona], context=context)
+    content = _AGENT_SYSTEM_PROMPT_TEMPLATE.format(
+        voice=PERSONA_VOICE[persona],
+        context=context,
+        conversational=_CONVERSATIONAL_BLOCK if intent == "conversational" else "",
+    )
     return Message(role="system", content=content)
 
 

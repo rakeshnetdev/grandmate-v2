@@ -5,7 +5,12 @@ from __future__ import annotations
 import json
 
 from app.db.models import Persona
-from app.domain.chat.prompts import build_agent_system_message, build_intent_messages, parse_intent
+from app.domain.chat.prompts import (
+    INTENTS,
+    build_agent_system_message,
+    build_intent_messages,
+    parse_intent,
+)
 
 
 class TestParseIntent:
@@ -49,3 +54,47 @@ class TestBuildAgentSystemMessage:
 
         assert message.content is not None
         assert "centipawn" in message.content.lower()
+
+
+class TestConversationalIntent:
+    """A question about the conversation is not a chess claim (Phase 10 follow-up).
+
+    Without this the agent hunts for tool results it cannot find, emits citations it
+    cannot support, and the guardrail correctly rejects them — leaving the reader with
+    the ungrounded fallback in answer to a question that was never about chess.
+    """
+
+    def test_conversational_is_in_the_taxonomy(self) -> None:
+        assert "conversational" in INTENTS
+        assert parse_intent('{"intent": "conversational"}') == "conversational"
+
+    def test_conversational_turns_may_answer_from_the_thread(self) -> None:
+        content = build_agent_system_message(
+            Persona.SELF_LEARNER, active_game_id=None, intent="conversational"
+        ).content
+
+        assert "the conversation so far" in content
+
+    def test_other_intents_do_not_get_the_block(self) -> None:
+        for intent in ("explain", "compare", "summarise", "train_next", None):
+            content = build_agent_system_message(
+                Persona.SELF_LEARNER, active_game_id=None, intent=intent
+            ).content
+            assert "the conversation so far" not in content
+
+    def test_chess_grounding_is_unchanged_for_conversational_turns(self) -> None:
+        """The whole point: this loosens sourcing for talk about the conversation, and
+        nothing at all for chess claims."""
+        content = build_agent_system_message(
+            Persona.SELF_LEARNER, active_game_id=None, intent="conversational"
+        ).content
+
+        assert "Ground every chess claim in a tool result" in content
+        assert "still needs its citation" in content
+
+    def test_tools_remain_available_on_a_conversational_turn(self) -> None:
+        content = build_agent_system_message(
+            Persona.SELF_LEARNER, active_game_id=None, intent="conversational"
+        ).content
+
+        assert "Still call tools" in content
