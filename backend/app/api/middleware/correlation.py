@@ -9,11 +9,12 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import Awaitable, Callable
+
+import structlog
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
 from starlette.types import ASGIApp
-import structlog
 
 REQUEST_ID_HEADER = "X-Request-Id"
 TRACE_HEADER = "X-Trace-Id"
@@ -46,4 +47,4 @@ class CorrelationMiddleware(BaseHTTPMiddleware):
         return response
 
 
-__all__ = ["CorrelationMiddleware", "REQUEST_ID_HEADER", "TRACE_HEADER"]
+__all__ = ["REQUEST_ID_HEADER", "TRACE_HEADER", "CorrelationMiddleware"]

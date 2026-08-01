@@ -49,3 +49,41 @@ class TestBuildAgentSystemMessage:
 
         assert message.content is not None
         assert "centipawn" in message.content.lower()
+
+
+class TestConversationRecallIsNotAChessClaim:
+    """A question about the exchange is answerable from the thread.
+
+    Without this rule the agent hunts for tool results that cannot exist for "what did
+    you say earlier", and either answers with no citations (fine) or invents one to
+    satisfy the response format (not fine — the guardrail rejects it, and after two
+    attempts `build_fallback_answer` replaces the model's perfectly good recall with the
+    ungrounded fallback text).
+    """
+
+    def test_the_transcript_is_named_as_a_source(self) -> None:
+        content = build_agent_system_message(Persona.SELF_LEARNER, active_game_id=None).content
+
+        assert "The conversation above is itself a source" in content
+
+    def test_tools_are_still_required_for_facts_not_yet_established(self) -> None:
+        content = build_agent_system_message(Persona.SELF_LEARNER, active_game_id=None).content
+
+        assert "call the tools for those as usual" in content
+
+    def test_chess_grounding_is_unchanged(self) -> None:
+        """The rule carves out conversation recall and nothing else."""
+        content = build_agent_system_message(Persona.SELF_LEARNER, active_game_id=None).content
+
+        assert "Ground every chess claim in a tool result" in content
+        assert "Never assert that a move was played" in content
+
+    def test_inventing_a_citation_is_explicitly_forbidden(self) -> None:
+        content = build_agent_system_message(Persona.SELF_LEARNER, active_game_id=None).content
+
+        assert "Never invent a citation" in content
+
+    def test_the_rule_applies_to_every_persona(self) -> None:
+        for persona in Persona:
+            content = build_agent_system_message(persona, active_game_id=None).content
+            assert "The conversation above is itself a source" in content

@@ -5,9 +5,10 @@ from __future__ import annotations
 import uuid
 from typing import Any
 from unittest.mock import MagicMock
-from sqlalchemy.ext.asyncio import AsyncSession
+
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.store.memory import InMemoryStore
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
 from app.domain.patterns import load_opening_index

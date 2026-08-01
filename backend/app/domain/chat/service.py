@@ -15,9 +15,6 @@ from dataclasses import dataclass
 from typing import Any
 
 import structlog
-
-logger = structlog.get_logger(__name__)
-
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import Settings
@@ -31,6 +28,8 @@ from app.orchestration.checkpointer import open_checkpointer
 from app.orchestration.dependencies import build_chat_graph_deps
 from app.orchestration.graphs.chat import build_chat_graph
 from app.orchestration.store import open_store
+
+logger = structlog.get_logger(__name__)
 
 # A thread with no title yet is titled from the first message it receives, truncated —
 # a full question is often too long for a thread-list row.
@@ -89,7 +88,7 @@ class ChatService:
                 from app.orchestration.dependencies import build_multi_agent_graph_deps
                 from app.orchestration.graphs.multi_agent import build_multi_agent_graph
 
-                deps = build_multi_agent_graph_deps(
+                multi_agent_deps = build_multi_agent_graph_deps(
                     settings=self._settings,
                     session=self._session,
                     llm=self._llm,
@@ -98,10 +97,10 @@ class ChatService:
                     store=store,
                     profile_id=profile_id,
                 )
-                graph = build_multi_agent_graph(deps, checkpointer)
+                graph = build_multi_agent_graph(multi_agent_deps, checkpointer)
             else:
                 logger.info("routing_to_single_agent_graph", use_multi_agent=False)
-                deps = build_chat_graph_deps(
+                single_agent_deps = build_chat_graph_deps(
                     settings=self._settings,
                     session=self._session,
                     llm=self._llm,
@@ -110,7 +109,7 @@ class ChatService:
                     store=store,
                     profile_id=profile_id,
                 )
-                graph = build_chat_graph(deps, checkpointer)
+                graph = build_chat_graph(single_agent_deps, checkpointer)
             with get_tracing_context(self._settings):
                 result = await graph.ainvoke(
                     {

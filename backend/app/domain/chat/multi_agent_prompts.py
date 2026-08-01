@@ -10,14 +10,12 @@ canonical game facts, and the coach phrases an answer only from hand-delivered c
 
 from __future__ import annotations
 
-
 import json
 from typing import Any
 
 from app.db.models import Persona
 from app.domain.chat.prompts import PERSONA_VOICE
 from app.integrations.llm.base import Message
-
 
 _SUPERVISOR_SYSTEM_PROMPT = """You are the routing supervisor for a chess coaching \
 assistant built from specialist agents.

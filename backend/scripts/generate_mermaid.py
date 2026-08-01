@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+
 from app.orchestration.graphs.factories import make_chat_graph, make_multi_agent_graph
 
 BACKEND_ROOT = Path(__file__).resolve().parents[2]

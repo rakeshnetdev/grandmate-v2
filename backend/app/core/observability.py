@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import os
+from collections.abc import Iterator
 from contextlib import contextmanager
-from typing import Any, Iterator
+from typing import Any, cast
+
 import structlog
 from langchain_core.tracers.context import tracing_v2_enabled
 from langsmith import Client
@@ -24,7 +26,8 @@ def sanitize_data(data: Any, capture_sensitive: bool = False) -> Any:
         clean: dict[str, Any] = {}
         for k, v in data.items():
             lowered_k = k.lower()
-            if not capture_sensitive and any(hint in lowered_k for hint in SENSITIVE_ATTRIBUTE_HINTS):
+            is_sensitive = any(hint in lowered_k for hint in SENSITIVE_ATTRIBUTE_HINTS)
+            if not capture_sensitive and is_sensitive:
                 if isinstance(v, str):
                     clean[k] = f"<redacted, {len(v)} chars>"
                 elif isinstance(v, list):
@@ -76,7 +79,13 @@ def get_tracing_context(settings: Settings) -> Iterator[None]:
     os.environ["LANGSMITH_TRACING_SAMPLING_RATE"] = str(obs.langsmith_sample_rate)
 
     def sanitize(data: dict[str, Any]) -> dict[str, Any]:
-        return sanitize_data(data, capture_sensitive=obs.langsmith_capture_prompts)
+        # `sanitize_data` is `Any -> Any` on purpose: it recurses over arbitrary
+        # structures (dicts, lists, scalars), so it cannot name one return type. A dict
+        # in always produces a dict out, so the narrowing belongs here — at the one
+        # boundary where the input type is known — rather than in its signature or in a
+        # set of overloads that would have to mirror every branch of the recursion.
+        cleaned = sanitize_data(data, capture_sensitive=obs.langsmith_capture_prompts)
+        return cast("dict[str, Any]", cleaned)
 
     client = Client(
         api_key=api_key,
@@ -98,4 +107,4 @@ def get_tracing_context(settings: Settings) -> Iterator[None]:
                     os.environ[k] = val
 
 
-__all__ = ["sanitize_data", "get_tracing_context"]
+__all__ = ["get_tracing_context", "sanitize_data"]

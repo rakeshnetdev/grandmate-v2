@@ -15,8 +15,8 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException, Request, status
 from app.api.dependencies.db import DbSessionDep
 from app.api.dependencies.profile_scope import ScopedProfileIdDep
 from app.api.dependencies.settings import SettingsDep
-from app.db.models import GameAnalysis, GameMove, Job
 from app.core.correlation import run_with_correlation
+from app.db.models import GameAnalysis, GameMove, Job
 from app.domain.analysis import create_retry_job, get_analysis_job, get_latest_analysis, get_moves
 from app.domain.analysis import run_pending_analysis_jobs as _run_pending_analysis_jobs
 from app.schemas.analysis import AnalysisJobSummary, GameAnalysisSummary, MoveEvaluationSummary

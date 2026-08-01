@@ -87,7 +87,10 @@ class MultiAgentState(TypedDict, total=False):
 
     # Accumulated across the graph run.
     trace: Annotated[list[str], _append]
-    messages: Annotated[list[dict[str, str]], _append]
+    # `dict[str, Any]`, matching `graphs/chat.py`: a persisted message carries
+    # `citations` (a list) and `grounded` (a bool) beside its text, so the narrower
+    # `dict[str, str]` this used to claim never described what is actually written.
+    messages: Annotated[list[dict[str, Any]], _append]
 
     # Supervisor's routing decision, this turn only.
     needs_retrieval: bool | None
