@@ -14,7 +14,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app import __version__
-from app.api.middleware import CorrelationMiddleware, RateLimitMiddleware, TRACE_HEADER, DevInsightMiddleware
+from app.api.middleware import (
+    TRACE_HEADER,
+    CorrelationMiddleware,
+    DevInsightMiddleware,
+    RateLimitMiddleware,
+)
 from app.api.routes import build_root_router, build_v1_router
 from app.core.config import Settings, get_settings
 from app.core.devinsight import TraceStore

@@ -1,15 +1,18 @@
-"""Tests for correlation middleware, rate limiting, context propagation, and startup sweep (Phase 17)."""
+"""Correlation middleware, rate limiting, context propagation, and the startup sweep.
+
+Phase 17.
+"""
 
 from __future__ import annotations
 
 import asyncio
-import uuid
+from unittest.mock import AsyncMock, patch
+
 import pytest
 import structlog
-from unittest.mock import AsyncMock, MagicMock, patch
-from fastapi import FastAPI, status
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
+from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker
 
 from app.api.middleware.correlation import CorrelationMiddleware
 from app.api.middleware.rate_limit import RateLimitMiddleware
@@ -95,7 +98,7 @@ async def test_run_with_correlation_propagation() -> None:
 async def test_startup_analysis_sweep(
     db_engine: AsyncEngine,
 ) -> None:
-    """Test that startup_analysis_sweep resets stuck processing jobs and triggers analysis execution."""
+    """`startup_analysis_sweep` resets stuck jobs to pending and dispatches them."""
     session_factory = async_sessionmaker(db_engine, expire_on_commit=False)
 
     user_id = None
@@ -140,7 +143,10 @@ async def test_startup_analysis_sweep(
         settings = Settings()
 
         # Mock run_pending_analysis_jobs to intercept execution calls
-        with patch("app.domain.analysis.dispatch.run_pending_analysis_jobs", new_callable=AsyncMock) as mock_run:
+        with patch(
+            "app.domain.analysis.dispatch.run_pending_analysis_jobs",
+            new_callable=AsyncMock,
+        ) as mock_run:
             await startup_analysis_sweep(session_factory, settings)
 
             # Allow background task to schedule/run
@@ -166,6 +172,35 @@ async def test_startup_analysis_sweep(
     finally:
         if user_id is not None:
             from sqlalchemy import delete
+
             async with session_scope(session_factory) as session:
                 await session.execute(delete(User).where(User.id == user_id))
                 await session.commit()
+
+
+async def test_startup_sweep_task_is_strongly_referenced() -> None:
+    """The detached sweep must not be collectable while it runs.
+
+    asyncio holds only a weak reference to a running task, so a bare
+    `create_task(...)` whose result nobody keeps can be garbage-collected mid-flight —
+    silently losing the recovery of orphaned jobs, which is the one thing the sweep
+    exists to do. Guards the reference-keeping in `_spawn_sweep`.
+    """
+    from app.domain.analysis import dispatch
+
+    started = asyncio.Event()
+    release = asyncio.Event()
+
+    async def _work() -> None:
+        started.set()
+        await release.wait()
+
+    task = dispatch._spawn_sweep(_work())
+    await started.wait()
+
+    assert task in dispatch._sweep_tasks
+
+    release.set()
+    await task
+    # Completion clears the reference, so the set cannot grow without bound.
+    assert task not in dispatch._sweep_tasks

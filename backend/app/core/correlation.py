@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable
 import functools
+from collections.abc import Awaitable, Callable
 from typing import Any, TypeVar
+
 import structlog
 
 F = TypeVar("F", bound=Callable[..., Awaitable[Any]])

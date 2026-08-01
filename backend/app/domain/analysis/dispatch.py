@@ -23,7 +23,8 @@ from __future__ import annotations
 
 import asyncio
 import uuid
-from collections.abc import Callable
+from collections.abc import Callable, Coroutine
+from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -116,6 +117,36 @@ async def _process_one_job(
     job.completed_at = utc_now()
 
 
+# Strong references to detached sweep tasks — see `_spawn_sweep`.
+_sweep_tasks: set[asyncio.Task[None]] = set()
+
+
+def _spawn_sweep(coro: Coroutine[Any, Any, None]) -> asyncio.Task[None]:
+    """Run `coro` detached, holding a strong reference until it finishes.
+
+    The event loop keeps only a *weak* reference to a running task, so a bare
+    ``asyncio.create_task(...)`` whose result nobody stores can be garbage-collected
+    mid-flight. For the startup sweep that would mean silently losing the recovery of
+    orphaned jobs — precisely the failure the sweep exists to repair, and invisible when
+    it happens. Keeping the task in a module-level set and discarding it on completion
+    is the documented way to prevent that.
+
+    The done-callback also surfaces a crash. `run_pending_analysis_jobs` is written not
+    to raise, but nothing enforces that, and an exception in a detached task otherwise
+    vanishes without a log line.
+    """
+    task = asyncio.create_task(coro)
+    _sweep_tasks.add(task)
+
+    def _finished(done: asyncio.Task[None]) -> None:
+        _sweep_tasks.discard(done)
+        if not done.cancelled() and done.exception() is not None:
+            logger.error("startup_analysis_sweep_task_failed", reason=str(done.exception()))
+
+    task.add_done_callback(_finished)
+    return task
+
+
 async def startup_analysis_sweep(
     session_factory: async_sessionmaker[AsyncSession],
     settings: Settings,
@@ -124,6 +155,7 @@ async def startup_analysis_sweep(
     reset the processing ones to pending, and trigger their execution in the background.
     """
     from sqlalchemy import select
+
     from app.db.models import Job, JobKind, JobStatus
 
     try:
@@ -148,8 +180,8 @@ async def startup_analysis_sweep(
             await session.commit()
 
         logger.info("startup_analysis_sweep_triggered", job_count=len(job_ids))
-        # Dispatch in background task so FastAPI startup is not blocked
-        asyncio.create_task(
+        # Dispatch in a background task so FastAPI startup is not blocked.
+        _spawn_sweep(
             run_pending_analysis_jobs(
                 job_ids,
                 session_factory=session_factory,

@@ -34,8 +34,8 @@ from app.api.dependencies.db import DbSessionDep
 from app.api.dependencies.patterns import OpeningIndexDep
 from app.api.dependencies.settings import SettingsDep
 from app.api.dependencies.storage import StorageDep
-from app.db.models import GameSource, Job, JobKind, JobStatus
 from app.core.correlation import run_with_correlation
+from app.db.models import GameSource, Job, JobKind, JobStatus
 from app.domain.analysis import run_pending_analysis_jobs
 from app.domain.imports import ImportService, SourceText, TooManyGamesError, run_platform_import_job
 from app.domain.profiles import (
