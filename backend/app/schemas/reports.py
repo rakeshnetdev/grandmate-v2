@@ -51,4 +51,62 @@ class TrainingRecommendationSummary(BaseModel):
     created_at: datetime
 
 
-__all__ = ["GameReportSummary", "ReportFinding", "TrainingRecommendationSummary"]
+class RepeatedWeaknessSummary(BaseModel):
+    kind: str
+    name: str
+    baseline_games_with_finding: int
+    baseline_games: int
+    occurrence_rate: float
+    move_numbers: list[int]
+
+
+class ImprovedWeaknessSummary(BaseModel):
+    kind: str
+    name: str
+    baseline_games_with_finding: int
+    baseline_games: int
+    occurrence_rate: float
+    clear_streak: int
+    # False means "absent from this one game", not "fixed" — the frontend words the two
+    # differently, so this flag has to survive the trip rather than being flattened away.
+    sustained: bool
+
+
+class MetricComparisonSummary(BaseModel):
+    name: str
+    value: float
+    baseline_mean: float
+    z_score: float | None
+    band: str
+
+
+class PatternFeedbackSummary(BaseModel):
+    """Phase 19, D-037: one game against its recent history.
+
+    Carries the deterministic comparison alongside the narrative, rather than only the
+    prose: the tab renders the numbers itself and uses the report for explanation, so a
+    reader can see the sample the claims rest on. `report` is null when the baseline is
+    too thin to support any claim at all — `sufficient_baseline` says why.
+    """
+
+    game_id: uuid.UUID
+    baseline_games: int
+    sufficient_baseline: bool
+    attributable: bool
+    outcome: str
+    overall_band: str
+    repeated: list[RepeatedWeaknessSummary]
+    improved: list[ImprovedWeaknessSummary]
+    metrics: list[MetricComparisonSummary]
+    report: GameReportSummary | None
+
+
+__all__ = [
+    "GameReportSummary",
+    "ImprovedWeaknessSummary",
+    "MetricComparisonSummary",
+    "PatternFeedbackSummary",
+    "RepeatedWeaknessSummary",
+    "ReportFinding",
+    "TrainingRecommendationSummary",
+]

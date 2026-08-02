@@ -16,20 +16,12 @@ import uuid
 from dataclasses import asdict
 from typing import Any
 
-from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from app.core.config import AnalyticsSettings
-from app.db.models import (
-    Game,
-    GameAnalysis,
-    MotifFinding,
-    OpeningMatch,
-    ProfileAggregateSnapshot,
-    StrategicThemeFinding,
-)
+from app.db.models import ProfileAggregateSnapshot
 from app.domain.analytics import metrics
+from app.domain.analytics.loading import load_analyzed_games
 
 # Bumped when the *meaning* of a metric changes (a new field, a changed formula) — not on
 # every code change. Old snapshots keep the version they were computed under, so a report
@@ -125,66 +117,9 @@ class ProfileAnalyticsService:
         return snapshot
 
     async def _load_analyzed_games(self, profile_id: uuid.UUID) -> list[metrics.GameForAnalytics]:
-        game_rows = await self._session.execute(
-            select(Game)
-            .where(Game.profile_id == profile_id, Game.canonicalized_at.is_not(None))
-            .order_by(func.coalesce(Game.played_at, Game.created_at).desc())
-        )
-        games_by_recency = list(game_rows.scalars().all())
-        if not games_by_recency:
-            return []
-
-        # Latest GameAnalysis per game (a retry, see analysis.py's route, adds a new
-        # version rather than replacing one) — DISTINCT ON is the postgres-native way to
-        # pick one row per game_id without a window-function subquery.
-        analysis_rows = await self._session.execute(
-            select(GameAnalysis)
-            .where(GameAnalysis.game_id.in_([g.id for g in games_by_recency]))
-            .distinct(GameAnalysis.game_id)
-            .order_by(GameAnalysis.game_id, GameAnalysis.created_at.desc())
-            .options(selectinload(GameAnalysis.evaluations))
-        )
-        analysis_by_game = {a.game_id: a for a in analysis_rows.scalars().all()}
-        if not analysis_by_game:
-            return []
-
-        opening_rows = await self._session.execute(
-            select(OpeningMatch).where(OpeningMatch.game_id.in_(analysis_by_game.keys()))
-        )
-        opening_by_game = {o.game_id: o for o in opening_rows.scalars().all()}
-
-        analysis_ids = [a.id for a in analysis_by_game.values()]
-        motif_rows = await self._session.execute(
-            select(MotifFinding).where(MotifFinding.game_analysis_id.in_(analysis_ids))
-        )
-        motifs_by_analysis: dict[uuid.UUID, list[MotifFinding]] = {}
-        for motif in motif_rows.scalars().all():
-            motifs_by_analysis.setdefault(motif.game_analysis_id, []).append(motif)
-
-        theme_rows = await self._session.execute(
-            select(StrategicThemeFinding).where(
-                StrategicThemeFinding.game_analysis_id.in_(analysis_ids)
-            )
-        )
-        themes_by_analysis: dict[uuid.UUID, list[StrategicThemeFinding]] = {}
-        for theme in theme_rows.scalars().all():
-            themes_by_analysis.setdefault(theme.game_analysis_id, []).append(theme)
-
-        result: list[metrics.GameForAnalytics] = []
-        for game in games_by_recency:
-            analysis = analysis_by_game.get(game.id)
-            if analysis is None:
-                continue
-            result.append(
-                metrics.GameForAnalytics(
-                    game=game,
-                    analysis=analysis,
-                    opening=opening_by_game.get(game.id),
-                    motifs=motifs_by_analysis.get(analysis.id, []),
-                    themes=themes_by_analysis.get(analysis.id, []),
-                )
-            )
-        return result
+        # Shared with pattern feedback (Phase 19) — see `loading.py` for why this lives
+        # outside the service rather than as a private method here.
+        return await load_analyzed_games(self._session, profile_id)
 
 
 __all__ = ["SNAPSHOT_VERSION", "ProfileAnalyticsService"]

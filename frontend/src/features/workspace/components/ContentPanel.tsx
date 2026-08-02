@@ -1,8 +1,8 @@
 /**
  * The workspace's middle panel (Phase 16a, D-035): tabbed content instead of one long
  * scroll. "Overview" and "Learning" are profile-level, so they are always available;
- * "Analysis"/"Moves"/"Patterns"/"Story" only make sense once a game is selected, so those
- * tabs don't exist at all until then, rather than existing-but-disabled.
+ * "Analysis"/"Moves"/"Patterns"/"Story"/"Pattern feedback" only make sense once a game is
+ * selected, so those tabs don't exist at all until then, rather than existing-but-disabled.
  */
 import type { TabItem } from '@/shared/components/ui/tabs';
 import { Tabs } from '@/shared/components/ui/tabs';
@@ -11,10 +11,18 @@ import { AnalysisTab } from './AnalysisTab';
 import { LearningTab } from './LearningTab';
 import { MovesTab } from './MovesTab';
 import { OverviewTab } from './OverviewTab';
+import { PatternFeedbackTab } from './PatternFeedbackTab';
 import { PatternsTab } from './PatternsTab';
 import { StoryTab } from './StoryTab';
 
-export type ContentTab = 'overview' | 'learning' | 'analysis' | 'moves' | 'patterns' | 'story';
+export type ContentTab =
+  | 'overview'
+  | 'learning'
+  | 'analysis'
+  | 'moves'
+  | 'patterns'
+  | 'story'
+  | 'pattern-feedback';
 
 const GAME_TABS: TabItem[] = [
   { value: 'overview', label: 'Overview' },
@@ -23,6 +31,9 @@ const GAME_TABS: TabItem[] = [
   { value: 'moves', label: 'Moves' },
   { value: 'patterns', label: 'Patterns' },
   { value: 'story', label: 'Story' },
+  // Phase 19: last because it is the only tab that reads across games — everything
+  // before it describes this game alone.
+  { value: 'pattern-feedback', label: 'Pattern feedback' },
 ];
 const NO_GAME_TABS: TabItem[] = [
   { value: 'overview', label: 'Overview' },
@@ -65,6 +76,9 @@ export function ContentPanel({ profileId, selectedGameId, tab, onTabChange }: Co
         )}
         {activeTab === 'story' && selectedGameId && (
           <StoryTab gameId={selectedGameId} profileId={profileId} />
+        )}
+        {activeTab === 'pattern-feedback' && selectedGameId && (
+          <PatternFeedbackTab gameId={selectedGameId} profileId={profileId} />
         )}
       </div>
     </div>
