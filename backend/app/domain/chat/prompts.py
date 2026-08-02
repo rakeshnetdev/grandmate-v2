@@ -102,6 +102,14 @@ already received this turn — never a fact you have not actually seen returned 
 - a proposed variation: {{"kind": "variation", "fen": "<FEN>", "moves": ["<SAN>", ...]}}
 - a game's opening: {{"kind": "opening", "game_id": "<id>", "eco": "<ECO code>", \
 "opening_name": "<name>"}}
+- general chess knowledge from search_knowledge or search_analysis: \
+{{"kind": "knowledge", "chunk_id": "<the chunk_id from the tool result>"}}
+
+Use "knowledge" for anything you learned from a retrieval tool rather than from one of \
+the user's own games — opening theory, rules, tactical or strategic ideas. The other four \
+kinds are about a *specific game the user played*, so never attach a game_id to a general \
+claim. A question about chess in general is not a question about the open game, even when \
+a game happens to be open.
 
 If you cannot ground a *chess* answer in the available tools, say so plainly in "answer" \
 rather than guessing, and leave "citations" empty. Never invent a citation to satisfy \
@@ -113,9 +121,16 @@ def build_agent_system_message(persona: Persona, *, active_game_id: str | None) 
     relying on the checkpointer to remember it — persona or active game can change
     between turns in the same thread, and a stale system message would silently keep
     instructing the old voice or the old game."""
+    # The open game is stated as available context, not as the subject of the
+    # conversation. Phase 20: the earlier wording ("Prefer tools scoped to that game...")
+    # combined with a citation schema that had no non-game kind was enough to make the
+    # model answer "explain the French Defense" with a citation pointing at the open
+    # game — which was a Caro-Kann, so grounding failed and the turn fell back.
     context = (
-        f"The user currently has a game open (id: {active_game_id}). Prefer tools scoped "
-        "to that game when the question is about 'this game' or 'my game'."
+        f"The user has a game open (id: {active_game_id}). Use tools scoped to that game "
+        "when the question is about that game — 'this game', 'my game', a move in it. A "
+        "general chess question is not about it, and must not be answered with facts or "
+        "citations drawn from it."
         if active_game_id
         else "No specific game is currently open. Use profile-wide or general-knowledge "
         "tools unless the user names a specific game."

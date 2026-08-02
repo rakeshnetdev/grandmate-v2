@@ -18,21 +18,65 @@ import json
 import uuid
 from typing import Any
 
-from app.db.models import GameAnalysis, GameMove, MoveEvaluation, OpeningMatch
+from sqlalchemy import select
+
+from app.db.models import (
+    GameAnalysis,
+    GameMove,
+    KnowledgeChunk,
+    KnowledgeDocument,
+    MoveEvaluation,
+    OpeningMatch,
+)
 from app.domain.analysis import get_latest_analysis, get_moves
 from app.domain.patterns.queries import get_opening_match
 from app.orchestration.tools.context import ToolContext
 from app.orchestration.tools.validation_tools import validate_line
 
 
+def retrieved_chunk_ids(tool_results: list[dict[str, Any]]) -> set[str]:
+    """Every chunk id a retrieval tool returned this turn, read off the recorded tool
+    results (Phase 20).
+
+    Lives here rather than in either graph because it is the input contract for
+    `validate_answer`'s `retrieved_chunk_ids` argument, and both the single-agent loop
+    (`graphs/chat.py`'s `turn_context`) and the multi-agent graph (`_combined_context`)
+    record tool results in the same shape. One implementation, per rule 13.
+
+    Reads the recorded *result* of each call — server-side truth about what the tool
+    returned, never the model's account of it.
+    """
+    chunk_ids: set[str] = set()
+    for entry in tool_results:
+        result = entry.get("result", {})
+        if not isinstance(result, dict):
+            continue
+        for chunk in result.get("results", []):
+            chunk_id = chunk.get("chunk_id") if isinstance(chunk, dict) else None
+            if isinstance(chunk_id, str):
+                chunk_ids.add(chunk_id)
+    return chunk_ids
+
+
 async def validate_answer(
-    ctx: ToolContext, raw_content: str
+    ctx: ToolContext,
+    raw_content: str,
+    *,
+    retrieved_chunk_ids: set[str] | None = None,
 ) -> tuple[dict[str, Any] | None, list[str]]:
     """Parse the model's final answer and check every citation.
 
     Returns `(parsed, violations)`. `parsed` is `None` only when the response is not
     even shaped like an answer — a caller should treat that as an unconditional retry
     trigger rather than inspecting citations that were never produced.
+
+    `retrieved_chunk_ids` (Phase 20) is every chunk a retrieval tool actually returned
+    during this turn, and it is what a `knowledge` citation is checked against. Verifying
+    that the chunk merely exists in the corpus would be a much weaker claim — it would let
+    the model cite any real document for any assertion — whereas this proves the answer
+    cites something the agent genuinely saw. Defaulted to `None` (meaning "no retrieval
+    happened") so callers that never retrieve stay unchanged; a `knowledge` citation is
+    then always a violation, which is correct.
     """
     try:
         parsed = json.loads(raw_content)
@@ -63,6 +107,10 @@ async def validate_answer(
             violations.extend(_check_variation(citation, index))
         elif kind == "opening":
             violations.extend(await _check_opening(ctx, citation, opening_cache, index))
+        elif kind == "knowledge":
+            violations.extend(
+                await _check_knowledge(ctx, citation, retrieved_chunk_ids or set(), index)
+            )
         else:
             violations.append(f"citation {index} has unknown kind {kind!r}")
 
@@ -170,6 +218,53 @@ async def _check_opening(
     return []
 
 
+async def _check_knowledge(
+    ctx: ToolContext,
+    citation: dict[str, Any],
+    retrieved_chunk_ids: set[str],
+    index: int,
+) -> list[str]:
+    """A fact taken from the knowledge corpus rather than from one of the user's games.
+
+    The model supplies only `chunk_id`; every human-readable field is filled in here from
+    the database. That is deliberately stricter than the other kinds, which accept a
+    model-written SAN or ECO and then check it matches — here there is nothing to check,
+    because the model never gets to write the label at all.
+
+    The title lookup is best-effort by design: `search_analysis` returns chunks from
+    `analysis_knowledge_chunks`, which has no parent document, so a verified analysis
+    chunk simply carries no title. Absence of a title is not a grounding failure —
+    membership in this turn's retrieved set is what makes the citation true.
+    """
+    chunk_id = citation.get("chunk_id")
+    if not isinstance(chunk_id, str):
+        return [f"citation {index}: 'knowledge' citation needs chunk_id"]
+    if chunk_id not in retrieved_chunk_ids:
+        return [
+            f"citation {index}: chunk {chunk_id} was not returned by a retrieval tool this turn"
+        ]
+
+    try:
+        parsed_id = uuid.UUID(chunk_id)
+    except (ValueError, TypeError):
+        return [f"citation {index}: {chunk_id!r} is not a valid chunk id"]
+
+    document = await _document_for_chunk(ctx, parsed_id)
+    if document is not None:
+        citation["title"] = document.title
+        citation["source"] = document.source
+    return []
+
+
+async def _document_for_chunk(ctx: ToolContext, chunk_id: uuid.UUID) -> KnowledgeDocument | None:
+    result = await ctx.session.execute(
+        select(KnowledgeDocument)
+        .join(KnowledgeChunk, KnowledgeChunk.document_id == KnowledgeDocument.id)
+        .where(KnowledgeChunk.id == chunk_id)
+    )
+    return result.scalar_one_or_none()
+
+
 def _check_variation(citation: dict[str, Any], index: int) -> list[str]:
     fen, moves = citation.get("fen"), citation.get("moves")
     if not isinstance(fen, str) or not isinstance(moves, list):
@@ -180,4 +275,4 @@ def _check_variation(citation: dict[str, Any], index: int) -> list[str]:
     return []
 
 
-__all__ = ["validate_answer"]
+__all__ = ["retrieved_chunk_ids", "validate_answer"]

@@ -154,7 +154,7 @@ async def _dispatch_tool(ctx: ToolContext, call: ToolCall) -> dict[str, Any]:
 
 async def _run_agent(state: GraphState, deps: ChatGraphDeps) -> GraphState:
     from app.domain.chat.fallback import build_fallback_answer
-    from app.domain.chat.guardrail import validate_answer
+    from app.domain.chat.guardrail import retrieved_chunk_ids, validate_answer
     from app.domain.chat.prompts import build_agent_system_message
 
     with get_recorder().span(SpanKind.AGENT, "run_agent", intent=state.get("intent")) as outer_span:
@@ -213,7 +213,11 @@ async def _run_agent(state: GraphState, deps: ChatGraphDeps) -> GraphState:
 
             answer_attempts += 1
             with get_recorder().span(SpanKind.GROUNDING, "chat.guardrail") as grounding_span:
-                parsed, violations = await validate_answer(deps.tool_context, response.content)
+                parsed, violations = await validate_answer(
+                    deps.tool_context,
+                    response.content,
+                    retrieved_chunk_ids=retrieved_chunk_ids(turn_context),
+                )
                 if grounding_span:
                     grounding_span.set(violation_count=len(violations))
             if not violations and parsed is not None:

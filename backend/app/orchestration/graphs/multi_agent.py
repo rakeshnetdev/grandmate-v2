@@ -44,7 +44,7 @@ from app.core.config import LLMSettings, MultiAgentSettings
 from app.core.devinsight import SpanKind, get_recorder
 from app.db.models import Persona
 from app.domain.chat.fallback import build_fallback_answer
-from app.domain.chat.guardrail import validate_answer
+from app.domain.chat.guardrail import retrieved_chunk_ids, validate_answer
 from app.domain.chat.multi_agent_prompts import (
     build_chess_analyst_system_message,
     build_coach_system_message,
@@ -400,7 +400,11 @@ async def _critic(state: MultiAgentState, deps: MultiAgentGraphDeps) -> MultiAge
     (Phase 10, unchanged) — see the module docstring for why this is not a second LLM
     judge. Makes no LLM call and needs no budget check of its own."""
     with get_recorder().span(SpanKind.GROUNDING, "critic") as span:
-        parsed, violations = await validate_answer(deps.tool_context, state.get("draft_raw") or "")
+        parsed, violations = await validate_answer(
+            deps.tool_context,
+            state.get("draft_raw") or "",
+            retrieved_chunk_ids=retrieved_chunk_ids(_combined_context(state)),
+        )
         if span:
             span.set(violation_count=len(violations))
 

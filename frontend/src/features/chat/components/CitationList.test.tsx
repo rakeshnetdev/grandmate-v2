@@ -48,6 +48,32 @@ describe('CitationList', () => {
     expect(screen.getByText('Italian Game (C50)')).toBeInTheDocument();
   });
 
+  it('names the document behind a knowledge citation', async () => {
+    const user = userEvent.setup();
+    render(
+      <CitationList
+        citations={[
+          { kind: 'knowledge', chunk_id: 'abc', title: 'The French Defence', source: 'Wikipedia' },
+        ]}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: /Show 1 source/ }));
+
+    expect(screen.getByText('The French Defence — Wikipedia')).toBeInTheDocument();
+  });
+
+  it('labels a knowledge citation with no parent document generically', async () => {
+    // An analysis-bucket chunk is verified but has no document to name — expected, not
+    // a missing value.
+    const user = userEvent.setup();
+    render(<CitationList citations={[{ kind: 'knowledge', chunk_id: 'abc' }]} />);
+
+    await user.click(screen.getByRole('button', { name: /Show 1 source/ }));
+
+    expect(screen.getByText('Knowledge corpus')).toBeInTheDocument();
+  });
+
   it('falls back to the raw kind for an unrecognised citation shape', async () => {
     const user = userEvent.setup();
     render(<CitationList citations={[{ kind: 'mystery' }]} />);
