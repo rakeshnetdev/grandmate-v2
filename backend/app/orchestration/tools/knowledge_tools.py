@@ -54,6 +54,12 @@ SEARCH_ANALYSIS = ToolSpec(
 
 def _chunk_payload(chunk: RetrievedChunk) -> dict[str, Any]:
     return {
+        # Phase 20: exposed so the model has something citable for a fact it learned from
+        # the corpus rather than from one of the user's games. Without an id in the tool
+        # result there was no way to cite retrieved knowledge at all, and the only
+        # citation kinds on offer all demanded a game_id — so a general-knowledge answer
+        # either borrowed the open game's id (and failed grounding) or cited nothing.
+        "chunk_id": str(chunk.chunk_id),
         "content": chunk.content,
         "score": round(chunk.score, 4),
         "retrieved_by": chunk.retrieved_by,

@@ -34,6 +34,18 @@ function describeCitation(citation: ChatCitation): string {
       const eco = typeof citation.eco === 'string' ? citation.eco : '';
       return eco ? `${name} (${eco})` : name;
     }
+    case 'knowledge': {
+      // `title`/`source` are filled in server-side by the guardrail from the document
+      // record (Phase 20) — the model only ever supplies a chunk id, so these are never
+      // model-written text. A verified analysis-bucket chunk has no parent document and
+      // so no title; that is expected, not a missing value.
+      const title = typeof citation.title === 'string' ? citation.title : null;
+      const source = typeof citation.source === 'string' ? citation.source : null;
+      if (!title) {
+        return 'Knowledge corpus';
+      }
+      return source ? `${title} — ${source}` : title;
+    }
     default:
       return citation.kind;
   }

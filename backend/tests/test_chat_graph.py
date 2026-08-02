@@ -19,14 +19,24 @@ from langgraph.store.memory import InMemoryStore
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import Settings
-from app.db.models import ChatThread, Profile, ProfileKind, User
+from app.db.base import utc_now
+from app.db.models import (
+    ChatThread,
+    KnowledgeBucket,
+    KnowledgeChunk,
+    KnowledgeDocument,
+    Profile,
+    ProfileKind,
+    User,
+)
+from app.db.models.knowledge import EMBEDDING_DIMENSIONS
 from app.domain.llm_usage import LLMBudgetTracker
 from app.domain.memory import MemoryService
 from app.domain.patterns import OpeningIndex
 from app.integrations.llm import build_embedding_provider
 from app.integrations.llm.base import ToolCall
 from app.orchestration.graphs.chat import ChatGraphDeps, build_chat_graph
-from app.orchestration.tools import ToolContext
+from app.orchestration.tools import TOOL_DISPATCH, ToolContext
 from tests.fake_llm import FakeLLMProvider
 
 pytestmark = pytest.mark.asyncio
@@ -336,3 +346,126 @@ async def test_write_memory_drops_a_candidate_below_the_confidence_floor(
 
     written = await deps.memory.list_memories(deps.tool_context.profile_id)
     assert written == []
+
+
+async def _seed_corpus_chunk(session: AsyncSession) -> KnowledgeChunk:
+    document = KnowledgeDocument(
+        bucket=KnowledgeBucket.OPENINGS,
+        title="The French Defence",
+        source="Wikipedia",
+        source_url="https://en.wikipedia.org/wiki/French_Defence",
+        licence="CC BY-SA 4.0",
+        retrieved_at=utc_now(),
+        content_hash=str(uuid.uuid4()),
+    )
+    session.add(document)
+    await session.flush()
+    chunk = KnowledgeChunk(
+        document_id=document.id,
+        bucket=KnowledgeBucket.OPENINGS,
+        chunk_index=0,
+        content="The French Defence begins 1.e4 e6.",
+        token_count=9,
+        chunk_metadata={},
+        embedding=[0.0] * EMBEDDING_DIMENSIONS,
+    )
+    session.add(chunk)
+    await session.flush()
+    return chunk
+
+
+async def test_a_general_knowledge_question_is_answered_while_a_game_is_open(
+    settings: Settings, db_session: AsyncSession, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Phase 20's whole point, reproducing the reported failure.
+
+    Asking "explain the French Defence" with an unrelated game open used to be
+    unanswerable: the model had to cite the chess facts it stated, every citation kind
+    demanded a game_id, so it cited the open game — whose opening was a different one —
+    and the guardrail correctly rejected it. Two attempts later the turn degraded to the
+    fallback, and the user got nothing.
+
+    Now the retrieved chunk is itself citable, so the first attempt validates.
+    """
+    chunk = await _seed_corpus_chunk(db_session)
+
+    async def _fake_search(ctx, *, bucket: str, query: str):  # type: ignore[no-untyped-def]
+        return {
+            "results": [
+                {
+                    "chunk_id": str(chunk.id),
+                    "content": chunk.content,
+                    "score": 0.9,
+                    "retrieved_by": "dense",
+                    "metadata": {},
+                }
+            ]
+        }
+
+    # Stubbed so the test exercises the graph and guardrail, not pgvector/embeddings —
+    # retrieval itself is `test_retrieval_*`'s concern.
+    monkeypatch.setitem(TOOL_DISPATCH, "search_knowledge", _fake_search)
+
+    answer = json.dumps(
+        {
+            "answer": "The French Defence begins 1.e4 e6.",
+            "citations": [{"kind": "knowledge", "chunk_id": str(chunk.id)}],
+        }
+    )
+    llm = FakeLLMProvider(
+        responses=[
+            '{"intent": "explain"}',
+            [
+                ToolCall(
+                    id="c1",
+                    name="search_knowledge",
+                    arguments='{"bucket": "openings", "query": "French Defence"}',
+                )
+            ],
+            answer,
+            _NO_MEMORIES,
+        ]
+    )
+    graph = build_chat_graph(_deps(settings, db_session, llm), MemorySaver())
+
+    result = await graph.ainvoke(
+        {
+            "question": "explain the French Defence",
+            "persona": "self_learner",
+            # An unrelated game is open — the condition that used to break this.
+            "active_game_id": str(uuid.uuid4()),
+        },
+        config={"configurable": {"thread_id": str(uuid.uuid4())}},
+    )
+
+    # Answered on the first attempt: no retry was scripted, and none was needed.
+    assert llm.responses == []
+    assert result["answer"] == "The French Defence begins 1.e4 e6."
+    assert result["grounded"] is True
+    assert result["citations"][0]["kind"] == "knowledge"
+    # Enriched server-side from the document record, never model-written.
+    assert result["citations"][0]["title"] == "The French Defence"
+
+
+async def test_a_knowledge_citation_for_a_chunk_never_retrieved_is_rejected(
+    settings: Settings, db_session: AsyncSession
+) -> None:
+    """The model cannot cite corpus material it did not actually receive this turn, even
+    if that chunk really exists."""
+    chunk = await _seed_corpus_chunk(db_session)
+    fabricated = json.dumps(
+        {
+            "answer": "The French Defence begins 1.e4 e6.",
+            "citations": [{"kind": "knowledge", "chunk_id": str(chunk.id)}],
+        }
+    )
+    llm = FakeLLMProvider(responses=['{"intent": "explain"}', fabricated, fabricated, _NO_MEMORIES])
+    graph = build_chat_graph(_deps(settings, db_session, llm), MemorySaver())
+
+    result = await graph.ainvoke(
+        {"question": "explain the French Defence", "persona": "self_learner"},
+        config={"configurable": {"thread_id": str(uuid.uuid4())}},
+    )
+
+    assert result["answer"] != "The French Defence begins 1.e4 e6."
+    assert result["citations"] == []

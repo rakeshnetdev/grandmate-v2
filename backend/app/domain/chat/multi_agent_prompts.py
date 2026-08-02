@@ -192,6 +192,12 @@ Allowed citation object forms, using only material that actually appears in the 
 - a critical moment:
   {{"kind": "critical_moment", "game_id": "<id>", "ply": <int>, \
 "label": "<moment label>"}}
+- general chess knowledge retrieved this turn (Phase 20):
+  {{"kind": "knowledge", "chunk_id": "<the chunk_id from the retrieved context>"}}
+
+Use "knowledge" for anything drawn from retrieved corpus material rather than from one of \
+the user's own games. The game-scoped kinds are about a specific game the user played, so \
+never attach a game_id to a general claim.
 
 If the context is empty or insufficient, say so in "answer" rather than inventing a fact, \
 and leave "citations" empty."""
@@ -210,7 +216,8 @@ def build_coach_system_message(
     and the coach phrases only from that supplied record.
     """
     context_note = (
-        f"The user currently has a game open (id: {active_game_id})."
+        f"The user has a game open (id: {active_game_id}). A general chess question is "
+        "not a question about that game, and must not be answered from it."
         if active_game_id
         else "No specific game is currently open."
     )

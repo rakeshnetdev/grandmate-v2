@@ -12,11 +12,15 @@ import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import Settings
+from app.db.base import utc_now
 from app.db.models import (
     Game,
     GameAnalysis,
     GameMove,
     GameSource,
+    KnowledgeBucket,
+    KnowledgeChunk,
+    KnowledgeDocument,
     MoveClassification,
     MoveEvaluation,
     OpeningMatch,
@@ -24,7 +28,8 @@ from app.db.models import (
     ProfileKind,
     User,
 )
-from app.domain.chat.guardrail import validate_answer
+from app.db.models.knowledge import EMBEDDING_DIMENSIONS
+from app.domain.chat.guardrail import retrieved_chunk_ids, validate_answer
 from app.domain.patterns import OpeningIndex
 from app.integrations.llm import build_embedding_provider
 from app.orchestration.tools import ToolContext
@@ -340,3 +345,118 @@ class TestMalformedCitations:
         _parsed, violations = await validate_answer(_ctx(db_session, profile.id), content)
 
         assert len(violations) == 1
+
+
+async def _seed_corpus_chunk(session: AsyncSession) -> KnowledgeChunk:
+    """One real corpus document and chunk, so a knowledge citation has something true to
+    point at and a title to be enriched with."""
+    document = KnowledgeDocument(
+        bucket=KnowledgeBucket.OPENINGS,
+        title="The French Defence",
+        source="Wikipedia",
+        source_url="https://en.wikipedia.org/wiki/French_Defence",
+        licence="CC BY-SA 4.0",
+        retrieved_at=utc_now(),
+        content_hash=str(uuid.uuid4()),
+    )
+    session.add(document)
+    await session.flush()
+
+    chunk = KnowledgeChunk(
+        document_id=document.id,
+        bucket=KnowledgeBucket.OPENINGS,
+        chunk_index=0,
+        content="The French Defence begins 1.e4 e6.",
+        token_count=9,
+        chunk_metadata={},
+        embedding=[0.0] * EMBEDDING_DIMENSIONS,
+    )
+    session.add(chunk)
+    await session.flush()
+    return chunk
+
+
+class TestKnowledgeCitations:
+    """Phase 20. A general-knowledge answer had no citable kind at all: every kind
+    demanded a game_id, so the model borrowed the open game's — and the guardrail
+    correctly rejected it, dropping a perfectly good answer to the fallback."""
+
+    async def test_a_chunk_retrieved_this_turn_is_valid_and_gains_its_title(
+        self, db_session: AsyncSession
+    ) -> None:
+        profile = await _make_profile(db_session)
+        chunk = await _seed_corpus_chunk(db_session)
+        response = json.dumps(
+            {
+                "answer": "The French Defence begins 1.e4 e6.",
+                "citations": [{"kind": "knowledge", "chunk_id": str(chunk.id)}],
+            }
+        )
+
+        parsed, violations = await validate_answer(
+            _ctx(db_session, profile.id),
+            response,
+            retrieved_chunk_ids={str(chunk.id)},
+        )
+
+        assert violations == []
+        # The model supplied only an id; the display fields are database truth.
+        assert parsed is not None
+        assert parsed["citations"][0]["title"] == "The French Defence"
+        assert parsed["citations"][0]["source"] == "Wikipedia"
+
+    async def test_a_real_chunk_not_retrieved_this_turn_is_rejected(
+        self, db_session: AsyncSession
+    ) -> None:
+        """Existing in the corpus is not enough — that would let the model cite any real
+        document for any claim."""
+        profile = await _make_profile(db_session)
+        chunk = await _seed_corpus_chunk(db_session)
+        response = json.dumps(
+            {
+                "answer": "The French Defence begins 1.e4 e6.",
+                "citations": [{"kind": "knowledge", "chunk_id": str(chunk.id)}],
+            }
+        )
+
+        _parsed, violations = await validate_answer(
+            _ctx(db_session, profile.id), response, retrieved_chunk_ids=set()
+        )
+
+        assert any("not returned by a retrieval tool" in v for v in violations)
+
+    async def test_a_knowledge_citation_needs_a_chunk_id(self, db_session: AsyncSession) -> None:
+        profile = await _make_profile(db_session)
+        response = json.dumps(
+            {"answer": "...", "citations": [{"kind": "knowledge", "title": "made up"}]}
+        )
+
+        _parsed, violations = await validate_answer(
+            _ctx(db_session, profile.id), response, retrieved_chunk_ids=set()
+        )
+
+        assert any("needs chunk_id" in v for v in violations)
+
+
+class TestRetrievedChunkIds:
+    def test_collects_ids_from_every_retrieval_result(self) -> None:
+        context = [
+            {
+                "tool": "search_knowledge",
+                "result": {"results": [{"chunk_id": "a"}, {"chunk_id": "b"}]},
+            },
+            {"tool": "search_analysis", "result": {"results": [{"chunk_id": "c"}]}},
+        ]
+
+        assert retrieved_chunk_ids(context) == {"a", "b", "c"}
+
+    def test_ignores_tool_calls_that_returned_no_chunks(self) -> None:
+        """A failed tool call and a non-retrieval tool must contribute nothing rather
+        than raising."""
+        context = [
+            {"tool": "get_game_analysis", "result": {"summary": {}}},
+            {"tool": "search_knowledge", "result": {"error": "unknown bucket"}},
+            {"tool": "search_knowledge", "result": "not even a dict"},
+        ]
+
+        assert retrieved_chunk_ids(context) == set()

@@ -703,6 +703,39 @@ would genuinely mislead a player about themselves.
 
 ---
 
+### D-038 — Phase 20: retrieved knowledge is citable, and verified against the turn · Locked
+
+Raised by the owner with a checkpoint-history trace of a real failure: "explain the French
+Defence", asked with an unrelated (Caro-Kann) game open, produced the deterministic
+fallback. The cause was structural, not a bad prompt — every citation kind required a
+`game_id` or a FEN, so a fact learned from `search_knowledge` had no correct way to be
+cited, and the model attached the only id in scope.
+
+**Decided: a `knowledge` citation kind, verified against chunks actually returned this
+turn.** The owner was offered the weaker alternative (check only that the chunk exists in
+the corpus, which needs no signature change) and chose the stricter one. Existence alone
+would let the model cite any real document for any claim; membership in the turn's
+retrieved set proves the answer cites something the agent genuinely saw.
+
+**Rejected: the prompt-only fix** ("leave citations empty for retrieved opening facts").
+It instructs the model to ship real chess claims uncited, which is the hole the guardrail
+exists to close — a visible failure traded for a silent one.
+
+**The model supplies only a chunk id.** `title` and `source` are filled in from the
+document record by the guardrail. This is deliberately stricter than the existing kinds,
+which accept a model-written SAN or ECO and then check it matches: here there is nothing to
+check, because the model never writes the label.
+
+**Correction to an earlier analysis.** It had been suggested that the multi-agent path
+already avoided this through `needs_analysis` routing. It does not — `multi_agent_prompts.py`
+had the same missing kind, stated the open game unconditionally, and carried the same
+per-claim citation rule; `USE_MULTI_AGENT=false` also makes it not the shipped path. Both
+paths were fixed.
+
+→ `final_docs/v2/phase-reports/phase-20-knowledge-citations.md`
+
+---
+
 ## Open questions raised back to the owner
 
 Recorded here so they are not lost between phases.
