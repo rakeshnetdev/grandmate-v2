@@ -38,9 +38,14 @@ FactKind = Literal[
     "recurring_weakness",
     "knowledge_chunk",
     "phase",
+    "baseline",
+    "repeat",
+    "improvement",
+    "verdict",
 ]
 # `recurring_weakness`/`knowledge_chunk` are produced by `training_facts.py` (Phase 15),
-# `phase` by `story_facts.py` (Phase 16b) — not by `extract_facts` below — added here
+# `phase` by `story_facts.py` (Phase 16b), and `baseline`/`repeat`/`improvement`/`verdict`
+# by `game_feedback/facts.py` (Phase 19) — not by `extract_facts` below — added here
 # rather than as a second `Fact`-like type because the vocabulary (id/kind/severity/
 # confidence/data) and the grounding critic (`critic.py`'s fact_id check) are already
 # fully generic; each is "a new report type" (D-032), not a new fact model.

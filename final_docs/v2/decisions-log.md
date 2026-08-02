@@ -664,6 +664,45 @@ zero critic violations after the fix.
 
 ---
 
+### D-037 — Phase 19: pattern feedback compares one game to its recent history · Locked
+
+Proposed by the owner as a new feature after Phase 18: having played a new game, show what
+recurred from recent games, what stopped, and how good this game was — on a button, in its
+own tab. This is the same product priority already recorded for chat (own-game
+cross-history patterns ahead of opponent comparison), applied to reports.
+
+**Two choices put to the owner, both answered before implementation:**
+
+1. **A workspace tab, not a browser tab.** A standalone printable route was the
+   alternative; it was rejected because Phase 16a/D-035 had just collapsed six separate
+   pages into the single workspace shell, and a new page would reopen that.
+2. **Baseline = the last N analyzed games, unfiltered**, N configurable (default 20).
+   Same-time-control and same-colour baselines were offered and deferred: they sharpen the
+   signal but fragment the sample, and a mixed-format player would need a fallback path on
+   their first use of the feature.
+
+**Two calls Claude made and stated rather than asked**, both about not overclaiming:
+below `GAME_FEEDBACK_MIN_BASELINE_GAMES` prior games the tab renders a plain "not enough
+history yet" state and makes no LLM call at all; and an absent weakness is only called an
+improvement after `GAME_FEEDBACK_IMPROVEMENT_MIN_STREAK` consecutive clear games — one
+quiet game is reported as an absence, because a sample of one is not evidence a habit is
+gone.
+
+**Why the thresholds are their own settings group** rather than reusing
+`AnalyticsSettings`: those numbers govern profile-level *trend* claims over a window, these
+govern *single-game* claims measured against a window. Sharing them would mean a change
+made to steady the dashboard silently re-tuned what counts as a repeat in a per-game
+verdict.
+
+**Enforcement.** The critic (one implementation, a fourth `report_kind`) cross-checks each
+finding's tag against the kind of fact it cites, so an `improved` finding citing a `repeat`
+fact fails validation. That is the guardrail for the one hallucination in this feature that
+would genuinely mislead a player about themselves.
+
+→ `final_docs/v2/phase-reports/phase-19-pattern-feedback.md`, `configuration.md`
+
+---
+
 ## Open questions raised back to the owner
 
 Recorded here so they are not lost between phases.

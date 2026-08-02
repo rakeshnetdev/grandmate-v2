@@ -24,6 +24,7 @@ from app.core.config.groups import (
     DevInsightSettings,
     EngineSettings,
     EvaluationSettings,
+    GameFeedbackSettings,
     IdentitySettings,
     IngestionSettings,
     LLMSettings,
@@ -57,6 +58,7 @@ class Settings(BaseModel):
     multi_agent: MultiAgentSettings = Field(default_factory=MultiAgentSettings)
     ingestion: IngestionSettings = Field(default_factory=IngestionSettings)
     analytics: AnalyticsSettings = Field(default_factory=AnalyticsSettings)
+    game_feedback: GameFeedbackSettings = Field(default_factory=GameFeedbackSettings)
     reports: ReportSettings = Field(default_factory=ReportSettings)
     memory: MemorySettings = Field(default_factory=MemorySettings)
     evaluation: EvaluationSettings = Field(default_factory=EvaluationSettings)

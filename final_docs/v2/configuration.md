@@ -130,10 +130,26 @@ enough to flag"), not universal domain facts.
 | `TIME_CONTROL_BLITZ_MAX_S` | `480` | Same, blitz |
 | `TIME_CONTROL_RAPID_MAX_S` | `1500` | Same, rapid; above this is classical |
 
+### Pattern feedback — one game vs. its recent history (Phase 19, D-037)
+Separate from profile analytics on purpose: those thresholds govern profile-level *trend*
+claims over a window, these govern *single-game* claims measured against a window. Sharing
+one set of numbers would mean tuning the dashboard silently re-tuned what counts as a
+repeat in a per-game verdict.
+
+| Key | Default | Notes |
+|-----|---------|-------|
+| `GAME_FEEDBACK_BASELINE_WINDOW` | `20` | Analyzed games immediately before the viewed game that form its baseline |
+| `GAME_FEEDBACK_MIN_BASELINE_GAMES` | `5` | Below this, no verdict is asserted at all and no LLM call is made — the tab shows a "not enough history" state |
+| `GAME_FEEDBACK_REPEAT_MIN_OCCURRENCE_RATE` | `0.3` | Share of baseline games a weakness must appear in for its reappearance to count as a repeat rather than a one-off |
+| `GAME_FEEDBACK_IMPROVEMENT_MIN_STREAK` | `3` | Consecutive clear games (this one included) before an absence may be called an improvement rather than reported as "not in this game" |
+| `GAME_FEEDBACK_BAND_STRONG_Z` | `1.0` | Standard deviations from the baseline mean at which a metric reads as clearly better/worse |
+| `GAME_FEEDBACK_BAND_SLIGHT_Z` | `0.35` | Same, mildly; inside this band a game reads as in line with the player's usual range |
+
 ### Persona reports (Phase 9, `persona-matrix.md`)
 | Key | Default | Notes |
 |-----|---------|-------|
 | `REPORT_SELF_LEARNER_MAX_FINDINGS` | `5` | Self-learner persona's finding cap |
+| `REPORT_PATTERN_FEEDBACK_MAX_FINDINGS` | `6` | Phase 19: pattern-feedback report's total finding cap across repeated/improved/verdict |
 | `REPORT_KID_MAX_FINDINGS` | `3` | Kid persona's finding cap |
 | `REPORT_KID_MIN_CONFIDENCE_TO_SHOW` | `0.6` | Below this, a finding is suppressed entirely for the kid persona, not softened — persona-matrix.md's safety rules |
 

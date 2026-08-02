@@ -18,10 +18,8 @@ from app.db.models import (
     GameAnalysis,
     GameColor,
     MotifFinding,
-    MotifType,
     OpeningMatch,
     StrategicThemeFinding,
-    StrategicThemeType,
 )
 from app.domain.patterns.polarity import (
     SELF_INFLICTED_MOTIFS,
@@ -240,6 +238,54 @@ class WeaknessStats:
     occurrence_rate: float
 
 
+WeaknessKey = tuple[Literal["motif", "theme"], str]
+
+
+def player_weaknesses_in_game(game: GameForAnalytics) -> set[WeaknessKey]:
+    """The distinct motifs/themes in one game that count *against* the player.
+
+    The single definition of "this was the player's own problem in this game", shared by
+    profile-level recurrence (`recurring_weaknesses`) and per-game comparison
+    (`domain/game_feedback`, Phase 19). Deduplicated per game deliberately: three hanging
+    pieces in one game is one game with that weakness, not three — otherwise a single
+    disastrous game would outweigh a persistent habit.
+
+    For a self-inflicted motif (HANGING_PIECE), the finding's ply is exactly the player's
+    own move, so it only counts if that move was also classified mistake-or-worse — a
+    precise check, not a guess, since the ply and the move are the same thing. For every
+    other (attacking) motif, the finding's ply belongs to the *opponent's* move, whose
+    classification reflects the opponent's move quality, not a cost to the player — there
+    is nothing meaningful to cross-reference there, so occurrence against the player is
+    itself the signal.
+
+    Empty when the player's side is unknown (`focus_color is None`) — nothing can be
+    attributed in either direction. Callers must exclude such games from their
+    denominators too, rather than counting them as clean games.
+    """
+    focus = game.game.focus_color
+    if focus is None:
+        return set()
+
+    classification_by_ply = {mv.ply: mv.classification.value for mv in game.analysis.evaluations}
+    weaknesses: set[WeaknessKey] = set()
+
+    for motif_finding in game.motifs:
+        if not is_players_own_motif(motif_finding, focus):
+            continue
+        if (
+            motif_finding.motif in SELF_INFLICTED_MOTIFS
+            and classification_by_ply.get(motif_finding.ply) not in _MISTAKE_OR_WORSE
+        ):
+            continue
+        weaknesses.add(("motif", motif_finding.motif.value))
+
+    for theme_finding in game.themes:
+        if is_players_own_theme(theme_finding, focus):
+            weaknesses.add(("theme", theme_finding.theme.value))
+
+    return weaknesses
+
+
 def recurring_weaknesses(
     games: list[GameForAnalytics], settings: AnalyticsSettings
 ) -> list[WeaknessStats]:
@@ -247,56 +293,21 @@ def recurring_weaknesses(
     `analytics_weakness_min_occurrence_rate` of the games where the player's side could
     be determined (games with `focus_color is None` are excluded from both the count and
     the denominator — there's nothing to attribute in either direction for them).
-
-    For a self-inflicted motif (HANGING_PIECE), the finding's ply is exactly the
-    player's own move, so it only counts if that move was also classified
-    mistake-or-worse — a precise check, not a guess, since the ply and the move are the
-    same thing. For every other (attacking) motif, the finding's ply belongs to the
-    *opponent's* move, whose classification reflects the opponent's move quality, not a
-    cost to the player — there is nothing meaningful to cross-reference there, so
-    occurrence against the player is itself the signal.
     """
     evaluable = [g for g in games if g.game.focus_color is not None]
     if not evaluable:
         return []
 
-    motif_game_counts: Counter[MotifType] = Counter()
-    theme_game_counts: Counter[StrategicThemeType] = Counter()
-
+    counts: Counter[WeaknessKey] = Counter()
     for g in evaluable:
-        # Narrows `GameColor | None` for the type checker — `evaluable`'s own filter
-        # already guarantees this at runtime.
-        assert g.game.focus_color is not None
-        focus = g.game.focus_color
-        classification_by_ply = {mv.ply: mv.classification.value for mv in g.analysis.evaluations}
-
-        motifs_this_game: set[MotifType] = set()
-        for finding in g.motifs:
-            if not is_players_own_motif(finding, focus):
-                continue
-            if (
-                finding.motif in SELF_INFLICTED_MOTIFS
-                and classification_by_ply.get(finding.ply) not in _MISTAKE_OR_WORSE
-            ):
-                continue
-            motifs_this_game.add(finding.motif)
-        motif_game_counts.update(motifs_this_game)
-
-        themes_this_game = {
-            finding.theme for finding in g.themes if is_players_own_theme(finding, focus)
-        }
-        theme_game_counts.update(themes_this_game)
+        counts.update(player_weaknesses_in_game(g))
 
     total = len(evaluable)
     results: list[WeaknessStats] = []
-    for motif, count in motif_game_counts.items():
+    for (kind, name), count in counts.items():
         rate = count / total
         if rate >= settings.analytics_weakness_min_occurrence_rate:
-            results.append(WeaknessStats("motif", motif.value, count, round(rate, 3)))
-    for theme, count in theme_game_counts.items():
-        rate = count / total
-        if rate >= settings.analytics_weakness_min_occurrence_rate:
-            results.append(WeaknessStats("theme", theme.value, count, round(rate, 3)))
+            results.append(WeaknessStats(kind, name, count, round(rate, 3)))
 
     return sorted(results, key=lambda w: w.occurrence_rate, reverse=True)
 
@@ -308,6 +319,7 @@ __all__ = [
     "Outcome",
     "TimeControlBucket",
     "TimeControlSegmentStats",
+    "WeaknessKey",
     "WeaknessStats",
     "average_accuracy",
     "average_critical_moments",
@@ -317,6 +329,7 @@ __all__ = [
     "determine_outcome",
     "opening_family",
     "opening_family_performance",
+    "player_weaknesses_in_game",
     "recurring_weaknesses",
     "time_control_segmentation",
 ]

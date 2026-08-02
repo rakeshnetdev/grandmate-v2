@@ -426,6 +426,47 @@ class AnalyticsSettings(BaseSettings):
     time_control_rapid_max_s: int = 1500
 
 
+class GameFeedbackSettings(BaseSettings):
+    """One-game-versus-recent-history comparison policy (Phase 19, D-037).
+
+    Separate from `AnalyticsSettings` even though both describe multi-game windows: those
+    thresholds govern *profile-level trend* claims over a window, these govern *single-
+    game* claims measured against a window. Sharing one set of numbers would mean a change
+    made to steady the dashboard's trend arrows silently re-tuned what counts as a repeat
+    in a per-game verdict, which are different judgements with different tolerance for
+    noise.
+    """
+
+    model_config = _BASE_CONFIG
+
+    # How many previously-analyzed games, immediately preceding the game being viewed,
+    # form its comparison baseline. Larger is more stable but reaches further back into a
+    # player the user may have already outgrown; 20 is roughly a month of casual play.
+    game_feedback_baseline_window: int = 20
+
+    # Below this many prior analyzed games, no verdict is asserted at all — the tab says
+    # so instead. A "you played above your usual standard" claim measured against two
+    # games is not a weak signal, it is a meaningless one.
+    game_feedback_min_baseline_games: int = 5
+
+    # Share of baseline games a weakness must appear in before its reappearance in this
+    # game counts as a *repeat* rather than a one-off. Mirrors
+    # `analytics_weakness_min_occurrence_rate`'s default but is tuned independently.
+    game_feedback_repeat_min_occurrence_rate: float = 0.3
+
+    # Consecutive most-recent games (this one included) without a previously-recurring
+    # weakness before it is described as genuinely corrected. Below this it is reported
+    # honestly as "not in this game" — one clean game is an absence, not a fix.
+    game_feedback_improvement_min_streak: int = 3
+
+    # Standard deviations from the baseline mean at which a metric reads as clearly
+    # better/worse ("strong") or mildly so ("slight"). Anything inside the slight band
+    # reads as in line with the player's usual range rather than being narrated as
+    # movement — most game-to-game variation is noise.
+    game_feedback_band_strong_z: float = 1.0
+    game_feedback_band_slight_z: float = 0.35
+
+
 class ReportSettings(BaseSettings):
     """Persona report generation policy (Phase 9, `persona-matrix.md`).
 
@@ -454,6 +495,10 @@ class ReportSettings(BaseSettings):
     # per-section caps, since which sections even exist varies per game (a short game
     # has no endgame section at all).
     report_story_max_findings: int = 6
+    # Phase 19: the pattern-feedback report's total finding cap across its three
+    # sections (repeated/improved/verdict). One flat cap, same reasoning as the story
+    # cap — a game with nothing repeated should spend its budget elsewhere.
+    report_pattern_feedback_max_findings: int = 6
     report_kid_max_findings: int = 3
     # Below this confidence, a finding is not merely under-detailed for the kid persona —
     # per persona-matrix.md's safety rules, it is suppressed entirely. A young player

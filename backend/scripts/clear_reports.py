@@ -9,6 +9,7 @@ Usage (from `backend/`):
     uv run python -m scripts.clear_reports            # Analysis-tab reports only
     uv run python -m scripts.clear_reports --all      # also Story-tab reports
     uv run python -m scripts.clear_reports --story    # Story-tab reports only
+    uv run python -m scripts.clear_reports --feedback # Pattern-feedback-tab reports only
 """
 
 from __future__ import annotations
@@ -45,6 +46,8 @@ if __name__ == "__main__":
         selected = None
     elif flag == "--story":
         selected = "story"
+    elif flag == "--feedback":
+        selected = "pattern_feedback"
     elif flag is None:
         selected = "findings"
     else:

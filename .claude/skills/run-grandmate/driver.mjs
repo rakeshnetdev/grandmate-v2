@@ -294,7 +294,7 @@ async function openTab(b, label) {
   await sleep(500);
   await b
     .waitFor(
-      `!/Writing the full game story|Generating|Analyzing this game|Loading/.test(document.body.innerText)`,
+      `!/Writing the full game story|Generating|Analyzing this game|Comparing this game|Loading/.test(document.body.innerText)`,
       { label: `${label} tab content`, timeout: 60000 },
     )
     .catch(() =>

@@ -20,9 +20,19 @@ from app.api.dependencies.profile_scope import ScopedProfileIdDep
 from app.api.dependencies.settings import SettingsDep
 from app.db.models import Game, GameReport, Persona, TrainingRecommendation
 from app.domain.analysis import get_latest_analysis
+from app.domain.game_feedback import PatternFeedback, PatternFeedbackService, load_baseline
+from app.domain.game_feedback.facts import move_number
 from app.domain.patterns.queries import get_opening_match, get_pattern_findings
 from app.domain.reports import ReportService, TrainingService
-from app.schemas.reports import GameReportSummary, ReportFinding, TrainingRecommendationSummary
+from app.schemas.reports import (
+    GameReportSummary,
+    ImprovedWeaknessSummary,
+    MetricComparisonSummary,
+    PatternFeedbackSummary,
+    RepeatedWeaknessSummary,
+    ReportFinding,
+    TrainingRecommendationSummary,
+)
 
 router = APIRouter(prefix="/reports", tags=["reports"])
 
@@ -114,6 +124,94 @@ async def get_game_story(
         themes=findings.themes,
     )
     return _to_summary(report)
+
+
+@router.get("/games/{game_id}/pattern-feedback", response_model=PatternFeedbackSummary)
+async def get_pattern_feedback(
+    game_id: uuid.UUID,
+    profile_id: ScopedProfileIdDep,
+    session: DbSessionDep,
+    settings: SettingsDep,
+    llm_provider: LLMProviderDep,
+    regenerate: bool = False,
+) -> PatternFeedbackSummary:
+    """This game compared against the profile's previous analyzed games (Phase 19,
+    D-037) — self-learner only, like the story report.
+
+    Returns 404 with the same "no analysis" detail the sibling routes use when the game
+    itself is not analyzed yet, so the frontend's existing pending-vs-error distinction
+    applies here unchanged. A thin baseline is *not* an error: it comes back as a normal
+    response with `sufficient_baseline: false` and a null report.
+
+    `regenerate=true` forces a fresh generation for the explicit "Regenerate" action,
+    matching `/reports/profile/training`'s existing contract."""
+    game = await session.get(Game, game_id)
+    if game is None or game.profile_id != profile_id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Game not found")
+
+    analysis = await get_latest_analysis(session, game_id, profile_id)
+    baseline = await load_baseline(
+        session, profile_id, game_id, settings.game_feedback.game_feedback_baseline_window
+    )
+    if analysis is None or baseline is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No analysis found for this game yet",
+        )
+
+    service = PatternFeedbackService(
+        session, llm_provider, settings.game_feedback, settings.reports, settings.llm
+    )
+    feedback = await service.get_or_generate(
+        game=game, analysis=analysis, baseline=baseline, regenerate=regenerate
+    )
+    return _to_feedback_summary(game_id, feedback)
+
+
+def _to_feedback_summary(game_id: uuid.UUID, feedback: PatternFeedback) -> PatternFeedbackSummary:
+    comparison = feedback.comparison
+    return PatternFeedbackSummary(
+        game_id=game_id,
+        baseline_games=comparison.baseline_games,
+        sufficient_baseline=comparison.sufficient_baseline,
+        attributable=comparison.attributable,
+        outcome=comparison.outcome,
+        overall_band=comparison.overall_band,
+        repeated=[
+            RepeatedWeaknessSummary(
+                kind=item.kind,
+                name=item.name,
+                baseline_games_with_finding=item.baseline_games_with_finding,
+                baseline_games=item.baseline_games,
+                occurrence_rate=item.occurrence_rate,
+                move_numbers=[move_number(ply) for ply in item.plies],
+            )
+            for item in comparison.repeated
+        ],
+        improved=[
+            ImprovedWeaknessSummary(
+                kind=item.kind,
+                name=item.name,
+                baseline_games_with_finding=item.baseline_games_with_finding,
+                baseline_games=item.baseline_games,
+                occurrence_rate=item.occurrence_rate,
+                clear_streak=item.clear_streak,
+                sustained=item.sustained,
+            )
+            for item in comparison.improved
+        ],
+        metrics=[
+            MetricComparisonSummary(
+                name=item.name,
+                value=item.value,
+                baseline_mean=item.baseline_mean,
+                z_score=item.z_score,
+                band=item.band,
+            )
+            for item in comparison.metrics
+        ],
+        report=_to_summary(feedback.report) if feedback.report is not None else None,
+    )
 
 
 def _to_training_summary(recommendation: TrainingRecommendation) -> TrainingRecommendationSummary:

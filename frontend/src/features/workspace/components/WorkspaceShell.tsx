@@ -23,7 +23,17 @@ import { ContentPanel } from './ContentPanel';
 import { ChatDock } from './ChatDock';
 import { GameListPanel } from './GameListPanel';
 
-const VALID_TABS: ContentTab[] = ['overview', 'learning', 'analysis', 'moves', 'patterns', 'story'];
+// Must stay in step with `ContentTab` — the selected tab round-trips through the URL, so
+// a tab missing here silently bounces the reader back to Overview when they click it.
+const VALID_TABS: ContentTab[] = [
+  'overview',
+  'learning',
+  'analysis',
+  'moves',
+  'patterns',
+  'story',
+  'pattern-feedback',
+];
 
 function parseTab(value: string | null): ContentTab {
   return VALID_TABS.includes(value as ContentTab) ? (value as ContentTab) : 'overview';

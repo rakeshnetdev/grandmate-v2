@@ -25,9 +25,20 @@ _CENTIPAWN_PATTERN = re.compile(r"[+-]?\d+\s*(cp\b|centipawn)", re.IGNORECASE)
 _FINDING_KINDS: dict[str, frozenset[str]] = {
     "game": frozenset({"strength", "mistake"}),
     "story": frozenset({"opening", "middlegame", "endgame", "lesson"}),
+    "pattern_feedback": frozenset({"repeated", "improved", "verdict"}),
 }
 
-ReportKind = Literal["game", "training", "story"]
+# Phase 19: which fact kinds each pattern-feedback section is allowed to be built from.
+# This is the guardrail that matters most for this report type — the failure mode is a
+# model reading a "this recurred again" fact and writing "you've fixed this", which is
+# both the most damaging thing it could tell a player and structurally detectable.
+_PATTERN_FEEDBACK_FACT_KINDS: dict[str, frozenset[str]] = {
+    "repeated": frozenset({"repeat"}),
+    "improved": frozenset({"improvement"}),
+    "verdict": frozenset({"verdict", "baseline"}),
+}
+
+ReportKind = Literal["game", "training", "story", "pattern_feedback"]
 
 
 def validate_report(
@@ -59,7 +70,7 @@ def validate_report(
     valid_kinds = _FINDING_KINDS.get(report_kind) if persona == Persona.SELF_LEARNER else None
     violations: list[str] = []
     for finding in findings:
-        violations.extend(_validate_finding(finding, facts_by_id, valid_kinds))
+        violations.extend(_validate_finding(finding, facts_by_id, valid_kinds, report_kind))
 
     max_findings = _max_findings(persona, settings, report_kind)
     if max_findings is not None and len(findings) > max_findings:
@@ -81,7 +92,10 @@ def validate_report(
 
 
 def _validate_finding(
-    finding: Any, facts_by_id: dict[str, Fact], valid_kinds: frozenset[str] | None
+    finding: Any,
+    facts_by_id: dict[str, Fact],
+    valid_kinds: frozenset[str] | None,
+    report_kind: ReportKind,
 ) -> list[str]:
     if not isinstance(finding, dict):
         return ["a finding was not an object"]
@@ -100,7 +114,9 @@ def _validate_finding(
         violations.append("a finding had no text")
 
     if valid_kinds is not None:
-        violations.extend(_validate_finding_kind(finding, fact_ids, facts_by_id, valid_kinds))
+        violations.extend(
+            _validate_finding_kind(finding, fact_ids, facts_by_id, valid_kinds, report_kind)
+        )
 
     return violations
 
@@ -110,24 +126,33 @@ def _validate_finding_kind(
     fact_ids: list[Any],
     facts_by_id: dict[str, Fact],
     valid_kinds: frozenset[str],
+    report_kind: ReportKind,
 ) -> list[str]:
     """Every finding in a kind-tagged format is labelled so the frontend can group it
-    under the right section header — this checks the tag is present and valid; for the
-    "game" format's strength/mistake vocabulary specifically, also that it's actually
-    consistent with the fact(s) cited, so a mislabelled finding fails the critic instead
-    of silently rendering under the wrong heading. The "story" format's vocabulary
-    (opening/middlegame/endgame/lesson) has no single fact field to cross-check against
-    in the same way — a "lesson" finding can legitimately cite any kind of fact — so
-    presence/validity is the check there.
+    under the right section header — this checks the tag is present and valid, and for
+    the two formats where the tag can be cross-checked against the cited facts, that it
+    is actually consistent with them, so a mislabelled finding fails the critic instead
+    of silently rendering under the wrong heading.
+
+    The "story" format's vocabulary (opening/middlegame/endgame/lesson) has no single
+    fact field to cross-check against in the same way — a "lesson" finding can
+    legitimately cite any kind of fact — so presence/validity is the whole check there.
     """
     kind = finding.get("kind")
     if kind not in valid_kinds:
         return [f"a self_learner finding had an invalid or missing kind: {kind!r}"]
 
-    if valid_kinds != _FINDING_KINDS["game"]:
+    referenced = [facts_by_id[fid] for fid in fact_ids if fid in facts_by_id]
+
+    if report_kind == "pattern_feedback":
+        allowed = _PATTERN_FEEDBACK_FACT_KINDS[str(kind)]
+        if referenced and not any(f.kind in allowed for f in referenced):
+            return [f"a finding tagged {kind!r} cites no fact of kind {'/'.join(sorted(allowed))}"]
         return []
 
-    referenced = [facts_by_id[fid] for fid in fact_ids if fid in facts_by_id]
+    if report_kind != "game":
+        return []
+
     is_positive = any(f.data.get("classification") == "best" for f in referenced)
     if kind == "strength" and not is_positive:
         return ["a finding tagged 'strength' does not cite a classification=best fact"]
@@ -148,6 +173,8 @@ def _max_findings(
             )
         if report_kind == "story":
             return settings.report_story_max_findings
+        if report_kind == "pattern_feedback":
+            return settings.report_pattern_feedback_max_findings
         return settings.report_self_learner_max_findings
     return None
 

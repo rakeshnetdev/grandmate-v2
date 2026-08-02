@@ -237,3 +237,91 @@ class TestSelfLearnerGameFormat:
             parsed, [_MISTAKE_FACT], Persona.SELF_LEARNER, _settings(), report_kind="training"
         )
         assert violations == []
+
+
+_REPEAT_FACT = Fact(
+    id="repeat-motif-hanging_piece", kind="repeat", severity="notable", ply=0, confidence=None
+)
+_IMPROVEMENT_FACT = Fact(
+    id="improved-motif-fork", kind="improvement", severity="notable", ply=None, confidence=None
+)
+_VERDICT_FACT = Fact(
+    id="verdict-accuracy", kind="verdict", severity="info", ply=None, confidence=None
+)
+_FEEDBACK_FACTS = [_REPEAT_FACT, _IMPROVEMENT_FACT, _VERDICT_FACT]
+
+
+class TestPatternFeedbackFormat:
+    """Phase 19's format rules. The check that matters is the last one: a model must not
+    be able to turn "this happened again" into "you have fixed this"."""
+
+    def test_a_well_formed_feedback_report_passes(self) -> None:
+        parsed = {
+            "summary": "Better than usual, same old habit.",
+            "findings": [
+                {
+                    "fact_ids": ["repeat-motif-hanging_piece"],
+                    "kind": "repeated",
+                    "text": "You hung a piece again.",
+                },
+                {
+                    "fact_ids": ["improved-motif-fork"],
+                    "kind": "improved",
+                    "text": "No missed forks this game.",
+                },
+                {
+                    "fact_ids": ["verdict-accuracy"],
+                    "kind": "verdict",
+                    "text": "Above your recent average.",
+                },
+            ],
+            "recommendations": [],
+        }
+        violations = validate_report(
+            parsed,
+            _FEEDBACK_FACTS,
+            Persona.SELF_LEARNER,
+            _settings(),
+            report_kind="pattern_feedback",
+        )
+        assert violations == []
+
+    def test_a_kind_from_another_report_format_fails(self) -> None:
+        parsed = {
+            "summary": "...",
+            "findings": [
+                {"fact_ids": ["repeat-motif-hanging_piece"], "kind": "mistake", "text": "..."}
+            ],
+            "recommendations": [],
+        }
+        violations = validate_report(
+            parsed,
+            _FEEDBACK_FACTS,
+            Persona.SELF_LEARNER,
+            _settings(),
+            report_kind="pattern_feedback",
+        )
+        assert any("invalid or missing kind" in v for v in violations)
+
+    def test_claiming_improvement_from_a_repeat_fact_fails(self) -> None:
+        """The damaging hallucination this critic exists to stop: the cited fact says the
+        weakness recurred, the prose says it was fixed."""
+        parsed = {
+            "summary": "...",
+            "findings": [
+                {
+                    "fact_ids": ["repeat-motif-hanging_piece"],
+                    "kind": "improved",
+                    "text": "You have stopped hanging pieces.",
+                }
+            ],
+            "recommendations": [],
+        }
+        violations = validate_report(
+            parsed,
+            _FEEDBACK_FACTS,
+            Persona.SELF_LEARNER,
+            _settings(),
+            report_kind="pattern_feedback",
+        )
+        assert any("cites no fact of kind improvement" in v for v in violations)

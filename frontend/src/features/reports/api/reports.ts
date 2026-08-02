@@ -15,9 +15,25 @@ const reportFindingSchema = z.object({
   text: z.string(),
   // "strength"/"mistake" (Phase 16a, D-035 addendum) group the per-game findings report
   // under "What Went Well" vs "Mistakes & Blunders"; "opening"/"middlegame"/"endgame"/
-  // "lesson" (Phase 16b) do the same for the full game-story report. null/absent for
-  // coach and kid, which use neither format.
-  kind: z.enum(['strength', 'mistake', 'opening', 'middlegame', 'endgame', 'lesson']).nullish(),
+  // "lesson" (Phase 16b) do the same for the full game-story report;
+  // "repeated"/"improved"/"verdict" (Phase 19) for pattern feedback. null/absent for
+  // coach and kid, which use none of these formats.
+  //
+  // Every report format's vocabulary has to be listed here, because this one schema
+  // validates them all — a missing value fails the *whole* response, not just the tag.
+  kind: z
+    .enum([
+      'strength',
+      'mistake',
+      'opening',
+      'middlegame',
+      'endgame',
+      'lesson',
+      'repeated',
+      'improved',
+      'verdict',
+    ])
+    .nullish(),
 });
 
 export const gameReportSchema = z.object({
