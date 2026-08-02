@@ -16,13 +16,7 @@ import { PatternsTab } from './PatternsTab';
 import { StoryTab } from './StoryTab';
 
 export type ContentTab =
-  | 'overview'
-  | 'learning'
-  | 'analysis'
-  | 'moves'
-  | 'patterns'
-  | 'story'
-  | 'pattern-feedback';
+  'overview' | 'learning' | 'analysis' | 'moves' | 'patterns' | 'story' | 'pattern-feedback';
 
 const GAME_TABS: TabItem[] = [
   { value: 'overview', label: 'Overview' },

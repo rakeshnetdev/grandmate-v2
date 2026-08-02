@@ -75,11 +75,7 @@ describe('patternFeedbackSchema', () => {
   it('accepts a real backend response, including every finding kind this format uses', () => {
     const parsed = patternFeedbackSchema.parse(REAL_RESPONSE);
 
-    expect(parsed.report?.findings.map((f) => f.kind)).toEqual([
-      'repeated',
-      'improved',
-      'verdict',
-    ]);
+    expect(parsed.report?.findings.map((f) => f.kind)).toEqual(['repeated', 'improved', 'verdict']);
   });
 
   it('accepts the thin-baseline response, where there is no report at all', () => {

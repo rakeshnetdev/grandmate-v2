@@ -28,8 +28,8 @@ export function PatternFeedbackTab({ gameId, profileId }: PatternFeedbackTabProp
   if (isError) {
     return (
       <p className="text-sm text-destructive">
-        Could not load pattern feedback for this game. The game may have failed to
-        analyze — try re-importing it.
+        Could not load pattern feedback for this game. The game may have failed to analyze — try
+        re-importing it.
       </p>
     );
   }
@@ -47,8 +47,8 @@ export function PatternFeedbackTab({ gameId, profileId }: PatternFeedbackTabProp
   if (!feedback.attributable) {
     return (
       <p className="text-sm text-muted-foreground">
-        We could not tell which side you played in this game, so there is nothing to
-        compare against your history.
+        We could not tell which side you played in this game, so there is nothing to compare against
+        your history.
       </p>
     );
   }

@@ -70,10 +70,7 @@ function ImprovedList({ items }: { items: ImprovedWeakness[] }) {
           <span className="font-medium">{weaknessLabel(item.name)}</span>
           <span className="text-muted-foreground">
             {' '}
-            —{' '}
-            {item.sustained
-              ? `clear for ${item.clear_streak} games running`
-              : 'not in this game'}
+            — {item.sustained ? `clear for ${item.clear_streak} games running` : 'not in this game'}
           </span>
           <span className="text-muted-foreground">
             {' '}
@@ -90,9 +87,7 @@ function MetricRow({ metric }: { metric: MetricComparison }) {
     <div className="flex items-baseline justify-between gap-3 py-1.5">
       <span className="text-sm text-muted-foreground">{metricLabel(metric.name)}</span>
       <span className="flex items-baseline gap-2 text-sm">
-        <span className="font-medium tabular-nums">
-          {metricValue(metric.name, metric.value)}
-        </span>
+        <span className="font-medium tabular-nums">{metricValue(metric.name, metric.value)}</span>
         <span className="text-xs text-muted-foreground tabular-nums">
           vs {metricValue(metric.name, metric.baseline_mean)}
         </span>
