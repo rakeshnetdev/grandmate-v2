@@ -150,6 +150,72 @@ class TestMalformedGames:
         assert result.rejected[0].reason == RejectionReason.MALFORMED_PGN
 
 
+class TestVariantGames:
+    """Non-standard variants must never enter the pipeline.
+
+    Their positions are illegal under standard rules and segfault Stockfish downstream
+    (an Antichess game legally captures both kings), so rejection happens at ingestion.
+    """
+
+    def test_rejects_an_antichess_game(self) -> None:
+        # Real Antichess: Black's king is captured on move 7, leaving a kingless position
+        # that standard Stockfish crashes on rather than refusing.
+        antichess = """[Event "Casual Antichess game"]
+[Site "https://lichess.org/xxxxxxxx"]
+[Date "2026.01.01"]
+[White "Alice"]
+[Black "Bob"]
+[Result "1-0"]
+[Variant "Antichess"]
+
+1. e3 b6 2. Bb5 Bb7 3. Bxd7 Bxg2 4. Bxe8 Bxh1 1-0
+"""
+
+        result = parse_pgn_text(antichess)
+
+        assert result.parsed == []
+        assert result.rejected[0].reason == RejectionReason.UNSUPPORTED_VARIANT
+        assert "Antichess" in result.rejected[0].detail
+
+    def test_rejects_other_non_standard_variants(self) -> None:
+        for variant in ("Atomic", "Crazyhouse", "King of the Hill", "Three-check"):
+            tagged = VALID_GAME.replace('[Round "1"]', f'[Variant "{variant}"]')
+
+            result = parse_pgn_text(tagged)
+
+            assert result.parsed == [], variant
+            assert result.rejected[0].reason == RejectionReason.UNSUPPORTED_VARIANT, variant
+
+    def test_accepts_standard_variant_tags(self) -> None:
+        """`Standard`, `From Position`, and `Chess960` all play by standard rules."""
+        for variant in ("Standard", "From Position", "Chess960"):
+            tagged = VALID_GAME.replace('[Round "1"]', f'[Variant "{variant}"]')
+
+            result = parse_pgn_text(tagged)
+
+            assert len(result.parsed) == 1, variant
+            assert result.rejected == [], variant
+
+    def test_rejects_an_unrecognised_variant_tag(self) -> None:
+        tagged = VALID_GAME.replace('[Round "1"]', '[Variant "Definitely Not A Variant"]')
+
+        result = parse_pgn_text(tagged)
+
+        assert result.parsed == []
+        assert result.rejected[0].reason == RejectionReason.UNSUPPORTED_VARIANT
+
+    def test_a_variant_game_does_not_sink_the_rest_of_the_batch(self) -> None:
+        """A Lichess export mixes variants into one file — the standard games still land."""
+        variant_game = VALID_GAME.replace('[Round "1"]', '[Variant "Antichess"]')
+        batch = variant_game + "\n" + OTHER_VALID_GAME
+
+        result = parse_pgn_text(batch)
+
+        assert len(result.parsed) == 1
+        assert result.parsed[0].headers["White"] == "Carol"
+        assert result.rejected[0].reason == RejectionReason.UNSUPPORTED_VARIANT
+
+
 class TestLargeBatch:
     def test_parses_a_fifty_game_batch(self) -> None:
         batch = "\n".join([VALID_GAME, OTHER_VALID_GAME] * 25)

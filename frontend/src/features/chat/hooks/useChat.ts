@@ -58,12 +58,19 @@ export function useSendMessage(threadId: string, profileId?: string) {
   return useMutation({
     mutationFn: ({ message, persona }: { message: string; persona: PersonaValue }) =>
       sendMessage(threadId, message, persona, profileId),
-    onSuccess: () => {
+    onSuccess: () =>
       // Re-fetch rather than optimistically append: the checkpointer is the source of
       // truth for a thread's transcript, and re-reading it after a turn is cheap and
       // avoids the UI's local copy ever silently diverging from what the backend stored.
-      queryClient.invalidateQueries({ queryKey: chatKeys.thread(threadId, profileId) });
-      queryClient.invalidateQueries({ queryKey: chatKeys.threads(profileId) });
-    },
+      //
+      // Returned, not fired-and-forgotten, so the mutation stays `isPending` until the
+      // refetched transcript has actually arrived. Without that, `isPending` flips false
+      // the instant the POST resolves while the query still holds the *previous*
+      // transcript, and the in-flight question rendered from `variables` (see
+      // `ChatPanel`) would vanish for a frame before reappearing from the server copy.
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: chatKeys.thread(threadId, profileId) }),
+        queryClient.invalidateQueries({ queryKey: chatKeys.threads(profileId) }),
+      ]),
   });
 }

@@ -27,7 +27,7 @@ function stubHangingFetch() {
 describe('ContentPanel', () => {
   it('offers only the profile-level tabs when no game is selected', () => {
     stubHangingFetch();
-    renderWithProviders(<ContentPanel tab="overview" onTabChange={() => {}} />);
+    renderWithProviders(<ContentPanel tab="overview" onTabChange={() => {}} showEngineAnalysis />);
 
     expect(screen.getByRole('tab', { name: 'Overview' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: 'Learning' })).toBeInTheDocument();
@@ -39,7 +39,12 @@ describe('ContentPanel', () => {
   it('offers every tab once a game is selected', () => {
     stubHangingFetch();
     renderWithProviders(
-      <ContentPanel selectedGameId="game-1" tab="analysis" onTabChange={() => {}} />,
+      <ContentPanel
+        selectedGameId="game-1"
+        tab="analysis"
+        onTabChange={() => {}}
+        showEngineAnalysis
+      />,
     );
 
     for (const label of ['Overview', 'Learning', 'Analysis', 'Moves', 'Patterns', 'Story']) {
@@ -47,16 +52,38 @@ describe('ContentPanel', () => {
     }
   });
 
+  it('orders the game tabs coaching-read first, raw engine detail last', () => {
+    stubHangingFetch();
+    renderWithProviders(
+      <ContentPanel
+        selectedGameId="game-1"
+        tab="analysis"
+        onTabChange={() => {}}
+        showEngineAnalysis
+      />,
+    );
+
+    expect(screen.getAllByRole('tab').map((tab) => tab.textContent)).toEqual([
+      'Overview',
+      'Learning',
+      'Analysis',
+      'Pattern feedback',
+      'Story',
+      'Moves',
+      'Patterns',
+    ]);
+  });
+
   it('falls back to Overview when a game-specific tab value has no game selected', () => {
     stubHangingFetch();
-    renderWithProviders(<ContentPanel tab="moves" onTabChange={() => {}} />);
+    renderWithProviders(<ContentPanel tab="moves" onTabChange={() => {}} showEngineAnalysis />);
 
     expect(screen.getByRole('tab', { name: 'Overview' })).toHaveAttribute('aria-selected', 'true');
   });
 
   it('keeps Learning selected with no game, since it is profile-level', () => {
     stubHangingFetch();
-    renderWithProviders(<ContentPanel tab="learning" onTabChange={() => {}} />);
+    renderWithProviders(<ContentPanel tab="learning" onTabChange={() => {}} showEngineAnalysis />);
 
     expect(screen.getByRole('tab', { name: 'Learning' })).toHaveAttribute('aria-selected', 'true');
   });
@@ -64,7 +91,12 @@ describe('ContentPanel', () => {
   it('marks the given tab active once a game is selected', () => {
     stubHangingFetch();
     renderWithProviders(
-      <ContentPanel selectedGameId="game-1" tab="moves" onTabChange={() => {}} />,
+      <ContentPanel
+        selectedGameId="game-1"
+        tab="moves"
+        onTabChange={() => {}}
+        showEngineAnalysis
+      />,
     );
 
     expect(screen.getByRole('tab', { name: 'Moves' })).toHaveAttribute('aria-selected', 'true');
@@ -75,11 +107,53 @@ describe('ContentPanel', () => {
     const user = userEvent.setup();
     const onTabChange = vi.fn();
     renderWithProviders(
-      <ContentPanel selectedGameId="game-1" tab="overview" onTabChange={onTabChange} />,
+      <ContentPanel
+        selectedGameId="game-1"
+        tab="overview"
+        onTabChange={onTabChange}
+        showEngineAnalysis
+      />,
     );
 
     await user.click(screen.getByRole('tab', { name: 'Patterns' }));
 
     expect(onTabChange).toHaveBeenCalledWith('patterns');
+  });
+});
+
+describe('ContentPanel engine-analysis gating', () => {
+  it('hides Moves and Patterns when engine analysis is off', () => {
+    stubHangingFetch();
+    renderWithProviders(
+      <ContentPanel
+        selectedGameId="game-1"
+        tab="analysis"
+        onTabChange={() => {}}
+        showEngineAnalysis={false}
+      />,
+    );
+
+    expect(screen.queryByRole('tab', { name: 'Moves' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: 'Patterns' })).not.toBeInTheDocument();
+    // The rest of the game tabs are unaffected — this hides the engine detail, not the game.
+    for (const label of ['Overview', 'Learning', 'Analysis', 'Story', 'Pattern feedback']) {
+      expect(screen.getByRole('tab', { name: label })).toBeInTheDocument();
+    }
+  });
+
+  it('falls back to Overview when a hidden engine tab is the active one', () => {
+    // Reachable two ways: a bookmarked `?tab=patterns` URL, or toggling engine analysis
+    // off while standing on that tab.
+    stubHangingFetch();
+    renderWithProviders(
+      <ContentPanel
+        selectedGameId="game-1"
+        tab="patterns"
+        onTabChange={() => {}}
+        showEngineAnalysis={false}
+      />,
+    );
+
+    expect(screen.getByRole('tab', { name: 'Overview' })).toHaveAttribute('aria-selected', 'true');
   });
 });

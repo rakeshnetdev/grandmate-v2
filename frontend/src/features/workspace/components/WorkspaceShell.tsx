@@ -18,9 +18,11 @@ import { ProfileToggle } from '@/features/profiles';
 import { Button } from '@/shared/components/ui/button';
 
 import { useLeftPanelCollapsed } from '../hooks/useLeftPanelCollapsed';
+import { useShowEngineAnalysis } from '../hooks/useShowEngineAnalysis';
 import type { ContentTab } from './ContentPanel';
 import { ContentPanel } from './ContentPanel';
 import { ChatDock } from './ChatDock';
+import { EngineAnalysisToggle } from './EngineAnalysisToggle';
 import { GameListPanel } from './GameListPanel';
 
 // Must stay in step with `ContentTab` — the selected tab round-trips through the URL, so
@@ -42,6 +44,7 @@ function parseTab(value: string | null): ContentTab {
 export function WorkspaceShell() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [leftCollapsed, toggleLeftCollapsed] = useLeftPanelCollapsed();
+  const [showEngineAnalysis, toggleShowEngineAnalysis] = useShowEngineAnalysis();
   const [mobileLeftOpen, setMobileLeftOpen] = useState(false);
   const [mobileRightOpen, setMobileRightOpen] = useState(false);
 
@@ -95,7 +98,10 @@ export function WorkspaceShell() {
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between gap-3 border-b border-border p-3">
-        <ProfileToggle value={profileId} onChange={handleProfileChange} />
+        <div className="flex flex-wrap items-center gap-2">
+          <ProfileToggle value={profileId} onChange={handleProfileChange} />
+          <EngineAnalysisToggle shown={showEngineAnalysis} onToggle={toggleShowEngineAnalysis} />
+        </div>
         <div className="flex items-center gap-1 lg:hidden">
           <Button
             type="button"
@@ -139,6 +145,7 @@ export function WorkspaceShell() {
             selectedGameId={selectedGameId}
             tab={tab}
             onTabChange={handleTabChange}
+            showEngineAnalysis={showEngineAnalysis}
           />
         </div>
 

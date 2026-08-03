@@ -13,9 +13,17 @@ import { CitationList } from './CitationList';
 interface ChatMessageListProps {
   messages: ChatMessage[];
   pending: boolean;
+  /**
+   * The question currently in flight, echoed back immediately so the transcript reacts
+   * to sending rather than only to answering. It is rendered from the mutation's own
+   * variables instead of being written into the query cache — the server transcript
+   * stays the single source of truth, and this bubble is replaced by the real message
+   * the moment the refetch lands.
+   */
+  pendingQuestion?: string;
 }
 
-export function ChatMessageList({ messages, pending }: ChatMessageListProps) {
+export function ChatMessageList({ messages, pending, pendingQuestion }: ChatMessageListProps) {
   if (messages.length === 0 && !pending) {
     return <p className="text-sm text-muted-foreground">Ask a question to get started.</p>;
   }
@@ -39,6 +47,11 @@ export function ChatMessageList({ messages, pending }: ChatMessageListProps) {
           {message.role === 'assistant' && <CitationList citations={message.citations} />}
         </div>
       ))}
+      {pending && pendingQuestion && (
+        <div className="ml-auto max-w-[85%] rounded-lg bg-primary px-3 py-2 text-sm text-primary-foreground">
+          {pendingQuestion}
+        </div>
+      )}
       {pending && (
         <div className="max-w-[85%] rounded-lg bg-muted px-3 py-2 text-sm text-muted-foreground">
           Thinking…
