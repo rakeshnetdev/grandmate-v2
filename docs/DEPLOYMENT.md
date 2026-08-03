@@ -10,23 +10,37 @@
 > The hosting decision belongs to **Phase 17**, deferred from Phase 0 (D-006). The
 > Dockerfile's own header says it exists "so the deployment decision is not foreclosed."
 >
-> **Four blockers below will stop a deploy today.** All four are real, found in the code,
-> and none has been worked around.
+> **The four blockers this document used to list are now closed in code, along with a
+> fifth found while closing them** (§0). That
+> changes "a deploy would fail for known reasons" into "a deploy has not been attempted" —
+> a weaker claim, not a stronger one. The remaining unknowns are the ones only a real
+> deploy finds.
 
 ---
 
-## 0. Blockers — fix before attempting anything else
+## 0. Blockers — all five now closed in code
 
-| # | Blocker | Evidence | Fix |
-|---|---|---|---|
-| 1 | **Container crashes at startup.** `lifespan` calls `load_opening_index` unconditionally, which raises `OpeningDatasetError` when `data/openings/dist/all.tsv` is missing. The Dockerfile only does `COPY app ./app`. | `app/main.py:58`, `domain/patterns/opening_lookup.py:91`, `backend/Dockerfile` | `COPY data ./data` (2.3 MB) |
-| 2 | **Migrations cannot run.** `alembic` the package is installed (it is a main dependency), but `alembic/` and `alembic.ini` are never copied into the image. | `backend/Dockerfile` | `COPY alembic ./alembic` and `COPY alembic.ini ./` |
-| 3 | **Login silently fails from Vercel.** The session cookie is `samesite="lax"`. `*.vercel.app` → `*.fly.dev` is cross-site — both are on the Public Suffix List — so the browser accepts the cookie at login and then never sends it. `/auth/me` 401s forever, with no error to explain why. | `app/api/routes/auth.py:48` | Custom domain (preferred) or `SameSite=None; Secure` — see §4 |
-| 4 | **Background jobs get killed.** Engine analysis and platform imports run via FastAPI `BackgroundTasks` *after* the response is sent. A Fly machine that auto-stops when idle dies mid-Stockfish, with the job left `pending` and nothing to pick it up. | `api/routes/imports.py:140,200`, `analysis.py:109` | `min_machines_running = 1` for a demo; a real worker for anything more — see §6 |
+The four blockers this document originally listed have been fixed, and a fifth was found
+while fixing them. **That is not the same as a verified deploy** — see the banner above
+and §9. Nothing below has been watched working; the fixes are asserted by tests and by
+reading the code.
 
-Blocker 3 is the expensive one to debug if you meet it unprepared: everything appears to
-work, the login response is a clean 200 with a `Set-Cookie` header, and only the *next*
-request reveals the problem.
+| # | Blocker | Closed by |
+|---|---|---|
+| 1 | **Container crashed at startup** — `load_opening_index` raises `OpeningDatasetError` when `data/openings/dist/all.tsv` is absent, and the Dockerfile only copied `app/`. | `COPY data ./data` in `backend/Dockerfile`. Landed in P17; this document tracked it as open for longer than it was. |
+| 2 | **Migrations could not run** — `alembic` the package was installed, but `alembic/` and `alembic.ini` were never in the image. | `COPY alembic ./alembic` and `COPY alembic.ini ./`. Also P17. |
+| 3 | **Login silently failed from Vercel** — the session cookie was hardcoded `samesite="lax"`, and `*.vercel.app` → `*.fly.dev` is cross-site (both on the Public Suffix List), so the browser accepted the cookie at login and then never sent it. | `SESSION_COOKIE_SAMESITE`, defaulting to `lax`. Set it to `none` for a split-origin deployment — see §4. |
+| 4 | **Background jobs were killed** — engine analysis and imports run in `BackgroundTasks` *after* the response is sent, so a machine that auto-stops when idle died mid-Stockfish with the job left `pending`. | `min_machines_running = 1` in `backend/fly.toml`. A workaround, not a design — see §6. |
+| 5 | **Stockfish was never found in the container.** Debian's `stockfish` package installs to `/usr/games/stockfish` and does not put it on `PATH`; the settings default is `/usr/local/bin/stockfish`, and `fly.toml` set no override. Every analysis job would fail to start an engine while the container stayed perfectly healthy. | `STOCKFISH_PATH = '/usr/games/stockfish'` in `fly.toml`. Found by running the Dockerfile's own `apt-get` line in `python:3.13-slim` and looking. |
+
+Blocker 5 was not in the original list. It is the same shape as the other four — a default
+that is correct on a developer's machine and wrong in the image — and it is the reason this
+document's own §9 matters: the remaining unknowns are the ones only a real deploy finds.
+
+Blocker 3 was the expensive one to meet unprepared: everything appears to work, the login
+response is a clean 200 with a `Set-Cookie` header, and only the *next* request reveals the
+problem. It is now a configuration mistake rather than a code change, and
+`test_auth_routes.py` asserts the emitted header carries both `SameSite=None` and `Secure`.
 
 ---
 
@@ -96,10 +110,29 @@ Two ways out of blocker 3.
 `api.grandmate.dev` on Fly. A shared registrable domain means same-site, so `SameSite=Lax`
 keeps working unchanged and retains its CSRF protection. No code change.
 
-**Option B — cross-site cookie.** Keep the platform subdomains and set `SameSite=None`
-with `Secure` (both platforms give you HTTPS anyway). Works, but gives up the CSRF
-protection `Lax` was providing, and browsers grow steadily more hostile to third-party
-cookies.
+**Option B — cross-site cookie.** Keep the platform subdomains and set
+`SESSION_COOKIE_SAMESITE=none`. Works, but gives up the CSRF protection `Lax` was
+providing, and browsers grow steadily more hostile to third-party cookies.
+
+```bash
+SESSION_COOKIE_SAMESITE=none
+CORS_ALLOWED_ORIGINS=https://<your-app>.vercel.app
+APP_ENV=production
+```
+
+Two things the code does for you here, both because the halves are not independently
+valid:
+
+- **`Secure` is derived, not configured.** Browsers reject a `SameSite=None` cookie
+  outright unless it is also `Secure`, so the route sets `secure=True` whenever the policy
+  is `none` rather than trusting two settings to agree. Getting one right and the other
+  wrong would drop the cookie silently, which is the same failure this blocker already
+  cost once.
+- **A wildcard CORS origin becomes a production blocker.** With `SameSite=None` the
+  allow-list is the *only* thing bounding who can make a credentialed request carrying the
+  user's session, so `missing_required_for_production()` reports `CORS_ALLOWED_ORIGINS`
+  when it is `*` and the policy is `none`. That combination is only reachable by setting
+  both deliberately.
 
 Either way `CORS_ALLOWED_ORIGINS` must name the exact frontend origin — the app sets
 `allow_credentials=True`, and a browser rejects a wildcard in that combination.
@@ -188,17 +221,96 @@ primary_region = "sjc"
 
 Root directory `frontend`, framework preset Vite, build `npm run build`, output `dist`.
 
-Two things that are easy to miss:
+`frontend/vercel.json` is now committed and carries the build settings plus the SPA
+rewrite, so the dashboard does not have to be configured by hand:
 
 ```json
-// frontend/vercel.json — without this, /games/:id 404s on a hard refresh
-{ "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }] }
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "framework": "vite",
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+}
 ```
+
+The catch-all rewrite does not swallow the built assets: Vercel matches static files
+first and only falls through to a rewrite when nothing on disk matches. Without it a hard
+refresh on any route below `/` 404s, because the SPA owns routing and the server has only
+`index.html`.
+
+One thing that is still easy to miss:
 
 `VITE_API_BASE_URL` is baked in at **build** time, not read at runtime — changing it
 requires a redeploy, not just an environment-variable edit. `shared/config/env.ts`
 validates it with Zod, so a wrong value fails loudly at boot rather than producing
 mysterious network errors.
+
+---
+
+## 8a. The deploy, in order
+
+Everything above is reference. This is the sequence, and the order matters — steps 2 and 3
+must precede the first deploy or the release command fails, and step 6 must follow it
+because the corpus is ingested against the live database.
+
+```bash
+# 1. Postgres with pgvector, wherever you provisioned it (see §2)
+psql "$DATABASE_URL" -c 'CREATE EXTENSION IF NOT EXISTS vector;'
+
+# 2. Secrets — never in fly.toml, which is committed
+cd backend
+fly secrets set \
+  DATABASE_URL='postgresql+asyncpg://...' \
+  OPENAI_API_KEY='sk-...' \
+  SESSION_JWT_SECRET="$(openssl rand -base64 48)"
+
+# 3. Point CORS at the real frontend origin. fly.toml ships a REPLACE-ME placeholder
+#    precisely so this cannot be forgotten silently.
+#    Edit CORS_ALLOWED_ORIGINS in fly.toml, or override:
+fly secrets set CORS_ALLOWED_ORIGINS='https://<your-app>.vercel.app'
+
+# 4. Deploy. `release_command` runs `alembic upgrade head` before machines take traffic.
+fly deploy
+
+# 5. Confirm the container is actually healthy, not merely running
+curl -fsS https://<your-app>.fly.dev/health
+curl -fsS https://<your-app>.fly.dev/ready           # unversioned, like /health
+
+# 6. Ingest the corpus, once, against the live database. Costs real embedding calls.
+fly ssh console -C 'uv run python -m scripts.ingest_corpus'
+
+# 7. Frontend. VITE_API_BASE_URL is baked in at build time, so set it before building.
+cd ../frontend
+vercel env add VITE_API_BASE_URL production      # https://<your-app>.fly.dev
+vercel --prod
+```
+
+**The `SESSION_JWT_SECRET` generation above is not decoration.** §7 records that a short
+secret is only *warned* about by PyJWT, not rejected at startup — so a weak one fails
+silently rather than loudly, which is the worst combination.
+
+**Step 5 is the honest stopping point for a smoke test.** `/health` proves the process is
+up; `/ready` runs `missing_required_for_production()` and is what catches a
+`DATABASE_URL` that was never overridden or a `CORS_ALLOWED_ORIGINS` still reading
+`REPLACE-ME`.
+
+---
+
+## 8b. Related operational documents
+
+These live in `final_docs/`, which is a **git submodule on a private repository** — run
+`git submodule update --init` if the directory is empty. Nothing in the deploy path reads
+them; they are what you reach for around a deploy rather than during one.
+
+| Document | When you want it |
+|---|---|
+| [`../final_docs/beta/release_checklist.md`](../final_docs/beta/release_checklist.md) | Pre-flight, before running §8a |
+| [`../final_docs/runbooks/incidents.md`](../final_docs/runbooks/incidents.md) | When a deployed container misbehaves |
+| [`../final_docs/playbooks/backup_and_recovery.md`](../final_docs/playbooks/backup_and_recovery.md) | Database restore |
+
+The incident runbook has an entry for blocker 1's crash loop (missing opening TSVs) and
+none yet for blocker 5 (Stockfish at the wrong path), which is the newer and quieter
+failure: the container reports healthy and simply never analyses anything.
 
 ---
 

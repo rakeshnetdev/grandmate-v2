@@ -9,7 +9,30 @@ primary_region = 'ams'
 [env]
   PORT = '7575'
   HOST = '0.0.0.0'
+  API_HOST = '0.0.0.0'
+  API_PORT = '7575'
   STORAGE_LOCAL_PATH = '/app/.storage'
+  # Turns on Secure cookies, hard-disables every /dev/* route, and makes startup fail on
+  # missing configuration rather than deferring to the first request that needs it.
+  APP_ENV = 'production'
+  # Debian's `stockfish` package installs to /usr/games/stockfish and does not put it on
+  # PATH. The settings default is /usr/local/bin/stockfish, which does not exist in this
+  # image — without this override every analysis job fails to start an engine, and the
+  # container is otherwise perfectly healthy. Verified by running the Dockerfile's own
+  # apt-get line in python:3.13-slim.
+  STOCKFISH_PATH = '/usr/games/stockfish'
+  # 1 GB of machine memory cannot hold 4 x ENGINE_HASH_MB=128 of hash tables alongside
+  # Python and the opening index (DEPLOYMENT.md §3). Two concurrent games fits; raise the
+  # machine to 2 GB before raising this back.
+  ENGINE_MAX_CONCURRENT_GAMES = '2'
+  # Must name the deployed frontend origin exactly: allow_credentials is True, and a
+  # browser rejects a wildcard in that combination. Also see SESSION_COOKIE_SAMESITE —
+  # with SameSite=None this allow-list is the only thing bounding credentialed requests.
+  CORS_ALLOWED_ORIGINS = 'https://REPLACE-ME.vercel.app'
+  # Vercel and Fly are cross-site (both registrable domains sit on the Public Suffix
+  # List), so `lax` would have the browser accept the session cookie at login and then
+  # never send it. See DEPLOYMENT.md §4.
+  SESSION_COOKIE_SAMESITE = 'none'
 
 [[mounts]]
   source = 'grandmate_storage'
@@ -18,9 +41,18 @@ primary_region = 'ams'
 [http_service]
   internal_port = 7575
   force_https = true
+  # Engine analysis and platform imports run in FastAPI `BackgroundTasks`, which start
+  # *after* the response is sent. A machine that auto-stops when the request queue drains
+  # therefore dies mid-Stockfish, leaving the job `pending` with nothing to pick it up —
+  # the import looks like it succeeded and the analysis silently never arrives.
+  #
+  # Keeping one machine always running is the demo-grade fix, and it is a workaround, not
+  # a design: it costs an always-on machine and still loses in-flight work on a deploy or
+  # a crash. The real fix is a worker process consuming the `jobs` table, which the schema
+  # was already designed for. See DEPLOYMENT.md §6.
   auto_stop_machines = 'stop'
   auto_start_machines = true
-  min_machines_running = 0
+  min_machines_running = 1
 
   [[http_service.checks]]
     interval = '30s'
@@ -28,6 +60,14 @@ primary_region = 'ams'
     grace_period = '1m30s'
     path = '/health'
 
+# Runs on every deploy, before the new machines take traffic. Alembic is in the image
+# (`COPY alembic ./alembic`), so this needs no separate release image.
+[deploy]
+  release_command = 'uv run alembic upgrade head'
+
 [[vm]]
   size = 'shared-cpu-1x'
+  # 1 GB is the documented minimum and it is genuinely tight: 2 x 128 MB of Stockfish hash
+  # plus ~300 MB of Python, FastAPI and the opening index. DEPLOYMENT.md §3 calls 2 GB
+  # comfortable; raise both this and ENGINE_MAX_CONCURRENT_GAMES together.
   memory = '1gb'

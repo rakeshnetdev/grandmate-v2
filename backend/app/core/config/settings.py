@@ -103,6 +103,16 @@ class Settings(BaseModel):
             missing.append("SESSION_JWT_SECRET")
         if not self.llm.is_configured:
             missing.append("OPENAI_API_KEY")
+        # `SameSite=None` hands CSRF protection entirely to the CORS allow-list, so a
+        # wildcard there stops being a lax default and becomes the whole hole: any origin
+        # could then make a credentialed request with the user's session cookie attached.
+        # Reported as a missing requirement rather than silently allowed, because the
+        # combination is only ever reachable by setting both deliberately.
+        # Reported as the bare name to keep this list's names-only contract; the reason it
+        # can be missing *only* in this combination is in the comment above and in
+        # `.env.example`, not smuggled into the returned string.
+        if self.identity.session_cookie_samesite == "none" and "*" in self.app.cors_origins_list:
+            missing.append("CORS_ALLOWED_ORIGINS")
         return missing
 
 

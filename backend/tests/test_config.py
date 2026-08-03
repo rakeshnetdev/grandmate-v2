@@ -12,6 +12,7 @@ from app.core.config import (
     DEFAULT_DATABASE_URL,
     DatabaseSettings,
     EngineSettings,
+    IdentitySettings,
     LLMSettings,
     Settings,
     get_settings,
@@ -68,6 +69,41 @@ def test_missing_production_config_returns_names_only() -> None:
     assert "SESSION_JWT_SECRET" in missing
     assert "OPENAI_API_KEY" in missing
     assert all(name.replace("_", "").isupper() for name in missing)
+
+
+class TestSessionCookiePolicy:
+    """The SPA and the API are not on the same site once deployed (Vercel -> Fly), and
+    `SameSite=Lax` silently breaks that: the browser accepts the cookie at login and then
+    declines to send it, so `/auth/me` 401s forever with a clean 200 behind it."""
+
+    def test_defaults_to_lax_for_a_same_site_deployment(self) -> None:
+        assert IdentitySettings().session_cookie_samesite == "lax"
+
+    def test_none_is_allowed_for_a_cross_site_deployment(self) -> None:
+        assert IdentitySettings(session_cookie_samesite="none").session_cookie_samesite == "none"
+
+    def test_an_unknown_policy_is_rejected(self) -> None:
+        with pytest.raises(ValidationError):
+            IdentitySettings(session_cookie_samesite="sometimes")  # type: ignore[arg-type]
+
+    def test_samesite_none_with_wildcard_cors_is_a_production_blocker(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """`SameSite=None` hands CSRF protection entirely to the CORS allow-list, so a
+        wildcard there is no longer a lax default — it lets any origin make a credentialed
+        request carrying the user's session cookie."""
+        monkeypatch.setenv("SESSION_COOKIE_SAMESITE", "none")
+        monkeypatch.setenv("CORS_ALLOWED_ORIGINS", "*")
+
+        assert "CORS_ALLOWED_ORIGINS" in Settings().missing_required_for_production()
+
+    def test_named_origins_with_samesite_none_are_fine(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("SESSION_COOKIE_SAMESITE", "none")
+        monkeypatch.setenv("CORS_ALLOWED_ORIGINS", "https://grandmate.vercel.app")
+
+        assert "CORS_ALLOWED_ORIGINS" not in Settings().missing_required_for_production()
 
 
 class TestDatabaseConfiguration:
