@@ -258,6 +258,7 @@ sequenceDiagram
     rect rgb(240,248,255)
     note over IMP,DB: Synchronous — sub-second
     IMP->>IMP: parse headers + mainline, content-hash
+    IMP->>IMP: reject non-standard variants
     IMP->>DB: dedup check (profile_id, content_hash)
     IMP->>IMP: route per game — header match? self : study
     IMP->>GP: canonicalize
@@ -291,6 +292,16 @@ sequenceDiagram
 ```
 
 *(Standalone copy in [`diagrams/request-lifecycle.md`](diagrams/request-lifecycle.md).)*
+
+**Variant rejection is a boundary, not a scope decision.** Antichess, Atomic, Crazyhouse,
+Horde, King of the Hill, Three-check and Racing Kings parse and canonicalize without
+complaint, and then **segfault Stockfish** when the analysis job feeds it their positions —
+an Antichess game legally captures both kings, and standard Stockfish crashes on a kingless
+FEN rather than returning an error. The crash surfaced far downstream as a dead analysis
+job, so the gate sits at `parse_pgn_text`, the single point every source passes through.
+Variant resolution is delegated to python-chess's `uci_variant` rather than a hardcoded
+name list, so a variant never seen before is still classified correctly, and the check runs
+*before* `game.errors` so a variant game is not reported as `malformed`.
 
 The commit-before-scheduling step is annotated because it is a real defect that shipped and
 was fixed. The background task opens a *separate* session; scheduling it before the

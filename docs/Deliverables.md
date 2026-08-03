@@ -266,9 +266,16 @@ objects, tiered Stockfish analysis, 10 tactical motifs, 10 strategic themes, mul
 aggregation) kept structurally separate from the generative layer by a CI-enforced
 layer-boundary check.
 
-**Frontend** — 11 features: `auth`, `imports`, `games`, `analytics`, `reports`, `chat`,
-`memory`, `training`, `profiles`, `devinsight`, `health`. Routes: `/login`, `/imports`,
-`/games`, `/games/:gameId`, `/dashboard`, `/chat`, `/memory`.
+**Frontend** — 14 features: `auth`, `imports`, `games`, `analytics`, `reports`, `chat`,
+`memory`, `training`, `profiles`, `devinsight`, `health`, `learning`, `game-feedback`,
+`workspace`.
+
+Three routes only — `/` , `/login`, and a catch-all. Import, Games, Dashboard, Chat, Memory
+and Game-Detail were six separate pages until Phase 16a (D-035); they are now panels and
+tabs inside one three-panel workspace shell, so the surface is a single application screen
+rather than a set of destinations. The engine-detail tabs ("Moves", "Patterns") are opt-in
+behind a persisted switch: they show the raw deterministic output, and a reader who came to
+understand one game should not have to walk past it first.
 
 **Verified running locally, end to end**, against real Postgres, a real Stockfish binary,
 and real `gpt-4o-mini` calls — not mocks. The full demo path: log in → paste a PGN → watch
@@ -277,6 +284,11 @@ open the dashboard for recurring weaknesses → switch personas → ask a questi
 get a cited answer → state a preference and see it persist to the memory audit page.
 Runnable steps for every capability:
 [`../final_docs/v2/features-and-use-cases.md`](../final_docs/v2/features-and-use-cases.md).
+
+> `final_docs/` is a git submodule pointing at a **private** repository
+> (`rakeshnetdev/grandmate_final_docs`). Every `../final_docs/...` link in this document
+> needs `git submodule update --init` in a local checkout, and does not resolve on
+> github.com without access to that repository.
 
 ### 4.2 Deployment — not met
 

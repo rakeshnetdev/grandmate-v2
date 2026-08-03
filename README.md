@@ -19,6 +19,7 @@ grandmate-v2/
   backend/      FastAPI + uv. Analysis core, retrieval, agents, MCP server.
   frontend/     Vite + React + Tailwind + shadcn/ui. Feature-driven.
   final_docs/   Architecture decisions, phase reports, evaluation strategy.
+                A git submodule -> rakeshnetdev/grandmate_final_docs (private).
   .github/      Path-scoped CI, issue and PR templates.
 ```
 
@@ -114,6 +115,20 @@ step. See [rag-architecture.md](final_docs/v2/rag-architecture.md).
 Chess.com username. See [ADR-0007](final_docs/v2/adr/0007-identity-and-oauth-strategy.md).
 
 ## Documentation
+
+`final_docs/` is a **git submodule** pointing at the private repository
+`rakeshnetdev/grandmate_final_docs`. A plain `git clone` leaves the directory empty and
+every `final_docs/...` link below dead. Populate it with:
+
+```bash
+git clone --recurse-submodules https://github.com/rakeshnetdev/grandmate-v2.git
+# or, in an existing checkout:
+git submodule update --init
+```
+
+Because the documentation repository is private, those links also do not resolve on
+github.com for anyone without access to it — they are paths into a local checkout, not
+browsable URLs.
 
 Start at [`final_docs/v2/README.md`](final_docs/v2/README.md).
 
