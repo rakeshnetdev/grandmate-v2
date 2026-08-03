@@ -8,8 +8,6 @@ log, per-phase reports — see [`../final_docs/v2/`](../final_docs/v2/).
 | Document | What it answers |
 |---|---|
 | [`Deliverables.md`](Deliverables.md) | The complete certification submission: problem, solution, data, prototype, evals, improvements, next steps |
-| [`grading-rubric.md`](grading-rubric.md) | Per-criterion self-assessment with evidence links — including the two criteria scored below full marks |
-| [`demo-script.md`](demo-script.md) | Shot-by-shot script for the 3-minute demo video, with staging checklist and real figures |
 | [`ARCHITECTURE.md`](ARCHITECTURE.md) | How the system is built: invariants, components, both graphs, request lifecycle, memory, RAG, grounding, observability |
 | [`evaluation_report.md`](evaluation_report.md) | Measured results across eight suites — **generated from recorded runs**, never hand-written |
 | [`evaluation_data_design.md`](evaluation_data_design.md) | What test data each suite uses, how it is built, and what it cannot prove |
@@ -57,4 +55,7 @@ suite has no recorded run, the report says so rather than omitting the row.
 | [`../final_docs/v2/decisions-log.md`](../final_docs/v2/decisions-log.md) | Every product decision, locked or open |
 | [`../final_docs/v2/features-and-use-cases.md`](../final_docs/v2/features-and-use-cases.md) | What works today, with runnable steps |
 | [`../final_docs/v2/phase-reports/`](../final_docs/v2/phase-reports/) | Phase-by-phase delivery record |
+| [`../final_docs/beta/`](../final_docs/beta/) | Beta cohort plan, feedback rubric, release checklist, post-beta backlog |
+| [`../final_docs/runbooks/`](../final_docs/runbooks/) | Incident response |
+| [`../final_docs/playbooks/`](../final_docs/playbooks/) | Backup and recovery |
 | [`../project-plan.md`](../project-plan.md) | The 19-phase build plan |
