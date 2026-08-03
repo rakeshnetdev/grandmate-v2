@@ -48,6 +48,13 @@ suite has no recorded run, the report says so rather than omitting the row.
 
 ## Related
 
+`final_docs/` is a **git submodule** pointing at the private repository
+`rakeshnetdev/grandmate_final_docs`. In a checkout made without
+`--recurse-submodules` the directory is empty and every link below is dead; run
+`git submodule update --init` to populate it. The links are paths into a local checkout —
+because the documentation repository is private, they do not resolve on github.com for
+readers without access to it.
+
 | | |
 |---|---|
 | [`../final_docs/v2/README.md`](../final_docs/v2/README.md) | The engineering documentation index |
