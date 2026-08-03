@@ -82,6 +82,9 @@ export function ChatPanel({
                 <ChatMessageList
                   messages={history?.messages ?? []}
                   pending={sendMessage.isPending}
+                  // The mutation already holds the text it was called with, so echoing
+                  // the in-flight question needs no extra state of its own.
+                  pendingQuestion={sendMessage.variables?.message}
                 />
               </div>
               <ChatComposer onSend={handleSend} disabled={sendMessage.isPending} />

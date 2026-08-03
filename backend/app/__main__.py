@@ -28,6 +28,12 @@ def main() -> None:
         host=settings.app.api_host,
         port=settings.app.api_port,
         reload=reload_enabled,
+        # Watch only our own source. Uvicorn's default is the whole working directory,
+        # which includes `.venv` — so `uv sync` or a test run writing `__pycache__` into
+        # site-packages reads as a code change and restarts the server, repeatedly and for
+        # minutes. In-flight requests die with it, which looks like a hung API rather than
+        # a reloader problem.
+        reload_dirs=["app"] if reload_enabled else None,
         log_config=None,  # structlog is configured in create_app; do not let uvicorn reset it.
     )
 

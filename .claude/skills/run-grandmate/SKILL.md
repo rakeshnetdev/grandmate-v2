@@ -156,13 +156,17 @@ Each of these cost real time to find:
 - **Reports are cached** per (game, persona, analysis version), so editing a prompt
   looks like it did nothing. Clear the cache:
   `cd backend && uv run python -m scripts.clear_reports` (`--story`, `--all`).
-- **Chess *variant* games can never be analyzed, and nothing tells you so.** A Lichess
-  import happily ingests Antichess/Crazyhouse/etc. (they parse and canonicalize fine),
-  but the analysis job feeds their positions to standard Stockfish, which **segfaults** —
-  `engine process died unexpectedly (exit code: -11)`. The game then sits with no
-  `GameAnalysis`, so Analysis / Story / Moves / Patterns are all permanently empty for
-  it. Measured on this database: **18/18 Antichess games unanalyzed, 110/111 Standard
-  analyzed.** Check before debugging anything else:
+- **Chess *variant* games are rejected at ingestion** (`unsupported_variant`), as of the
+  variant gate in `app/domain/imports/parsing.py`. They used to import fine — Antichess /
+  Crazyhouse / etc. parse and canonicalize without complaint — and then **segfault
+  Stockfish** when the analysis job fed their positions (an Antichess game legally
+  captures both kings, and standard Stockfish crashes on a kingless FEN rather than
+  erroring): `engine process died unexpectedly (exit code: -11)`. The job's FAILED write
+  was then rolled back by an exception escaping `engine.quit()` under uvloop, so the job
+  reverted to `pending` and the startup sweep re-crashed it on **every** restart.
+  Pre-existing variant games were deleted from this database on 2026-08-02. If you see
+  that segfault again, a variant game got in somehow — check before debugging anything
+  else:
 
   ```bash
   cd backend && uv run python -c "
@@ -185,8 +189,8 @@ Each of these cost real time to find:
   asyncio.run(main())"
   ```
 
-  There is no retry that fixes these — the fix is to reject variants at ingestion (not
-  implemented; see the note the phase reports keep about it).
+  No retry fixes an already-imported variant game — delete it. Standard, From Position,
+  and Chess960 all count as standard chess and still import.
 - **A standard game can also fail on the deep pass**, with
   `Analysis of '<fen>' at depth 18 exceeded 30s` (`ENGINE_DEEP_DEPTH=18`,
   `ENGINE_TIMEOUT_S=30`). Unlike the variant crash this is transient — requeuing usually
