@@ -2,7 +2,7 @@
 
 > **Generated from recorded runs by `backend/evals/report.py`.** No figure in this report is hand-written. Regenerate with `cd backend && uv run python -m evals.report` after any evaluation run.
 
-Generated: 2026-07-29 08:17 PDT
+Generated: 2026-08-03 09:23 PDT
 
 Eight evaluation suites, each with a versioned dataset and a recorded run under `backend/evals/runs/`. Dataset design and provenance are documented in [`evaluation_data_design.md`](evaluation_data_design.md); thresholds and gating rules in [`../final_docs/v2/evaluation-strategy.md`](../final_docs/v2/evaluation-strategy.md).
 
@@ -15,13 +15,13 @@ Eight evaluation suites, each with a versioned dataset and a recorded run under 
 | Suite | Run recorded | Golden set reviewed |
 |---|---|---|
 | Move classifier accuracy | `20260729T092854Z_classifier_accuracy.json` | n/a |
-| Retrieval quality | `20260728T001600Z_retrieval.json` | ⚠️ 0 / 41 |
-| Single-game chat quality | `20260728T162429Z_single_game_chat.json` | ⚠️ 0 / 10 |
+| Retrieval quality | `20260729T153610Z_retrieval.json` | ⚠️ 0 / 41 |
+| Single-game chat quality | `20260729T152857Z_single_game_chat.json` | ⚠️ 0 / 32 |
 | Persona fidelity | `20260729T151313Z_persona_fidelity.json` | ⚠️ 0 / 30 |
 | Persona tone fidelity | `20260729T074141Z_tone_fidelity.json` | ⚠️ 0 / 10 |
-| Training plan fidelity | `20260729T063820Z_training_fidelity.json` | ⚠️ 0 / 3 |
-| Long-term memory quality | `20260728T204941Z_memory_quality.json` | ⚠️ 0 / 10 |
-| Single-agent vs multi-agent trajectory | `20260729T012314Z_agent_trajectory.json` | ⚠️ 0 / 12 |
+| Training plan fidelity | `20260729T151922Z_training_fidelity.json` | ⚠️ 0 / 30 |
+| Long-term memory quality | `20260729T152936Z_memory_quality.json` | ⚠️ 0 / 30 |
+| Single-agent vs multi-agent trajectory | `20260803T162112Z_agent_trajectory.json` | ⚠️ 0 / 12 |
 
 Every golden set in this project is currently **self-authored and unreviewed**. Per `evaluation-strategy.md`'s golden-vs-synthetic rule, that makes these scores informative rather than gating, except where a metric is structural — guaranteed by the code rather than estimated by a judge. Those are marked *Hard, structural* below.
 
@@ -86,7 +86,7 @@ Soft thresholds: context precision ≥ 0.75, context recall ≥ 0.75.
 
 Recommendation on record: *ship the simpler retriever (see rag-architecture.md section 3)*
 
-<sub>Source: `backend/evals/runs/20260728T001600Z_retrieval.json` · run at 2026-07-28T00:16:00.732239+00:00</sub>
+<sub>Source: `backend/evals/runs/20260729T153610Z_retrieval.json` · run at 2026-07-29T15:36:10.755487+00:00</sub>
 
 ---
 
@@ -94,22 +94,22 @@ Recommendation on record: *ship the simpler retriever (see rag-architecture.md s
 
 Real chat-graph turns — real tool dispatch, real grounding guardrail — scored by real RAGAS judge calls.
 
-**Model** `gpt-4o-mini` · **harness** `phase-10-v1` · 10 scenarios, real graph turns and real judge calls
+**Model** `gpt-4o-mini` · **harness** `phase-10-v1` · 32 scenarios, real graph turns and real judge calls
 
-**Golden-set status**: ⚠️ **unreviewed** — 0 of 10 human-reviewed, so scores are informative, not gating
+**Golden-set status**: ⚠️ **unreviewed** — 0 of 32 human-reviewed, so scores are informative, not gating
 
 | Metric | Score | Gate |
 |---|---|---|
 | `grounded_rate` | 100.0% | Hard, structural |
 | `intent_valid_rate` | 100.0% | Hard, structural |
-| `faithfulness` | 0.701 | ⚠️ soft, target 0.85 |
-| `response_relevancy` | 0.745 | Informative |
+| `faithfulness` | 0.713 | ⚠️ soft, target 0.85 |
+| `response_relevancy` | 0.634 | Informative |
 
 `grounded_rate` and `intent_valid_rate` are properties the code guarantees — the retry-then-fallback loop and the classifier's taxonomy fallback make any other value structurally impossible. They are not judge estimates.
 
 ⚠️ **Faithfulness is below its 0.85 target.** It does not gate, per the golden-vs-synthetic rule — the dataset is self-authored and unreviewed. Reading the answers manually found no fabricated game-specific claim; RAGAS scores *every* sentence, including legitimate uncited coaching advice that was never meant to carry a citation. Either the threshold needs recalibrating for a system that intentionally gives advice, or the output contract needs an explicit advice-vs-fact split.
 
-<sub>Source: `backend/evals/runs/20260728T162429Z_single_game_chat.json` · run at 2026-07-28T16:24:29.999056+00:00</sub>
+<sub>Source: `backend/evals/runs/20260729T152857Z_single_game_chat.json` · run at 2026-07-29T15:28:57.072880+00:00</sub>
 
 ---
 
@@ -160,19 +160,19 @@ Tone fidelity asks whether an answer *sounds* like the persona it claims to be �
 
 Do generated training plans address the weakness the deterministic analytics actually identified?
 
-**Model** `gpt-4o-mini` · 3 scenarios
+**Model** `gpt-4o-mini` · 30 scenarios
 
-**Golden-set status**: ⚠️ **unreviewed** — 0 of 3 human-reviewed, so scores are informative, not gating
+**Golden-set status**: ⚠️ **unreviewed** — 0 of 30 human-reviewed, so scores are informative, not gating
 
 | Metric | Score | Gate |
 |---|---|---|
-| `top_weakness_invariance_rate` | 100.0% | ✅ Hard |
+| `top_weakness_invariance_rate` | 98.9% | ⚠️ Hard |
 | `kid_safety_rate` | 100.0% | ✅ Hard |
 | `grounded_rate` | 100.0% | Informative |
 
 Training plans are recommendations, so the invariant that matters is that the *weakness being addressed* is the one the deterministic analytics identified — not that the prose is identical across personas.
 
-<sub>Source: `backend/evals/runs/20260729T063820Z_training_fidelity.json` · run at 2026-07-29T06:38:20.634808+00:00</sub>
+<sub>Source: `backend/evals/runs/20260729T151922Z_training_fidelity.json` · run at 2026-07-29T15:19:22.914063+00:00</sub>
 
 ---
 
@@ -180,20 +180,20 @@ Training plans are recommendations, so the invariant that matters is that the *w
 
 Is a durable statement retained, a non-durable one ignored, a superseded one resolved, and one profile's memory invisible to another?
 
-**Model** `gpt-4o-mini` · 10 scenarios, real extraction calls plus a real-Postgres structural check
+**Model** `gpt-4o-mini` · 30 scenarios, real extraction calls plus a real-Postgres structural check
 
-**Golden-set status**: ⚠️ **unreviewed** — 0 of 10 human-reviewed, so scores are informative, not gating
+**Golden-set status**: ⚠️ **unreviewed** — 0 of 30 human-reviewed, so scores are informative, not gating
 
 | Metric | Score | Gate |
 |---|---|---|
-| `retention_true_positive_rate` | 100.0% | Soft until reviewed |
+| `retention_true_positive_rate` | 84.2% | Soft until reviewed |
 | `retention_true_negative_rate` | 100.0% | Soft until reviewed |
 | `staleness_resolved` | **yes** | ✅ Hard, structural |
 | `cross_profile_isolated` | **yes** | ✅ Hard, structural |
 
 The two hard metrics are verified against real Postgres, not a fake. The retention set includes an adversarial case: the assistant says *"I will remember that you want to focus on defense"* and the user replies only *"ok"* — nothing should be written, because the durable statement was never the user's.
 
-<sub>Source: `backend/evals/runs/20260728T204941Z_memory_quality.json` · run at 2026-07-28T20:49:41.960302+00:00</sub>
+<sub>Source: `backend/evals/runs/20260729T152936Z_memory_quality.json` · run at 2026-07-29T15:29:36.367809+00:00</sub>
 
 ---
 
@@ -207,10 +207,10 @@ The head-to-head comparison Phase 13 was scoped to decide on evidence.
 
 | Metric | Single agent | Multi-agent |
 |---|---|---|
-| `faithfulness` | 0.600 | 0.504 |
-| `response_relevancy` | 0.406 | 0.118 |
+| `faithfulness` | 0.621 | 0.622 |
+| `response_relevancy` | 0.657 | 0.526 |
 | `grounded_rate` | 100.0% | 100.0% |
-| avg tool calls / turn | 1.25 | 1.17 |
+| avg tool calls / turn | 1.17 | 1.42 |
 
 Supervisor `routing_accuracy`: 91.7%
 
@@ -220,7 +220,7 @@ Supervisor `routing_accuracy`: 91.7%
 
 ⚠️ Marked **directional only** — the sample is too small for these differences to be statistically meaningful. It is enough to say multi-agent did not clear the bar; it is not enough to quantify by how much.
 
-<sub>Source: `backend/evals/runs/20260729T012314Z_agent_trajectory.json` · run at 2026-07-29T01:23:14.032865+00:00</sub>
+<sub>Source: `backend/evals/runs/20260803T162112Z_agent_trajectory.json` · run at 2026-08-03T16:21:12.719058+00:00</sub>
 
 ---
 

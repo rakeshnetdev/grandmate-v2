@@ -27,9 +27,51 @@ from evals.harness.single_game_chat_dataset import EvaluationFixture, OpeningFix
 
 __all__ = [
     "AgentTrajectoryScenario",
+    "HistoryGameFixture",
     "load_agent_trajectory_scenarios",
     "replay_moves",
 ]
+
+
+@dataclass(frozen=True)
+class HistoryGameFixture:
+    """One *prior* game in the profile's history, behind the scenario's active game.
+
+    Deliberately far cheaper than a full fixture: the cross-game tools
+    (`get_profile_aggregate` and the analytics behind it) read only
+    `GameAnalysis.summary` and the game's result/colour, never individual plies. Seeding
+    twenty full move lists to exercise a trend question would add thousands of lines of
+    JSON that nothing reads.
+
+    `accuracy` is *computed* from `counts` rather than stated, using the same formula as
+    `AnalysisService._summarize` — the share of moves that were best-or-good. A fixture
+    that asserted its own accuracy could drift from how production derives it, and the
+    trend question would then be scored against a number the product would never produce.
+    """
+
+    result: str
+    focus_color: str
+    counts: dict[str, int]
+    critical_moments: int
+    # Days before the scenario's active game. Ordering is what splits the analytics
+    # current window from the previous one, so a trend needs these to be distinct.
+    days_ago: int
+
+    @property
+    def total_moves(self) -> int:
+        return sum(self.counts.values())
+
+    def summary(self) -> dict[str, Any]:
+        """The `GameAnalysis.summary` payload, in the shape `AnalysisService._summarize`
+        writes it — the one the analytics metrics actually read."""
+        total = self.total_moves
+        good_or_better = self.counts.get("best", 0) + self.counts.get("good", 0)
+        return {
+            "total_moves": total,
+            "counts": dict(self.counts),
+            "accuracy": round(100 * good_or_better / total, 1) if total else 0.0,
+            "critical_moments": self.critical_moments,
+        }
 
 
 @dataclass(frozen=True)
@@ -43,6 +85,9 @@ class AgentTrajectoryScenario:
     expected_needs_retrieval: bool
     expected_needs_analysis: bool
     reviewed_by: str | None
+    # Prior games under the same profile, most recent first. Empty for every
+    # single-game scenario, which is most of them.
+    history: list[HistoryGameFixture]
 
     @property
     def routing_category(self) -> str:
@@ -78,6 +123,7 @@ def load_agent_trajectory_scenarios(path: Path) -> list[AgentTrajectoryScenario]
                     expected_needs_retrieval=row["expected_needs_retrieval"],
                     expected_needs_analysis=row["expected_needs_analysis"],
                     reviewed_by=row.get("reviewed_by"),
+                    history=[HistoryGameFixture(**h) for h in row.get("history", [])],
                 )
             )
     return scenarios

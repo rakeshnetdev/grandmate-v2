@@ -74,6 +74,10 @@ def build_multi_agent_graph_deps(
             opening_index=opening_index,
             store=store,
         ),
+        # Same MemoryService the single-agent path gets: the multi-agent graph now runs
+        # its own `write_memory` node, so both paths write long-term memory identically
+        # rather than the feature silently depending on which graph is flagged on.
+        memory=MemoryService(session, store, settings.memory),
     )
 
 

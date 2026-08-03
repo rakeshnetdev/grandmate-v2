@@ -10,18 +10,20 @@ graph TD;
 	chess_analyst(chess_analyst)
 	coach(coach)
 	critic(critic)
+	write_memory(write_memory)
 	__end__([<p>__end__</p>]):::last
 	__start__ --> supervisor;
 	chess_analyst --> coach;
-	coach -.-> __end__;
 	coach -.-> critic;
-	critic -.-> __end__;
+	coach -.-> write_memory;
 	critic -.-> coach;
+	critic -.-> write_memory;
 	retriever -.-> chess_analyst;
 	retriever -.-> coach;
 	supervisor -.-> chess_analyst;
 	supervisor -.-> coach;
 	supervisor -.-> retriever;
+	write_memory --> __end__;
 	classDef default fill:#f2f0ff,line-height:1.2
 	classDef first fill-opacity:0
 	classDef last fill:#bfb6fc

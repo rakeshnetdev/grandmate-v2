@@ -732,6 +732,133 @@ had the same missing kind, stated the open game unconditionally, and carried the
 per-claim citation rule; `USE_MULTI_AGENT=false` also makes it not the shipped path. Both
 paths were fixed.
 
+### D-039 — Phase 13's verdict re-opened: the comparison was measuring bugs · Locked
+
+Phase 13 recorded that multi-agent lost to the single-agent baseline and that `chat.py`
+therefore stays the live path. Re-examination found the margin was produced by four
+handoff defects in the multi-agent graph, not by the architecture:
+
+1. **The chess analyst was never told the open game id.** `get_game_analysis` and
+   `list_critical_moments` both take a required `game_id`; its prompt carried none, so it
+   answered questions about the user's own game with zero tool calls. The single agent has
+   had `active_game_id` since Phase 10.
+2. **Specialists received no thread history**, so a follow-up could not be resolved.
+3. **The coach's retry replaced the question with the violation feedback**, leaving the
+   second attempt nothing to answer.
+4. **The coach was instructed to emit `aggregate` and `critical_moment` citations**, two
+   kinds `validate_answer` rejects as `unknown kind` — a guaranteed violation, hence a
+   retry, hence (by 3) a hedge.
+
+Each failure produces a zero-citation hedge, and **a zero-citation answer passes the
+critic trivially** because the critic only checks citations that exist. The architecture
+was being scored on a grounding hole, not on its structure.
+
+**Re-measured, 3 replicates per side, same harness, same dataset, same judge**
+(2026-08-02). Single-agent is the control: it was not modified, so its spread bounds the
+harness's own noise.
+
+- before: `20260802T083558Z`, `20260802T084119Z`, `20260802T084640Z`
+- after: `20260802T085221Z`, `20260802T085735Z`, `20260802T091632Z`
+- **not evidence**: `20260802T082529Z` is annotated `INVALID — DO NOT CITE` (ran past the
+  daily token ceiling); `20260802T082041Z` is annotated `SUPERSEDED — exploratory`.
+
+| | before | after |
+|---|---|---|
+| multi faithfulness | 0.666 ±0.021 | **0.713 ±0.049** |
+| multi response relevancy | 0.228 ±0.001 | **0.529 ±0.005** |
+| single faithfulness *(control)* | 0.596 ±0.019 | 0.569 ±0.037 |
+| single relevancy *(control)* | 0.575 ±0.003 | 0.561 ±0.059 |
+
+**Decided: the Phase 13 verdict is "no longer reproducible", not "reversed".** Multi-agent
+beats single-agent on faithfulness in 6 of 6 replicates, and the 0.35 relevancy deficit is
+gone — but the exit criterion demands clearing the baseline on *both* metrics, and pooled
+relevancy is a statistical tie (0.529 vs 0.561) that passes in only 1 of 3 replicates. A
+coin flip is not a win. **`USE_MULTI_AGENT` stays `false`.**
+
+Restricted to the 9 substantive scenarios — dropping the 3 `neither` chit-chat rows, where
+RAGAS relevancy scores a greeting against no meaningful target — multi-agent leads on both
+(relevancy 0.677 vs 0.665, faithfulness 0.923 vs 0.759). That subset is recorded as an
+observation, **not** as the criterion: choosing the slice after seeing the scores is how a
+tie gets talked into a win. Re-cutting the dataset is a prerequisite for a *future* verdict,
+not a way to settle this one.
+
+**Two harness defects were found and fixed, both of which had corrupted results.** A
+completed run died at `json.dumps` on a NumPy `bool` and lost every score it had paid for;
+and a run that exhausted `LLM_DAILY_TOKEN_CEILING` mid-way kept going, with **both** graphs
+silently degrading to their fallbacks, and reported a confident architecture verdict built
+on answers no model produced. The harness now refuses to start a run it cannot afford and
+records token spend in every run file.
+→ `evals/harness/agent_trajectory_eval.py`, `final_docs/v2/phase-reports/phase-13-multi-agent-orchestration.md`
+
+### D-040 — Phase 13a: general chat is routed, and the cross-game fixture never worked · Locked
+
+D-039 fixed four defects that were making the comparison measure bugs. Three more were
+found the same way, by reading transcripts rather than aggregates. The verdict is again
+unchanged — `USE_MULTI_AGENT` stays `false` — and again the *reasoning* moves.
+
+**1. The supervisor had no category for non-chess turns.** "How does this coaching
+assistant actually work?" was classified `needs_retrieval`, because the prompt defines
+that flag to cover "coaching concepts" and a question about a *coach* reads straight into
+it. The retriever ran, found nothing, and handed the coach an empty context.
+
+A fourth field, `is_general_chat`, now covers greetings, thanks, sign-offs, questions
+about the assistant, and questions about the conversation. `parse_supervisor_plan` forces
+both specialist flags false when it is set: a model that classifies a sign-off as general
+chat while leaving `needs_retrieval` true is contradicting itself, and honouring both
+fields as written would send that sign-off to the retriever. The defaults stay
+deliberately asymmetric — `is_general_chat` defaults `False` while the specialist flags
+default `True`, because a chess question wrongly marked general is answered with no facts
+at all, while a general message wrongly marked chess merely wastes a call.
+
+**Measured: routing accuracy 0.833 → 0.917**, stable across every replicate since.
+
+**2. An empty context meant two opposite things.** "No specialist ran, because nothing
+needed gathering" and "a specialist ran and found nothing" reached the coach identically,
+and call for opposite answers — answer directly, versus say plainly you lack the material.
+The coach had been re-deriving which case it was in by reading the question, a judgement
+the supervisor made one node earlier and discarded. It is now passed through.
+
+**3. The cross-game fixture had never worked, in any run ever recorded.**
+`load_analyzed_games` filters on `Game.canonicalized_at IS NOT NULL`, and the harness
+never set it. `get_profile_aggregate` therefore returned an empty snapshot on **both**
+paths for the entire life of the harness. `ag-accuracy-trend` scored 0.00 relevancy in
+every run, and both agents were correct every time — they had no games to aggregate.
+
+This is the most consequential of the three, and not because of the score. Cross-game
+self-pattern finding is a stated product priority, and this evaluation had never once
+exercised it. A wrong fixture reads exactly like a wrong answer, which is why it survived
+from Phase 13 to here.
+
+The dataset gains an additive `history` field (`v2-2026-08-03-synthetic`): prior games
+carrying only a result, colour, classification counts and a date, because the analytics
+path reads `GameAnalysis.summary` and never the plies. Accuracy is *computed* from those
+counts by the same rule `AnalysisService._summarize` uses rather than asserted, so a
+fixture cannot drift from how production derives the number. `ag-accuracy-trend` gets 20
+prior games with a deliberate, checkable improvement.
+
+**Measured: `ag-accuracy-trend` 0.00 → 0.93 multi-agent, 0.88 single-agent** — the first
+scenario anywhere in this evaluation where multi-agent clearly leads.
+
+**One attempted fix did not work and was reverted.** `ag-motif-at-blunder` — "where was my
+critical moment in this game, and what tactical motif was I missing there?" — is still
+routed analysis-only, so the retrieval clause is dropped and the motif half has no corpus
+material. A supervisor rule to classify compound questions clause by clause was tried and
+moved nothing across four replicates; it is recorded here as a dead end rather than left
+in the prompt. The remaining option is a bounded repair pass — let the coach signal what it
+is missing and run the skipped specialist once — which changes what "plan-once supervisor"
+means and is therefore deferred to its own decision rather than folded in here.
+
+**Also recorded: the prompt fix that regressed.** Telling the coach to say plainly when it
+has nothing was obeyed on *partial* context too, and it began opening answers with "I don't
+have specific information on whether your opening was played correctly" before answering
+the rest correctly. RAGAS reads the leading disclaimer and scores the whole answer 0.000;
+`ag-opening-plan` did exactly that in three consecutive replicates on unchanged substance.
+The rule now orders the answer — what the context supports first, gaps at the end — which
+is better coaching independently of who is scoring it.
+→ `app/domain/chat/multi_agent_prompts.py`, `app/orchestration/graphs/multi_agent.py`,
+`evals/harness/agent_trajectory_dataset.py`, `evals/harness/agent_trajectory_eval.py`,
+`final_docs/v2/phase-reports/phase-13-multi-agent-orchestration.md`
+
 → `final_docs/v2/phase-reports/phase-20-knowledge-citations.md`
 
 ---

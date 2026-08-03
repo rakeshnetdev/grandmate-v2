@@ -1,12 +1,21 @@
 """The multi-agent supervisor graph (Phase 13, `rag-architecture.md` §7, D-016/D-029).
 
-**This graph exists to be measured against Phase 10's single-agent graph
-(`graphs/chat.py`), not to replace it yet.** Whether it becomes the live chat path is
-Phase 13's own exit criterion: multi-agent must beat the single-agent baseline on the
-evaluation set (`evals/harness/agent_trajectory_eval.py`), or the result is recorded and
-`chat.py` keeps serving real traffic. Nothing here is wired into `ChatService` — that
-would be promoting an unproven architecture ahead of the evidence the phase is supposed
-to produce.
+**This graph is measured against Phase 10's single-agent graph (`graphs/chat.py`) before
+it serves anyone.** Whether it becomes the live chat path is Phase 13's own exit
+criterion: multi-agent must beat the single-agent baseline on the evaluation set
+(`evals/harness/agent_trajectory_eval.py`), or the result is recorded and `chat.py` keeps
+serving real traffic. `ChatService` selects between the two on `USE_MULTI_AGENT`, which
+defaults to false — the graph is reachable for measurement without being promoted ahead
+of the evidence the phase exists to produce.
+
+**Handoff integrity is the whole game here** (learned the hard way; see the regression
+tests in `tests/test_multi_agent_graph.py`). A specialist that is not told the open game
+id cannot call the tools that require one, and a coach that is not re-shown the question
+on a retry has nothing to answer. Both failures surface as a *confident-looking*
+zero-citation hedge that sails through the critic, because the critic only checks
+citations that exist. Any new node added here must be asked the same two questions: does
+it receive everything it needs to act, and can its degraded output be mistaken for a
+grounded one?
 
 **Plan-once, not loop-and-return.** The supervisor classifies routing exactly once per
 turn (`needs_retrieval`, `needs_analysis`) rather than repeatedly deciding "what next"
@@ -25,19 +34,28 @@ LLM playing critic.
 
 **Ceilings are a shared, cross-turn budget, not one guardrail owning it.** `steps_taken`
 means the same thing `AgentSettings.agent_max_steps` means for the single agent — one LLM
-completion call, anywhere in the turn — just threaded through five possible callers
-(supervisor, retriever, chess analyst, coach x up to 2 attempts) instead of one loop's own
-counter. Every node reads the running totals out of state and writes back the new sum;
-there is deliberately no central "budget enforcer" node, because the enforcement has to
-happen *before* each would-be LLM call, inside whichever node is about to make it.
+completion call, anywhere in the turn — just threaded through six possible callers
+(supervisor, retriever, chess analyst, coach x up to 2 attempts, write_memory) instead of
+one loop's own counter. Every node reads the running totals out of state and writes back
+the new sum; there is deliberately no central "budget enforcer" node, because the
+enforcement has to happen *before* each would-be LLM call, inside whichever node is about
+to make it.
+
+Note what budget exhaustion looks like from outside: every node degrades to a grounded
+fallback rather than erroring, so a *starved* turn is indistinguishable from a merely
+unhelpful one in the response. That is right for a user-facing turn and actively
+misleading for an evaluation, which is why the harness refuses to start a run it cannot
+afford to finish.
 """
 
 from __future__ import annotations
 
 import json
+import uuid
 from dataclasses import dataclass
 from typing import Annotated, Any, TypedDict
 
+from langchain_core.runnables import RunnableConfig
 from langgraph.graph import END, StateGraph
 
 from app.core.config import LLMSettings, MultiAgentSettings
@@ -53,6 +71,8 @@ from app.domain.chat.multi_agent_prompts import (
     parse_supervisor_plan,
 )
 from app.domain.llm_usage import LLMBudgetTracker
+from app.domain.memory import MemoryService
+from app.domain.memory.prompts import build_extraction_messages, parse_candidate_memories
 from app.integrations.llm.base import CompletionRequest, LLMProvider, Message, ToolCall
 from app.orchestration.agents import CHESS_ANALYST, RETRIEVER
 from app.orchestration.agents.specs import AgentSpec
@@ -92,7 +112,11 @@ class MultiAgentState(TypedDict, total=False):
     # `dict[str, str]` this used to claim never described what is actually written.
     messages: Annotated[list[dict[str, Any]], _append]
 
-    # Supervisor's routing decision, this turn only.
+    # Supervisor's routing decision, this turn only. `is_general_chat` is not merely the
+    # "neither specialist" case restated: it distinguishes a turn where nothing needed
+    # gathering from one where gathering happened and returned nothing, which reach the
+    # coach as an identical empty context but call for opposite answers.
+    is_general_chat: bool | None
     needs_retrieval: bool | None
     needs_analysis: bool | None
 
@@ -128,6 +152,10 @@ class MultiAgentGraphDeps:
     multi_agent_settings: MultiAgentSettings
     budget: LLMBudgetTracker
     tool_context: ToolContext
+    # Optional purely so the many existing tests that build these deps without memory in
+    # scope keep working; in production `build_multi_agent_graph_deps` always supplies it,
+    # and a `None` here simply skips the extraction node rather than failing the turn.
+    memory: MemoryService | None = None
 
 
 def _combined_context(state: MultiAgentState) -> list[dict[str, Any]]:
@@ -192,6 +220,11 @@ async def _supervisor(state: MultiAgentState, deps: MultiAgentGraphDeps) -> Mult
                 "steps_taken": 0,
                 "tokens_used": 0,
                 "tool_call_count": 0,
+                # Not general chat: this turn skips the specialists because there is no
+                # budget to run them, not because the question did not need them. The
+                # coach must still say plainly that it has nothing, rather than answering
+                # a chess question breezily from an empty context it was told to expect.
+                "is_general_chat": False,
                 "needs_retrieval": False,
                 "needs_analysis": False,
                 # Seeded here because the supervisor always runs first — a specialist
@@ -222,6 +255,10 @@ async def _supervisor(state: MultiAgentState, deps: MultiAgentGraphDeps) -> Mult
             "tokens_used": state.get("tokens_used", 0) + response.usage.total,
             "retrieval_context": [],
             "analysis_context": [],
+            # `parse_supervisor_plan` already forces both specialist flags false when
+            # `is_general_chat` is set, so `_route_after_supervisor` needs no new branch:
+            # a general-chat turn falls through its existing "neither" case to the coach.
+            "is_general_chat": plan["is_general_chat"],
             "needs_retrieval": plan["needs_retrieval"],
             "needs_analysis": plan["needs_analysis"],
         }
@@ -247,7 +284,16 @@ async def _run_specialist(
     tool_call_count = state.get("tool_call_count", 0)
     context: list[dict[str, Any]] = []
 
-    working_messages = [system_message, Message(role="user", content=state["question"])]
+    # The thread's prior turns, same as `chat.py`'s single agent gets. A specialist asked
+    # "and why was that bad?" cannot resolve "that" from the latest message alone; without
+    # history it either guesses or gathers nothing, and the coach downstream can only
+    # phrase from what it was handed.
+    history = [Message(role=m["role"], content=m["content"]) for m in state.get("messages", [])]
+    working_messages = [
+        system_message,
+        *history,
+        Message(role="user", content=state["question"]),
+    ]
 
     while not await _ceilings_exceeded(steps_taken, tokens_used, deps):
         response = await deps.llm.complete(
@@ -311,7 +357,10 @@ async def _chess_analyst(state: MultiAgentState, deps: MultiAgentGraphDeps) -> M
             return {"trace": ["chess_analyst"], "analysis_context": []}
 
         steps_taken, tokens_used, tool_call_count, context = await _run_specialist(
-            state, deps, CHESS_ANALYST, build_chess_analyst_system_message()
+            state,
+            deps,
+            CHESS_ANALYST,
+            build_chess_analyst_system_message(active_game_id=state.get("active_game_id")),
         )
         if span:
             span.set(tool_call_count=len(context))
@@ -358,24 +407,41 @@ async def _coach(state: MultiAgentState, deps: MultiAgentGraphDeps) -> MultiAgen
 
         persona = Persona(state["persona"])
         system_message = build_coach_system_message(
-            persona, active_game_id=state.get("active_game_id"), context=context
+            persona,
+            active_game_id=state.get("active_game_id"),
+            context=context,
+            is_general_chat=bool(state.get("is_general_chat")),
         )
+        # The question stays in the message list on *every* attempt. It used to be
+        # replaced by the violation feedback on a retry, so the second attempt saw only
+        # "your previous answer failed grounding checks: [...]" with nothing to answer —
+        # and the model duly produced "I do not have sufficient information to provide a
+        # corrected response", a zero-citation hedge that then passed the critic. The
+        # rejected draft is replayed as the assistant turn it was, so the correction has
+        # something concrete to correct, matching `chat.py`'s own retry shape.
+        history = [Message(role=m["role"], content=m["content"]) for m in state.get("messages", [])]
+        working_messages = [
+            system_message,
+            *history,
+            Message(role="user", content=state["question"]),
+        ]
         violations = state.get("violations")
-        follow_up = (
-            Message(
-                role="user",
-                content=(
-                    f"Your previous answer failed grounding checks: {violations}. Correct "
-                    "it using only the context already provided; do not invent new facts."
-                ),
+        if violations:
+            working_messages.append(Message(role="assistant", content=state.get("draft_raw") or ""))
+            working_messages.append(
+                Message(
+                    role="user",
+                    content=(
+                        f"That answer failed grounding checks: {violations}. Answer the "
+                        "question again using only the context already provided; do not "
+                        "invent new facts, and drop any citation you cannot support."
+                    ),
+                )
             )
-            if violations
-            else Message(role="user", content=state["question"])
-        )
 
         response = await deps.llm.complete(
             CompletionRequest(
-                messages=[system_message, follow_up],
+                messages=working_messages,
                 model=deps.llm_settings.llm_model,
                 response_format="json_object",
             )
@@ -446,6 +512,58 @@ async def _critic(state: MultiAgentState, deps: MultiAgentGraphDeps) -> MultiAge
         return {"trace": ["critic"], "grounded": False, "violations": violations}
 
 
+async def _write_memory(
+    state: MultiAgentState, deps: MultiAgentGraphDeps, thread_id: str | None
+) -> MultiAgentState:
+    """Long-term memory extraction, the exact counterpart of `chat.py`'s node of the same
+    name and for the same reasons: it runs after the answer is final, it is best-effort,
+    and a failure here can never change what the user was already told.
+
+    This graph had no such node at all, so `USE_MULTI_AGENT=true` silently disabled half
+    of Phase 11 — the write half — while `recall_memory` covered the read half from no
+    agent's tool list. Both halves are restored together; a path that is a candidate to
+    serve real traffic cannot quietly drop a shipped feature.
+    """
+    with get_recorder().span(SpanKind.GRAPH_NODE, "write_memory") as span:
+        if deps.memory is None:
+            if span:
+                span.set(skipped="no_memory_service")
+            return {"trace": ["write_memory"]}
+        if await _ceiling_exceeded(state, deps):
+            if span:
+                span.set(skipped="budget_exhausted")
+            return {"trace": ["write_memory"]}
+
+        response = await deps.llm.complete(
+            CompletionRequest(
+                messages=build_extraction_messages(state["question"], state.get("answer") or ""),
+                model=deps.llm_settings.llm_model,
+                response_format="json_object",
+            )
+        )
+        await deps.budget.record_usage(
+            response.usage.prompt_tokens, response.usage.completion_tokens
+        )
+        candidates = parse_candidate_memories(response.content)
+
+        written_count = 0
+        if candidates:
+            written = await deps.memory.write_candidate_memories(
+                deps.tool_context.profile_id,
+                candidates,
+                source_thread_id=uuid.UUID(thread_id) if thread_id else None,
+            )
+            written_count = len(written)
+
+        if span:
+            span.set(candidate_count=len(candidates), written_count=written_count)
+        return {
+            "trace": ["write_memory"],
+            "steps_taken": state.get("steps_taken", 0) + 1,
+            "tokens_used": state.get("tokens_used", 0) + response.usage.total,
+        }
+
+
 def _route_after_supervisor(state: MultiAgentState) -> str:
     if state.get("needs_retrieval"):
         return "retriever"
@@ -458,12 +576,15 @@ def _route_after_retriever(state: MultiAgentState) -> str:
     return "chess_analyst" if state.get("needs_analysis") else "coach"
 
 
-def _route_after_coach(state: MultiAgentState) -> str | Any:
-    return END if state.get("skip_critic") else "critic"
+def _route_after_coach(state: MultiAgentState) -> str:
+    # A budget-exhausted coach emits the fallback answer itself and skips the critic, but
+    # still exits through `write_memory` rather than straight to END — the turn produced
+    # a real (question, answer) pair either way, and that is what extraction reads.
+    return "write_memory" if state.get("skip_critic") else "critic"
 
 
-def _route_after_critic(state: MultiAgentState) -> str | Any:
-    return END if state.get("grounded") else "coach"
+def _route_after_critic(state: MultiAgentState) -> str:
+    return "write_memory" if state.get("grounded") else "coach"
 
 
 def build_multi_agent_graph(deps: MultiAgentGraphDeps, checkpointer: Any) -> Any:
@@ -486,11 +607,16 @@ def build_multi_agent_graph(deps: MultiAgentGraphDeps, checkpointer: Any) -> Any
     async def _critic_node(state: MultiAgentState) -> MultiAgentState:
         return await _critic(state, deps)
 
+    async def _write_memory_node(state: MultiAgentState, config: RunnableConfig) -> MultiAgentState:
+        thread_id = config.get("configurable", {}).get("thread_id")
+        return await _write_memory(state, deps, thread_id)
+
     builder.add_node("supervisor", _supervisor_node)
     builder.add_node("retriever", _retriever_node)
     builder.add_node("chess_analyst", _chess_analyst_node)
     builder.add_node("coach", _coach_node)
     builder.add_node("critic", _critic_node)
+    builder.add_node("write_memory", _write_memory_node)
 
     builder.set_entry_point("supervisor")
     builder.add_conditional_edges(
@@ -502,8 +628,13 @@ def build_multi_agent_graph(deps: MultiAgentGraphDeps, checkpointer: Any) -> Any
         "retriever", _route_after_retriever, {"chess_analyst": "chess_analyst", "coach": "coach"}
     )
     builder.add_edge("chess_analyst", "coach")
-    builder.add_conditional_edges("coach", _route_after_coach, {"critic": "critic", END: END})
-    builder.add_conditional_edges("critic", _route_after_critic, {"coach": "coach", END: END})
+    builder.add_conditional_edges(
+        "coach", _route_after_coach, {"critic": "critic", "write_memory": "write_memory"}
+    )
+    builder.add_conditional_edges(
+        "critic", _route_after_critic, {"coach": "coach", "write_memory": "write_memory"}
+    )
+    builder.add_edge("write_memory", END)
 
     return builder.compile(checkpointer=checkpointer)
 

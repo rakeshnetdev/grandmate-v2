@@ -34,8 +34,19 @@ class LLMBudgetTracker:
         ceiling = self._settings.llm_daily_token_ceiling
         if ceiling is None:
             return True
-        used = await self._today_usage()
+        used = await self.today_usage()
         return used < ceiling
+
+    async def today_usage(self) -> int:
+        """Tokens spent so far today.
+
+        Public because callers that must *plan* against the ceiling rather than merely
+        obey it need the number itself, not the boolean: the evaluation harness refuses
+        to start a run it cannot finish, since both graphs degrade silently to their
+        fallbacks once the budget is gone and the resulting scores would describe the
+        budget guard rather than the thing under test.
+        """
+        return await self._today_usage()
 
     async def record_usage(self, prompt_tokens: int, completion_tokens: int) -> None:
         """Atomically add tokens actually spent — read from the provider's own response,

@@ -16,9 +16,12 @@ def test_supervisor_coach_and_critic_have_no_tools() -> None:
         assert spec.tool_dispatch == {}
 
 
-def test_retriever_is_scoped_to_the_search_tools_only() -> None:
+def test_retriever_is_scoped_to_the_retrieval_tools_only() -> None:
+    """`recall_memory` is grouped here by retrieval *mechanism*, same rationale as
+    `search_analysis`. It belongs to some agent or the multi-agent path cannot reach a
+    tool the single agent has offered since Phase 11."""
     names = {tool.name for tool in RETRIEVER.tool_specs}
-    assert names == {"search_knowledge", "search_analysis"}
+    assert names == {"search_knowledge", "search_analysis", "recall_memory"}
     assert set(RETRIEVER.tool_dispatch) == names
 
 

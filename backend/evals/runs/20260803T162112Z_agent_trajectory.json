@@ -1,0 +1,422 @@
+{
+  "dataset_path": "/Users/sriraki/Desktop/CodePractice/ai_practice/AE-CH/demo-prj/grandmate-v2/backend/evals/datasets/synthetic/agent_trajectory.jsonl",
+  "dataset_version": "v2-2026-08-03-synthetic",
+  "harness_version": "phase-13-v1",
+  "model": "gpt-4o-mini",
+  "reviewed_scenario_count": 0,
+  "daily_budget_remaining_before": 3435631,
+  "daily_budget_remaining_after": 3297658,
+  "tokens_spent_by_run": 137973,
+  "total_scenario_count": 12,
+  "timestamp": "2026-08-03T16:21:12.719058+00:00",
+  "results": {
+    "single_agent": {
+      "faithfulness": 0.6205357142857143,
+      "response_relevancy": 0.6568248740461229,
+      "grounded_rate": 1.0,
+      "avg_tool_call_count": 1.1666666666666667
+    },
+    "multi_agent": {
+      "faithfulness": 0.6220160286336757,
+      "response_relevancy": 0.5264818975389399,
+      "grounded_rate": 1.0,
+      "avg_tool_call_count": 1.4166666666666667
+    },
+    "routing_accuracy": 0.9166666666666666
+  },
+  "exit_criterion": {
+    "rule": "multi-agent must match or beat single-agent on both faithfulness and response_relevancy to be adopted; otherwise the Phase 10 baseline stays (rag-architecture.md \u00a77)",
+    "multi_agent_wins": false,
+    "directional_only": true
+  },
+  "per_scenario": [
+    {
+      "scenario_id": "ag-fork-vs-pin",
+      "routing_category": "retrieval_only",
+      "routing_correct": true,
+      "multi_agent_trace": [
+        "supervisor",
+        "retriever",
+        "coach",
+        "critic",
+        "write_memory"
+      ],
+      "single_agent": {
+        "answer": "A **fork** is a tactic where a single piece attacks two or more enemy pieces simultaneously, making it impossible for the opponent to defend all of them. Knights are particularly effective at forking due to their unique movement pattern, but any piece can execute a fork. A special case of a fork is called a **royal fork**, which attacks both the king and queen at the same time, forcing the opponent to move the king and usually resulting in the loss of the queen.\n\nOn the other hand, a **pin** immobilizes an enemy piece by threatening to capture a more valuable piece that is directly behind it on the same rank, file, or diagonal. There are two types of pins: an **absolute pin**, where the pinned piece is in front of the king (making it illegal to move), and a **relative pin**, where the pinned piece can legally move but would expose a more valuable piece behind it to capture. Pins are typically executed by long-range pieces like bishops, rooks, or queens.",
+        "grounded": true,
+        "tool_call_count": 2,
+        "tool_names": [
+          "search_knowledge",
+          "search_knowledge"
+        ],
+        "faithfulness": 1.0,
+        "response_relevancy": 0.8392030265504106
+      },
+      "multi_agent": {
+        "answer": "A fork is a tactic where a single piece simultaneously attacks two or more enemy pieces, making it impossible for the opponent to defend all of them. Knights are particularly effective at forking due to their unique movement. In contrast, a pin immobilizes an enemy piece by threatening to capture a more valuable piece that is directly behind it. In an absolute pin, the piece cannot move without putting the king in check, while in a relative pin, it can move but would expose a more valuable piece to capture.",
+        "grounded": true,
+        "tool_call_count": 2,
+        "tool_names": [
+          "search_knowledge",
+          "search_knowledge"
+        ],
+        "faithfulness": 1.0,
+        "response_relevancy": 0.8322229031713734
+      }
+    },
+    {
+      "scenario_id": "ag-italian-idea",
+      "routing_category": "retrieval_only",
+      "routing_correct": true,
+      "multi_agent_trace": [
+        "supervisor",
+        "retriever",
+        "coach",
+        "critic",
+        "write_memory"
+      ],
+      "single_agent": {
+        "answer": "The Italian Game, initiated by the moves 1.e4 e5 2.Nf3 Nc6 3.Bc4, focuses on developing the light-squared bishop towards f7, which is a vulnerable point in Black's position. This opening allows for principled development for both sides, particularly in the Giuoco Piano variation (3...Bc5). It can lead to sharp tactical play, especially with lines like the Fried Liver Attack, where White sacrifices material to expose Black's king before it can castle. Overall, the Italian Game is a classical choice that rewards accurate calculation as the position opens up.",
+        "grounded": true,
+        "tool_call_count": 1,
+        "tool_names": [
+          "search_knowledge"
+        ],
+        "faithfulness": 1.0,
+        "response_relevancy": 0.7298793393585115
+      },
+      "multi_agent": {
+        "answer": "The Italian Game focuses on quick development of pieces and control of the center. It often leads to open positions where both sides can develop their pieces actively. Key strategic ideas include avoiding development lag, controlling the center, and creating opportunities for tactical play. Players typically aim to develop their minor pieces efficiently while preparing for potential attacks on the opponent's position.",
+        "grounded": true,
+        "tool_call_count": 1,
+        "tool_names": [
+          "search_knowledge"
+        ],
+        "faithfulness": 0.4444444444444444,
+        "response_relevancy": 0.8011515982677567
+      }
+    },
+    {
+      "scenario_id": "ag-pawn-structure",
+      "routing_category": "retrieval_only",
+      "routing_correct": true,
+      "multi_agent_trace": [
+        "supervisor",
+        "retriever",
+        "coach",
+        "critic",
+        "write_memory"
+      ],
+      "single_agent": {
+        "answer": "In the middlegame, understanding pawn structure weaknesses is crucial for both offense and defense. Here are some key concepts to consider:\n\n1. **Types of Weaknesses**: Look for doubled pawns, isolated pawns, and backward pawns. These create long-term structural weaknesses that can be targeted by your opponent. They don't lose material immediately, but they can lead to fixed targets and weak squares that your opponent can exploit.\n\n2. **Isolated Queen's Pawn (IQP)**: An isolated pawn on the d-file can be a strategic theme. The side with the IQP often gains open lines and active piece play, while the opponent aims to trade pieces to exploit the weakness in the endgame.\n\n3. **Minority Attack**: This involves advancing a smaller group of pawns against a larger enemy pawn structure, aiming to create isolated or backward pawns for your opponent. This is a common strategy in various queen's-pawn openings.\n\n4. **Passed Pawns**: Creating passed pawns can be a long-term goal, especially as pieces are traded off. They become more dangerous when fewer pieces are available to block or attack them.\n\n5. **Open File Control**: Controlling open or half-open files is vital for rooks and queens, allowing them to penetrate the opponent's position. This often involves trading off pawns to open files.\n\nBy keeping these principles in mind, you can better navigate the complexities of pawn structure in the middlegame and formulate effective strategies.",
+        "grounded": true,
+        "tool_call_count": 1,
+        "tool_names": [
+          "search_knowledge"
+        ],
+        "faithfulness": 1.0,
+        "response_relevancy": 0.9200639153989384
+      },
+      "multi_agent": {
+        "answer": "In the middlegame, you should be aware of several types of pawn structure weaknesses that can affect your position:\n\n1. **Doubled Pawns**: These are two pawns of the same color on one file. They don't lose material immediately but create fixed targets and weak squares in front of them that can be exploited by your opponent.\n\n2. **Isolated Pawns**: An isolated pawn has no friendly pawns on either adjacent file. This type of pawn can become a long-term weakness as it cannot be defended by other pawns.\n\n3. **Backward Pawns**: These pawns cannot advance safely because a neighboring pawn cannot support them. They can also become targets for your opponent.\n\n4. **Isolated Queen's Pawn (IQP)**: This is a specific case of an isolated pawn on the d-file. While it can lead to open lines and active piece play for the side with the IQP, it can become a static weakness in the endgame if not managed properly.\n\n5. **Minority Attack**: This is a strategic plan where you advance a smaller group of pawns against a larger enemy pawn group, aiming to create weaknesses in your opponent's structure.\n\nUnderstanding these weaknesses allows you to create plans that either exploit your opponent's pawn structure or reinforce your own, leading to a more favorable position.",
+        "grounded": true,
+        "tool_call_count": 1,
+        "tool_names": [
+          "search_knowledge"
+        ],
+        "faithfulness": 0.9411764705882353,
+        "response_relevancy": 0.8838162776902032
+      }
+    },
+    {
+      "scenario_id": "ag-my-opening",
+      "routing_category": "analysis_only",
+      "routing_correct": true,
+      "multi_agent_trace": [
+        "supervisor",
+        "chess_analyst",
+        "coach",
+        "critic",
+        "write_memory"
+      ],
+      "single_agent": {
+        "answer": "Your opening in this game was the Queen's Gambit Declined, classified under ECO code D06.",
+        "grounded": true,
+        "tool_call_count": 1,
+        "tool_names": [
+          "get_game_analysis"
+        ],
+        "faithfulness": 1.0,
+        "response_relevancy": 0.880697244512168
+      },
+      "multi_agent": {
+        "answer": "Your opening in this game was the Queen's Gambit Declined, classified under the ECO code D06.",
+        "grounded": true,
+        "tool_call_count": 1,
+        "tool_names": [
+          "get_game_analysis"
+        ],
+        "faithfulness": 1.0,
+        "response_relevancy": 0.880718364063568
+      }
+    },
+    {
+      "scenario_id": "ag-critical-moment",
+      "routing_category": "analysis_only",
+      "routing_correct": true,
+      "multi_agent_trace": [
+        "supervisor",
+        "chess_analyst",
+        "coach",
+        "critic",
+        "coach",
+        "critic",
+        "write_memory"
+      ],
+      "single_agent": {
+        "answer": "The critical moment in your game occurred at ply 7, when you played the move d6. This move was classified as a blunder and resulted in an evaluation of -294 centipawns, with a significant evaluation swing of 320 centipawns.",
+        "grounded": true,
+        "tool_call_count": 2,
+        "tool_names": [
+          "list_critical_moments",
+          "get_game_analysis"
+        ],
+        "faithfulness": 1.0,
+        "response_relevancy": 0.8151971043386282
+      },
+      "multi_agent": {
+        "answer": "The critical moment in your game occurred on move 7, when you played d6. This move was classified as a blunder and resulted in an evaluation swing of 320 centipawns.",
+        "grounded": true,
+        "tool_call_count": 1,
+        "tool_names": [
+          "list_critical_moments"
+        ],
+        "faithfulness": 1.0,
+        "response_relevancy": 0.8151731519046949
+      }
+    },
+    {
+      "scenario_id": "ag-accuracy-trend",
+      "routing_category": "analysis_only",
+      "routing_correct": true,
+      "multi_agent_trace": [
+        "supervisor",
+        "chess_analyst",
+        "coach",
+        "critic",
+        "write_memory"
+      ],
+      "single_agent": {
+        "answer": "Your accuracy has significantly improved over your last 10 games. It currently stands at 82.5%, up from 59.3% in your previous games, marking a delta of 23.2%. \n\nHere's a breakdown of your classification rates:\n- **Best moves**: 59.2% (up from 38.6%)\n- **Good moves**: 21.9% (up from 20.6%)\n- **Inaccuracies**: 10.1% (down from 19.4%)\n- **Mistakes**: 5.9% (down from 13.3%)\n- **Blunders**: 2.9% (down from 8.1%)\n\nYour critical moment rate has also decreased from 3.9 to 1.6, indicating fewer pivotal moments in your recent games. Overall, this trend shows a positive development in your play.",
+        "grounded": true,
+        "tool_call_count": 1,
+        "tool_names": [
+          "get_profile_aggregate"
+        ],
+        "faithfulness": 0.7692307692307693,
+        "response_relevancy": 0.8987553323106031
+      },
+      "multi_agent": {
+        "answer": "Your accuracy has improved significantly over your last 10 games. It is currently at 82.5%, which is an increase from your previous average of 59.3%. This represents a delta of 23.2%.",
+        "grounded": true,
+        "tool_call_count": 1,
+        "tool_names": [
+          "get_profile_aggregate"
+        ],
+        "faithfulness": 0.75,
+        "response_relevancy": 0.7567100349520707
+      }
+    },
+    {
+      "scenario_id": "ag-motif-at-blunder",
+      "routing_category": "both",
+      "routing_correct": false,
+      "multi_agent_trace": [
+        "supervisor",
+        "chess_analyst",
+        "coach",
+        "critic",
+        "coach",
+        "critic",
+        "write_memory"
+      ],
+      "single_agent": {
+        "answer": "Your critical moment in this game occurred at move 6, where you played **Nxe4**, which was classified as a blunder. This move resulted in a significant evaluation swing of 320 centipawns. The best move at that point would have been to continue with **dxe4** instead. The tactical motif you were missing likely involved recognizing the potential threats and opportunities in the position, particularly how capturing on e4 could expose your pieces to counterplay or tactical vulnerabilities.",
+        "grounded": true,
+        "tool_call_count": 2,
+        "tool_names": [
+          "list_critical_moments",
+          "get_game_analysis"
+        ],
+        "faithfulness": 0.5714285714285714,
+        "response_relevancy": 0.6763199812745478
+      },
+      "multi_agent": {
+        "answer": "Your critical moment in the game occurred on move 6, when you played Nxe4. This move was classified as a blunder, resulting in a significant evaluation swing of 320 centipawns. Unfortunately, I do not have the specific tactical motif that you were missing at that moment.",
+        "grounded": true,
+        "tool_call_count": 2,
+        "tool_names": [
+          "list_critical_moments",
+          "get_game_analysis"
+        ],
+        "faithfulness": 1.0,
+        "response_relevancy": 0.0
+      }
+    },
+    {
+      "scenario_id": "ag-opening-plan",
+      "routing_category": "both",
+      "routing_correct": true,
+      "multi_agent_trace": [
+        "supervisor",
+        "retriever",
+        "chess_analyst",
+        "coach",
+        "critic",
+        "write_memory"
+      ],
+      "single_agent": {
+        "answer": "Your opening was played correctly, following the English Opening (ECO A15). You achieved a perfect accuracy of 100% in the first 10 moves, with all moves classified as best by the engine. \n\nIn the English Opening, the general plan often involves controlling the center with pawns and pieces, developing your pieces harmoniously, and maintaining flexibility in your pawn structure. The move 1. c4 aims to control the d5 square and prepare for a potential d4 pawn push, while also allowing for piece development behind the pawns. Your subsequent moves, such as Nc3 and g3, support this plan by developing knights and preparing to fianchetto the bishop, which can exert pressure on the center and the long diagonal.",
+        "grounded": true,
+        "tool_call_count": 1,
+        "tool_names": [
+          "get_game_analysis"
+        ],
+        "faithfulness": 0.23076923076923078,
+        "response_relevancy": 0.6469566384697697
+      },
+      "multi_agent": {
+        "answer": "Your opening was the English Opening (ECO A15), which starts with 1.c4. This opening approaches the center from the flank and can transpose into various structures depending on both sides' follow-up. Its flexibility is a key strategic asset, allowing you to choose a symmetrical, Sicilian Reversed, or four-knights-style setup based on your opponent's responses. \n\nAs for whether it was played correctly, I don't have specific analysis on the correctness of your moves in this game, but the moves played were classified as best according to the analysis.",
+        "grounded": true,
+        "tool_call_count": 4,
+        "tool_names": [
+          "search_analysis",
+          "search_knowledge",
+          "lookup_opening",
+          "get_game_analysis"
+        ],
+        "faithfulness": 0.9,
+        "response_relevancy": 0.0
+      }
+    },
+    {
+      "scenario_id": "ag-mistake-and-hanging",
+      "routing_category": "both",
+      "routing_correct": true,
+      "multi_agent_trace": [
+        "supervisor",
+        "retriever",
+        "chess_analyst",
+        "coach",
+        "critic",
+        "write_memory"
+      ],
+      "single_agent": {
+        "answer": "Your biggest mistake in this game occurred on move 8 when you played Nc3, which was classified as a blunder. This move resulted in an evaluation of -296 centipawns, indicating that it was a poor choice compared to other possible moves.\n\nA \"hanging piece\" refers to a piece that is unprotected and can be captured by an opponent's piece without any consequence. This often occurs when a player moves a piece to a square where it is not defended by another piece, making it vulnerable to capture on the opponent's next turn.",
+        "grounded": true,
+        "tool_call_count": 3,
+        "tool_names": [
+          "list_critical_moments",
+          "search_knowledge",
+          "get_game_analysis"
+        ],
+        "faithfulness": 0.875,
+        "response_relevancy": 0.9068023060824896
+      },
+      "multi_agent": {
+        "answer": "Your biggest mistake in this game was the move Nc3, which was classified as a blunder. This move resulted in a significant evaluation swing of 320 centipawns against you.\n\nA hanging piece is a piece that is unprotected and can be captured by an opponent's piece without any consequence. When a piece is hanging, it means that it is vulnerable to being taken, and the player must be cautious to avoid losing material.",
+        "grounded": true,
+        "tool_call_count": 4,
+        "tool_names": [
+          "search_analysis",
+          "search_knowledge",
+          "get_game_analysis",
+          "list_critical_moments"
+        ],
+        "faithfulness": 0.42857142857142855,
+        "response_relevancy": 0.8249997333486915
+      }
+    },
+    {
+      "scenario_id": "ag-greeting",
+      "routing_category": "neither",
+      "routing_correct": true,
+      "multi_agent_trace": [
+        "supervisor",
+        "coach",
+        "critic",
+        "write_memory"
+      ],
+      "single_agent": {
+        "answer": "You're welcome! I'm here to help you with your chess questions. What would you like to discuss today?",
+        "grounded": true,
+        "tool_call_count": 0,
+        "tool_names": [],
+        "faithfulness": 0.0,
+        "response_relevancy": 0.0
+      },
+      "multi_agent": {
+        "answer": "You're welcome! I'm glad to assist you. If you have more questions or need help with your game today, just let me know!",
+        "grounded": true,
+        "tool_call_count": 0,
+        "tool_names": [],
+        "faithfulness": 0.0,
+        "response_relevancy": 0.24726763442171187
+      }
+    },
+    {
+      "scenario_id": "ag-how-it-works",
+      "routing_category": "neither",
+      "routing_correct": true,
+      "multi_agent_trace": [
+        "supervisor",
+        "coach",
+        "critic",
+        "write_memory"
+      ],
+      "single_agent": {
+        "answer": "I'm designed to assist you with chess coaching by providing analysis and insights based on your games. I can evaluate positions, suggest moves, and explain strategies using chess engine tools and curated knowledge. My responses are grounded in specific data from your games or general chess principles, ensuring accuracy and relevance to your learning process.",
+        "grounded": true,
+        "tool_call_count": 0,
+        "tool_names": [],
+        "faithfulness": 0.0,
+        "response_relevancy": 0.5680236002574062
+      },
+      "multi_agent": {
+        "answer": "I'm here to help you improve your chess skills by providing guidance, analysis, and advice based on your games and questions. You can ask me about specific positions, strategies, or general chess concepts, and I'll do my best to assist you!",
+        "grounded": true,
+        "tool_call_count": 0,
+        "tool_names": [],
+        "faithfulness": 0.0,
+        "response_relevancy": 0.2757230726472096
+      }
+    },
+    {
+      "scenario_id": "ag-goodbye",
+      "routing_category": "neither",
+      "routing_correct": true,
+      "multi_agent_trace": [
+        "supervisor",
+        "coach",
+        "critic",
+        "write_memory"
+      ],
+      "single_agent": {
+        "answer": "You're welcome! Looking forward to our next session. Have a great day!",
+        "grounded": true,
+        "tool_call_count": 0,
+        "tool_names": [],
+        "faithfulness": 0.0,
+        "response_relevancy": 0.0
+      },
+      "multi_agent": {
+        "answer": "You're welcome! Looking forward to our next session. Have a great day!",
+        "grounded": true,
+        "tool_call_count": 0,
+        "tool_names": [],
+        "faithfulness": 0.0,
+        "response_relevancy": 0.0
+      }
+    }
+  ]
+}

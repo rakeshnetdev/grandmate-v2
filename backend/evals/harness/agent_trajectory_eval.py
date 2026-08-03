@@ -21,8 +21,9 @@ from __future__ import annotations
 import asyncio
 import json
 import uuid
+from collections import Counter
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -37,8 +38,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import app.domain.chat  # noqa: F401
 from app.core.config import Settings, get_settings
 from app.db.models import (
+    ChatThread,
     Game,
     GameAnalysis,
+    GameColor,
     GameMove,
     GameSource,
     MoveClassification,
@@ -51,14 +54,13 @@ from app.db.models import (
 )
 from app.db.session import create_engine, create_session_factory, session_scope
 from app.domain.llm_usage import LLMBudgetTracker
-from app.domain.memory import MemoryService
 from app.domain.patterns import load_opening_index
 from app.integrations.llm.openai_provider import OpenAIChatProvider, OpenAIEmbeddingProvider
 from app.orchestration.checkpointer import open_checkpointer
-from app.orchestration.graphs.chat import ChatGraphDeps, build_chat_graph
-from app.orchestration.graphs.multi_agent import MultiAgentGraphDeps, build_multi_agent_graph
+from app.orchestration.dependencies import build_chat_graph_deps, build_multi_agent_graph_deps
+from app.orchestration.graphs.chat import build_chat_graph
+from app.orchestration.graphs.multi_agent import build_multi_agent_graph
 from app.orchestration.store import open_store
-from app.orchestration.tools import ToolContext
 from evals.harness.agent_trajectory_dataset import (
     AgentTrajectoryScenario,
     load_agent_trajectory_scenarios,
@@ -79,7 +81,7 @@ from ragas.metrics import Faithfulness, ResponseRelevancy  # noqa: E402
 _HARNESS_DIR = Path(__file__).resolve().parent
 DATASET_PATH = _HARNESS_DIR.parent / "datasets" / "synthetic" / "agent_trajectory.jsonl"
 RUNS_DIR = _HARNESS_DIR.parent / "runs"
-DATASET_VERSION = "v1-2026-07-28-synthetic"
+DATASET_VERSION = "v2-2026-08-03-synthetic"
 HARNESS_VERSION = "phase-13-v1"
 
 
@@ -88,6 +90,10 @@ class PathResult:
     answer: str
     grounded: bool
     tool_call_count: int
+    # Which tools actually fired, not just how many. A path that answers from zero tool
+    # calls and a path that answers from the wrong tool both look like a low count;
+    # only the names distinguish "never gathered" from "gathered the wrong thing".
+    tool_names: list[str]
     faithfulness: float | None
     response_relevancy: float | None
 
@@ -102,6 +108,39 @@ class ScenarioResult:
     multi_agent: PathResult
 
 
+async def _seed_history(
+    session: AsyncSession, profile_id: uuid.UUID, scenario: AgentTrajectoryScenario
+) -> None:
+    """Seed the profile's prior games, so cross-game questions have something to answer.
+
+    Only a `Game` row and a `GameAnalysis.summary` per game: the analytics path reads the
+    summary and the result/colour, never the plies (see `analytics/metrics.py`), so
+    replaying moves here would cost thousands of lines of fixture that nothing reads.
+    """
+    for entry in scenario.history:
+        game = Game(
+            profile_id=profile_id,
+            source=GameSource.UPLOAD,
+            content_hash=str(uuid.uuid4()),
+            headers={"White": "Alice", "Black": "Bob", "Result": entry.result},
+            raw_pgn_path="pgn/eval-history.pgn",
+            focus_color=GameColor(entry.focus_color),
+            played_at=datetime.now(UTC) - timedelta(days=entry.days_ago),
+            canonicalized_at=datetime.now(UTC),
+        )
+        session.add(game)
+        await session.flush()
+        session.add(
+            GameAnalysis(
+                game_id=game.id,
+                analysis_version="eval-v1",
+                engine_depth=12,
+                summary=entry.summary(),
+            )
+        )
+    await session.flush()
+
+
 async def _seed_game(session: AsyncSession, scenario: AgentTrajectoryScenario) -> Game:
     """Same shape as `single_game_chat_eval.py`'s `_seed_game` — real DB rows the tools
     actually query, not fixtures the tool layer bypasses."""
@@ -112,12 +151,22 @@ async def _seed_game(session: AsyncSession, scenario: AgentTrajectoryScenario) -
     session.add(profile)
     await session.flush()
 
+    await _seed_history(session, profile.id, scenario)
+
     game = Game(
         profile_id=profile.id,
         source=GameSource.UPLOAD,
         content_hash=str(uuid.uuid4()),
         headers=scenario.headers,
         raw_pgn_path="pgn/eval-fixture.pgn",
+        # `load_analyzed_games` filters on `canonicalized_at IS NOT NULL`, so a game
+        # without it is invisible to every cross-game tool. Unset here until now, which
+        # made `get_profile_aggregate` return an empty snapshot in *every* recorded run
+        # on *both* paths — `ag-accuracy-trend` scored 0.00 throughout because both
+        # agents were correctly reporting that they had no games to aggregate.
+        focus_color=GameColor.WHITE,
+        played_at=datetime.now(UTC),
+        canonicalized_at=datetime.now(UTC),
     )
     session.add(game)
     await session.flush()
@@ -136,8 +185,25 @@ async def _seed_game(session: AsyncSession, scenario: AgentTrajectoryScenario) -
             )
         )
 
+    # A real summary, not `{}`. Now that the active game is visible to `load_analyzed_games`
+    # it is counted by the cross-game aggregates too, and an empty summary reads there as
+    # a game played at 0.0 accuracy with no moves — dragging down every trend the history
+    # was seeded to establish. Derived from this scenario's own evaluations by the same
+    # rule `AnalysisService._summarize` uses, so the active game and the history entries
+    # are measured the same way.
+    active_counts = Counter(e.classification for e in scenario.evaluations)
+    active_total = len(scenario.evaluations)
+    active_good = active_counts.get("best", 0) + active_counts.get("good", 0)
     analysis = GameAnalysis(
-        game_id=game.id, analysis_version="eval-v1", engine_depth=12, summary={}
+        game_id=game.id,
+        analysis_version="eval-v1",
+        engine_depth=12,
+        summary={
+            "total_moves": active_total,
+            "counts": dict(active_counts),
+            "accuracy": round(100 * active_good / active_total, 1) if active_total else 0.0,
+            "critical_moments": sum(1 for e in scenario.evaluations if e.is_critical_moment),
+        },
     )
     session.add(analysis)
     await session.flush()
@@ -209,25 +275,35 @@ async def _score_scenario(
 ) -> ScenarioResult:
     game = await _seed_game(session, scenario)
 
-    # -- Phase 10 single-agent baseline --------------------------------------------
+    # Real `chat_threads` rows, one per path, rather than a bare `uuid4()` as the graph's
+    # thread id. `write_memory` persists `long_term_memory.source_thread_id` as an FK, so
+    # an invented id raises `ForeignKeyViolationError` the moment extraction actually
+    # yields a memory — intermittently, since most turns yield none. That is a fixture
+    # defect, not a product one (in production the thread always exists), but it is the
+    # kind that fails one replicate in three and looks like flakiness.
+    single_thread = ChatThread(profile_id=game.profile_id, active_game_id=game.id)
+    multi_thread = ChatThread(profile_id=game.profile_id, active_game_id=game.id)
+    session.add_all([single_thread, multi_thread])
+    await session.flush()
+
+    # Both paths are built through the shared dependency builders (`dependencies.py`,
+    # rule 13) rather than assembled by hand here. Assembling them separately is what let
+    # the two drift: the multi-agent `ToolContext` was constructed without `store`, so
+    # any store-backed tool silently degraded on one side of a comparison whose entire
+    # purpose is that both sides are otherwise identical.
     async with (
         open_checkpointer(settings.database) as checkpointer,
         open_store(settings.database) as store,
     ):
-        single_deps = ChatGraphDeps(
+        # -- Phase 10 single-agent baseline ------------------------------------------
+        single_deps = build_chat_graph_deps(
+            settings=settings,
+            session=session,
             llm=llm,
-            llm_settings=settings.llm,
-            agent_settings=settings.agents,
-            budget=LLMBudgetTracker(session, settings.llm),
-            tool_context=ToolContext(
-                session=session,
-                profile_id=game.profile_id,
-                settings=settings,
-                embedding_provider=embedding_provider,
-                opening_index=opening_index,
-                store=store,
-            ),
-            memory=MemoryService(session, store, settings.memory),
+            embedding_provider=embedding_provider,
+            opening_index=opening_index,
+            store=store,
+            profile_id=game.profile_id,
         )
         single_result = await build_chat_graph(single_deps, checkpointer).ainvoke(
             {
@@ -235,7 +311,26 @@ async def _score_scenario(
                 "active_game_id": str(game.id),
                 "persona": Persona.SELF_LEARNER.value,
             },
-            config={"configurable": {"thread_id": str(uuid.uuid4())}},
+            config={"configurable": {"thread_id": str(single_thread.id)}},
+        )
+
+        # -- Phase 13 multi-agent supervisor graph -----------------------------------
+        multi_deps = build_multi_agent_graph_deps(
+            settings=settings,
+            session=session,
+            llm=llm,
+            embedding_provider=embedding_provider,
+            opening_index=opening_index,
+            store=store,
+            profile_id=game.profile_id,
+        )
+        multi_result = await build_multi_agent_graph(multi_deps, MemorySaver()).ainvoke(
+            {
+                "question": scenario.question,
+                "active_game_id": str(game.id),
+                "persona": Persona.SELF_LEARNER.value,
+            },
+            config={"configurable": {"thread_id": str(multi_thread.id)}},
         )
 
     single_context = single_result.get("context", [])
@@ -251,31 +346,9 @@ async def _score_scenario(
         answer=single_result["answer"],
         grounded=bool(single_result["grounded"]),
         tool_call_count=len(single_context),
+        tool_names=[str(item.get("tool")) for item in single_context],
         faithfulness=single_faithfulness,
         response_relevancy=single_relevancy,
-    )
-
-    # -- Phase 13 multi-agent supervisor graph ---------------------------------------
-    multi_deps = MultiAgentGraphDeps(
-        llm=llm,
-        llm_settings=settings.llm,
-        multi_agent_settings=settings.multi_agent,
-        budget=LLMBudgetTracker(session, settings.llm),
-        tool_context=ToolContext(
-            session=session,
-            profile_id=game.profile_id,
-            settings=settings,
-            embedding_provider=embedding_provider,
-            opening_index=opening_index,
-        ),
-    )
-    multi_result = await build_multi_agent_graph(multi_deps, MemorySaver()).ainvoke(
-        {
-            "question": scenario.question,
-            "active_game_id": str(game.id),
-            "persona": Persona.SELF_LEARNER.value,
-        },
-        config={"configurable": {"thread_id": str(uuid.uuid4())}},
     )
 
     multi_context = [
@@ -294,6 +367,7 @@ async def _score_scenario(
         answer=multi_result["answer"],
         grounded=bool(multi_result["grounded"]),
         tool_call_count=len(multi_context),
+        tool_names=[str(item.get("tool")) for item in multi_context],
         faithfulness=multi_faithfulness,
         response_relevancy=multi_relevancy,
     )
@@ -311,6 +385,35 @@ async def _score_scenario(
         single_agent=single_path,
         multi_agent=multi_path,
     )
+
+
+# Measured, not guessed: the two clean full runs recorded on 2026-08-02 spent roughly
+# 150k tokens each across 12 scenarios x 2 paths x (agent calls + RAGAS judging). The
+# margin over that is deliberate — starting a run that dies at scenario 9 wastes
+# everything spent up to scenario 9.
+_MIN_TOKENS_TO_START = 250_000
+
+
+async def _remaining_daily_tokens(session: AsyncSession, settings: Settings) -> int | None:
+    """Headroom left under today's ceiling, or `None` when no ceiling is configured."""
+    ceiling = settings.llm.llm_daily_token_ceiling
+    if ceiling is None:
+        return None
+    tracker = LLMBudgetTracker(session, settings.llm)
+    return ceiling - await tracker.today_usage()
+
+
+def _json_safe(value: Any) -> Any:
+    """Last-resort coercion for scalars a scoring library hands back in its own numeric
+    types. Anything with `.item()` (every NumPy scalar) becomes its Python equivalent;
+    everything else degrades to `repr` rather than raising."""
+    item = getattr(value, "item", None)
+    if callable(item):
+        try:
+            return item()
+        except (TypeError, ValueError):
+            pass
+    return repr(value)
 
 
 def _avg(values: list[float]) -> float | None:
@@ -355,6 +458,27 @@ async def run() -> dict[str, Any]:
     engine = create_engine(settings.database)
     session_factory = create_session_factory(engine)
 
+    # Pre-flight: the daily token ceiling is checked by *both* graphs before every LLM
+    # call, so exhausting it mid-run does not fail anything — each path quietly degrades
+    # to its deterministic fallback and keeps scoring. The run then reports a confident
+    # architecture verdict built partly on answers no model ever produced. That happened:
+    # a run finished with 500,970 of a 500,000 ceiling spent, and the scenarios after the
+    # crossover degraded on both sides. Refusing to start is the only honest option —
+    # a comparison that silently measures the budget guard is worse than no comparison.
+    async with session_scope(session_factory) as preflight_session:
+        remaining = await _remaining_daily_tokens(preflight_session, settings)
+    if remaining is not None and remaining < _MIN_TOKENS_TO_START:
+        await llm.aclose()
+        await embedding_provider.aclose()
+        await engine.dispose()
+        raise RuntimeError(
+            f"Refusing to start: only {remaining} tokens left under today's "
+            f"LLM_DAILY_TOKEN_CEILING ({settings.llm.llm_daily_token_ceiling}), and this "
+            f"run needs roughly {_MIN_TOKENS_TO_START}. Raise the ceiling or wait for the "
+            "daily reset — a partially budget-starved run produces a verdict about the "
+            "budget guard, not about the architectures."
+        )
+
     results: list[ScenarioResult] = []
     try:
         for scenario in scenarios:
@@ -376,6 +500,9 @@ async def run() -> dict[str, Any]:
         await embedding_provider.aclose()
         await engine.dispose()
 
+    async with session_scope(session_factory) as postflight_session:
+        remaining_after = await _remaining_daily_tokens(postflight_session, settings)
+
     single_summary = _path_summary(results, "single_agent")
     multi_summary = _path_summary(results, "multi_agent")
     routing_accuracy = _avg([1.0 if r.routing_correct else 0.0 for r in results])
@@ -385,7 +512,12 @@ async def run() -> dict[str, Any]:
     # variance (see D-025 on Phase 10's own 0.70-vs-0.85 run), this is a directional
     # signal, not a statistically powered comparison — the phase report says so
     # explicitly rather than overclaiming a verdict this dataset size cannot support.
-    multi_wins = (
+    # `bool(...)` is load-bearing, not decoration. RAGAS scores come back as `np.float64`,
+    # which *is* a `float` subclass and so serialises fine — but comparing two of them
+    # yields `np.bool_`, which is not a `bool` subclass, and under NumPy 2 reports its
+    # type name as plain "bool". A completed run (every scenario scored, real API spend)
+    # died at `json.dumps` on this one value with a message that reads like a lie.
+    multi_wins = bool(
         single_summary["faithfulness"] is not None
         and multi_summary["faithfulness"] is not None
         and multi_summary["faithfulness"] >= single_summary["faithfulness"]
@@ -400,6 +532,17 @@ async def run() -> dict[str, Any]:
         "harness_version": HARNESS_VERSION,
         "model": settings.llm.llm_model,
         "reviewed_scenario_count": reviewed_count,
+        # Recorded so a reader can always tell whether a run had room to finish honestly.
+        # `tokens_spent_by_run` is the delta across the run; a `daily_budget_remaining`
+        # at or below zero means later scenarios degraded to fallbacks on both paths and
+        # the aggregate scores below describe the budget guard, not the architectures.
+        "daily_budget_remaining_before": remaining,
+        "daily_budget_remaining_after": remaining_after,
+        "tokens_spent_by_run": (
+            remaining - remaining_after
+            if remaining is not None and remaining_after is not None
+            else None
+        ),
         "total_scenario_count": len(scenarios),
         "timestamp": datetime.now(UTC).isoformat(),
         "results": {
@@ -429,7 +572,11 @@ async def run() -> dict[str, Any]:
 
     RUNS_DIR.mkdir(parents=True, exist_ok=True)
     run_path = RUNS_DIR / f"{datetime.now(UTC).strftime('%Y%m%dT%H%M%SZ')}_agent_trajectory.json"
-    run_path.write_text(json.dumps(record, indent=2), encoding="utf-8")
+    # `default=` rather than trusting every value to be a builtin: an unserialisable
+    # scalar arriving from a scoring library must not be able to throw away a finished
+    # run's results at the last statement. Recording something slightly lossy beats
+    # recording nothing after every scenario has already been paid for.
+    run_path.write_text(json.dumps(record, indent=2, default=_json_safe), encoding="utf-8")
     print(f"Run recorded: {run_path}")
     return record
 

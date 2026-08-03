@@ -11,6 +11,7 @@ fields is rejected, not silently ingested. This file is the human-readable summa
 | `rules/engine_and_evaluation_semantics.md` | `rules` | GrandMate original prose, cross-checked against GrandMate v1's `stockfish.md` | original | 2026-07-27 |
 | `openings/opening_families.md` | `openings` | GrandMate original prose, ECO ranges cross-checked against the vendored `lichess-org/chess-openings` dataset (CC0, Phase 6) and GrandMate v1's `openings.tsv` | original | 2026-07-27 |
 | `tactics/tactical_motifs.md` | `tactics` | GrandMate original prose, cross-checked against GrandMate v1's `tactics.md` | original | 2026-07-27 |
+| `tactics/check_patterns.md` | `tactics` | GrandMate original prose (Phase 13a). Filed under `tactics`, not `strategy`, because named mating patterns are tactical motifs per rag-architecture.md's bucket table. | original | 2026-08-02 |
 | `strategy/strategic_principles.md` | `strategy` | GrandMate original prose, informed by general chess strategic theory as commonly described in open-licence references | original (informed by CC BY-SA 4.0 general reference material; no text reproduced) | 2026-07-27 |
 
 ## Decisions honoured

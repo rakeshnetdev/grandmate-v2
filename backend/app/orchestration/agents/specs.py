@@ -4,7 +4,8 @@ The roster and each agent's tool subset were fixed at Phase 0's design stage, no
 re-decided here — this module is the executable form of that table, nothing more:
 
 - Supervisor: intent/routing classification, assembly — no tools.
-- Retriever: corpus search and reranking — `search_knowledge`, `search_analysis`.
+- Retriever: corpus search and reranking — `search_knowledge`, `search_analysis`,
+  `recall_memory`.
 - Chess analyst: analysis interpretation — `get_game_analysis`, `list_critical_moments`,
   `get_profile_aggregate`, `lookup_opening`.
 - Coach: persona-appropriate phrasing and recommendations — no tools.
@@ -36,6 +37,7 @@ from app.orchestration.tools.analysis_tools import (
     LOOKUP_OPENING,
 )
 from app.orchestration.tools.knowledge_tools import SEARCH_ANALYSIS, SEARCH_KNOWLEDGE
+from app.orchestration.tools.memory_tools import RECALL_MEMORY
 from app.orchestration.tools.registry import TOOL_DISPATCH, ToolFn
 
 
@@ -59,7 +61,12 @@ def _subset(*specs: ToolSpec) -> tuple[tuple[ToolSpec, ...], dict[str, ToolFn]]:
     return specs, dispatch
 
 
-_retriever_specs, _retriever_dispatch = _subset(SEARCH_KNOWLEDGE, SEARCH_ANALYSIS)
+# `recall_memory` sits with the Retriever for the same reason `search_analysis` does:
+# grouping by retrieval *mechanism* rather than subject matter. It was previously
+# assigned to no agent at all, which meant flipping `USE_MULTI_AGENT` silently dropped
+# half of Phase 11 — the single agent has offered this tool since Phase 11 and the
+# multi-agent path could not reach it from any node.
+_retriever_specs, _retriever_dispatch = _subset(SEARCH_KNOWLEDGE, SEARCH_ANALYSIS, RECALL_MEMORY)
 _chess_analyst_specs, _chess_analyst_dispatch = _subset(
     GET_GAME_ANALYSIS, LIST_CRITICAL_MOMENTS, GET_PROFILE_AGGREGATE, LOOKUP_OPENING
 )
