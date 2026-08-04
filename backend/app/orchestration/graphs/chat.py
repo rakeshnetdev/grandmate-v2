@@ -155,12 +155,17 @@ async def _dispatch_tool(ctx: ToolContext, call: ToolCall) -> dict[str, Any]:
 async def _run_agent(state: GraphState, deps: ChatGraphDeps) -> GraphState:
     from app.domain.chat.fallback import build_fallback_answer
     from app.domain.chat.guardrail import retrieved_chunk_ids, validate_answer
-    from app.domain.chat.prompts import build_agent_system_message
+    from app.domain.chat.prompts import DEFAULT_INTENT, build_agent_system_message
 
     with get_recorder().span(SpanKind.AGENT, "run_agent", intent=state.get("intent")) as outer_span:
         persona = Persona(state["persona"])
+        # The classified intent *is* the route: `classify_intent` always runs first and
+        # writes one of `INTENTS`. The fallback covers only the case where that node left
+        # it unset, so the agent still gets a valid route rather than raising.
         system_message = build_agent_system_message(
-            persona, active_game_id=state.get("active_game_id")
+            persona,
+            active_game_id=state.get("active_game_id"),
+            route=state.get("intent") or DEFAULT_INTENT,
         )
         history = [Message(role=m["role"], content=m["content"]) for m in state.get("messages", [])]
         working_messages: list[Message] = [
