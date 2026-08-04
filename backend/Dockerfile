@@ -34,6 +34,15 @@ COPY app ./app
 COPY data ./data
 COPY alembic ./alembic
 COPY alembic.ini ./
+# `scripts/ingest_corpus.py` is a required *deployment* step, not a development
+# convenience: without it `search_knowledge` returns nothing and chat silently degrades to
+# answering from analysis alone, with the app otherwise perfectly healthy. It was missing
+# from the image, so `fly ssh console -C 'uv run python -m scripts.ingest_corpus'` — the
+# command DEPLOYMENT.md tells you to run — failed with ModuleNotFoundError.
+#
+# The whole directory rather than the one file: `scripts/` is 32 KB of text, and copying
+# selectively means the image silently loses anything added here later.
+COPY scripts ./scripts
 RUN uv sync --frozen --no-dev
 
 RUN chown -R grandmate:grandmate /app

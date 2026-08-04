@@ -10,7 +10,10 @@ core computes what is true about a game. The agent layer decides what to retriev
 to say it. Neither does the other's job — see
 [ADR-0003](final_docs/v2/adr/0003-deterministic-core-vs-llm-layer.md).
 
-**Status**: Phase 1 complete (engineering foundation). Phase 2 next.
+**Live**: [grandmate.vercel.app](https://grandmate.vercel.app) — frontend on Vercel,
+backend on [Fly.io](https://grandmate-v2-backend.fly.dev), Neon Postgres 17 + pgvector
+behind it. Deployment steps, and the seven problems that stood in the way, are in
+[`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
 
 ## Layout
 

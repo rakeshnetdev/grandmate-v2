@@ -38,14 +38,20 @@ def _to_current_user(result: LoginResult) -> CurrentUser:
 
 def _set_session_cookie(response: Response, settings: SettingsDep, user_id: uuid.UUID) -> None:
     token = issue_session(user_id, settings.identity)
+    samesite = settings.identity.session_cookie_samesite
     response.set_cookie(
         key=COOKIE_NAME,
         value=token.value,
         httponly=True,
         # Secure requires HTTPS, which local development does not have. Production sets
         # APP_ENV=production and gets the real protection.
-        secure=settings.app.is_production,
-        samesite="lax",
+        #
+        # `SameSite=None` is the one case where that is not a free choice: every browser
+        # rejects such a cookie outright unless it is also Secure, so a cross-site
+        # deployment that forgot HTTPS would drop the cookie silently rather than warn.
+        # Forcing it here makes the pair impossible to get half-right.
+        secure=settings.app.is_production or samesite == "none",
+        samesite=samesite,
         expires=token.expires_at,
         path="/",
     )

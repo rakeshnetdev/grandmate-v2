@@ -1,10 +1,11 @@
-# Deployment topology — planned
+# Deployment topology — live
 
-Referenced from [`ARCHITECTURE.md` §11](../ARCHITECTURE.md#11-deployment-topology--planned-not-yet-built)
+Referenced from [`ARCHITECTURE.md` §11](../ARCHITECTURE.md#11-deployment-topology--live)
 and [`DEPLOYMENT.md`](../DEPLOYMENT.md).
 
-> ⚠️ **Nothing in this diagram has been deployed.** The hosting decision belongs to
-> Phase 17, deferred from Phase 0 (D-006). This is the target, not the current state.
+> ✅ **Deployed and verified, 2026-08-04.** Frontend https://grandmate.vercel.app, backend
+> https://grandmate-v2-backend.fly.dev (Fly `sjc`), Neon Postgres 17 + pgvector in AWS
+> `us-west-2`. Evidence in [`DEPLOYMENT.md`](../DEPLOYMENT.md) §9.
 
 ```mermaid
 flowchart LR
@@ -25,19 +26,22 @@ flowchart LR
     class LS planned
 ```
 
-## What this diagram hides, and shouldn't
+## What this diagram hid, and shouldn't have
 
-Four things must be fixed before any of the above works. All four were found by reading the
-code, none has been worked around, and each is detailed in [`DEPLOYMENT.md`](../DEPLOYMENT.md).
+A topology diagram makes deployment look like a wiring problem. Seven things stood between
+this picture and a working system, all now fixed and detailed in
+[`DEPLOYMENT.md`](../DEPLOYMENT.md) §0.
 
-1. **The container crashes at startup.** The Dockerfile copies only `app/`, so the vendored
-   opening dataset never reaches the image — and `lifespan` loads it unconditionally.
-2. **Migrations cannot run.** `alembic/` and `alembic.ini` are not copied either.
-3. **Login silently fails across origins.** The session cookie is `SameSite=Lax`;
-   `*.vercel.app` → `*.fly.dev` is cross-site, so the browser accepts the cookie at login
-   and then never sends it.
-4. **Background jobs get killed.** Analysis and platform imports run via `BackgroundTasks`
-   *after* the response is sent; an auto-stopping machine dies mid-Stockfish.
+Four were predicted by reading the code: the image lacked `data/` (crash loop) and
+`alembic/` (no migrations); the session cookie was hardcoded `SameSite=Lax`, which breaks
+cross-site login; and background jobs died with an auto-stopping machine.
+
+**Three were not, and they are the ones a diagram can never show.** Stockfish was not at
+the configured path, so the container reported perfectly healthy and analysed nothing.
+`scripts/` was missing from the image, so the documented corpus-ingestion command did not
+exist. And a fix for a fifth problem deadlocked the deploy — treating a placeholder CORS
+origin as required made the backend refuse to start until the frontend existed, while the
+frontend could not be built until the backend did.
 
 The two edges worth noting on the diagram itself:
 

@@ -84,6 +84,35 @@ class TestLogin:
         assert body["profile"]["kind"] == "self"
         assert COOKIE_NAME in response.cookies
 
+    async def test_the_session_cookie_follows_the_configured_samesite_policy(
+        self, auth_settings: Settings, db_session: AsyncSession
+    ) -> None:
+        """Deployed, the SPA and API are cross-site (Vercel -> Fly, both on the Public
+        Suffix List). Under `lax` the browser accepts this cookie and then never sends it,
+        so login returns a clean 200 and only the *next* request reveals the problem.
+
+        `Secure` is asserted alongside it because browsers reject `SameSite=None` without
+        it outright — the two are not independently valid, so the route derives one from
+        the other rather than trusting configuration to set both.
+        """
+        auth_settings.identity.session_cookie_samesite = "none"
+        app = create_app(auth_settings)
+
+        async def _override_db_session() -> AsyncIterator[AsyncSession]:
+            yield db_session
+
+        app.dependency_overrides[get_db_session] = _override_db_session
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+            response = await client.post(
+                "/api/v1/auth/login", json={"provider": "lichess", "username": "magnus"}
+            )
+
+        assert response.status_code == 200
+        set_cookie = response.headers["set-cookie"]
+        assert "samesite=none" in set_cookie.lower()
+        assert "secure" in set_cookie.lower()
+
     async def test_login_rejects_a_username_the_platform_does_not_know(
         self, auth_client: httpx.AsyncClient
     ) -> None:

@@ -18,7 +18,7 @@ reviewable in a pull request.
 | [`request-lifecycle.md`](request-lifecycle.md) | What one `POST /imports` triggers across a request, a background job, and a later chat turn | `ARCHITECTURE.md` §5 |
 | [`grounding-guardrail.md`](grounding-guardrail.md) | How an unsupported claim is stopped before a reader sees it | `ARCHITECTURE.md` §9 |
 | [`memory-layers.md`](memory-layers.md) | Three memory layers, and why they are not one | `ARCHITECTURE.md` §7 · ADR-0005 |
-| [`deployment-topology.md`](deployment-topology.md) | The Fly + Vercel target — **planned, not deployed** | `ARCHITECTURE.md` §11 · `DEPLOYMENT.md` |
+| [`deployment-topology.md`](deployment-topology.md) | The Fly + Vercel topology — **deployed and verified** | `ARCHITECTURE.md` §11 · `DEPLOYMENT.md` |
 
 ## Convention
 

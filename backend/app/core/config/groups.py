@@ -167,6 +167,17 @@ class IdentitySettings(BaseSettings):
 
     session_jwt_secret: SecretStr = SecretStr("")
     session_ttl_seconds: int = 604_800
+    # `lax` is right when the SPA and the API share a site, and wrong the moment they do
+    # not. A Vercel frontend calling a Fly backend is cross-site — `vercel.app` and
+    # `fly.dev` are both on the Public Suffix List — so the browser accepts the cookie at
+    # login and then declines to send it on every subsequent request. Login returns a
+    # clean 200 with `Set-Cookie` present and only the *next* call 401s, which is why this
+    # is configuration rather than a constant someone has to find and edit.
+    #
+    # `none` is the deliberate opt-out of SameSite's CSRF protection. It is only safe
+    # alongside the CORS allow-list, which is what actually bounds who may make a
+    # credentialed request here: `allow_origins` is explicit and never `*`.
+    session_cookie_samesite: Literal["lax", "strict", "none"] = "lax"
 
 
 class EngineSettings(BaseSettings):

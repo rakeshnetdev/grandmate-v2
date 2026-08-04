@@ -4,10 +4,10 @@ The complete set of deliverables for the AI Makerspace Certification Challenge. 
 to the rubric's seven tasks; the per-criterion self-assessment lives in
 [`grading-rubric.md`](grading-rubric.md).
 
-**One thing stated up front rather than buried in §4**: the application is built, tested,
-and verified running locally end to end, but it is **not deployed to a public URL**.
-Task 4 asks for a deployed prototype, and that criterion is not met today. Everything else
-in this document describes what is real and running.
+**Deployed and running**: frontend at https://grandmate.vercel.app, backend at
+https://grandmate-v2-backend.fly.dev. Task 4 asks for a deployed, decoupled prototype and
+that criterion is now met — see §4.2 for the evidence, and `DEPLOYMENT.md` §0 for the seven
+problems in the way, three of which were only findable by deploying.
 
 ## Table of contents
 
@@ -290,20 +290,50 @@ Runnable steps for every capability:
 > needs `git submodule update --init` in a local checkout, and does not resolve on
 > github.com without access to that repository.
 
-### 4.2 Deployment — not met
+### 4.2 Deployment — met
 
-**The application is not deployed to a public URL.** Hosting was deferred to Phase 17 by an
-explicit Phase 0 decision (D-006), and that phase has not run.
+| | |
+|---|---|
+| Frontend | https://grandmate.vercel.app (Vercel) |
+| Backend | https://grandmate-v2-backend.fly.dev (Fly.io, `sjc`) |
+| Database | Neon Postgres 17 + pgvector 0.8.0, AWS `us-west-2` |
 
-[`DEPLOYMENT.md`](DEPLOYMENT.md) documents the Fly.io + Vercel target and, more usefully,
-the **four blockers found by reading the code** that would stop a deploy today: the
-Dockerfile does not copy `data/` (so the container crashes at startup) or `alembic/` (so
-migrations cannot run); the session cookie is `SameSite=Lax`, which silently breaks
-cross-site login from Vercel; and background analysis jobs run in-process via
-`BackgroundTasks`, so an auto-stopping machine kills them mid-run.
+Decoupled as the rubric asks: two hosting providers, two toolchains, no shared dependency
+graph, talking over a typed HTTP contract.
 
-That document is marked **PLANNED — NOT YET VERIFIED** throughout, and its "Verified"
-table is deliberately left empty rather than filled in from intent.
+Verified against the live stack rather than asserted — `/ready` returns
+`missing_configuration: []` with `stockfish_binary: true`, the corpus holds 92 chunks
+across four buckets, the SPA rewrite serves deep links, CORS preflight returns the exact
+origin with credentials allowed, and the full path (login → import → analysis → chat) was
+walked in a browser. The evidence table is [`DEPLOYMENT.md`](DEPLOYMENT.md) §9.
+
+**The more useful part of that document is §0.** Seven problems stood between a working
+local application and a working deployed one. Four were predicted by reading the code
+before any deploy was attempted. Three were not:
+
+- **Stockfish was never at the configured path.** Debian installs it to
+  `/usr/games/stockfish`; the default is `/usr/local/bin/stockfish`. The container reported
+  perfectly healthy and analysed nothing, because only the background worker touches the
+  engine and its failure is on no request path.
+- **`scripts/` was not in the image**, so the corpus-ingestion command this very document
+  told the operator to run failed with `ModuleNotFoundError`. That could not have been
+  caught by reading code: the thing that broke is a command a human runs by hand.
+- **A fix for one problem deadlocked the deployment.** Treating a placeholder CORS origin
+  as required configuration made the backend refuse to start until it knew the frontend's
+  origin — while the frontend could not be built until it knew the backend's URL, since
+  `VITE_API_BASE_URL` is compiled into the bundle. Ten restart attempts on an otherwise
+  healthy container. The repair splits "cannot function" from "not yet wired to its
+  frontend", so placeholders warn instead of being fatal.
+
+This document previously said `DEPLOYMENT.md` was "marked PLANNED — NOT YET VERIFIED
+throughout, and its Verified table deliberately left empty rather than filled in from
+intent." That restraint turned out to be worth something: three of the seven problems were
+findable *only* by deploying, which is precisely what an intent-filled table would have
+claimed was already fine.
+
+**What is still not verified**: load of any kind, recovery from a mid-analysis restart
+(`min_machines_running = 1` is a workaround for the absent worker, not a replacement),
+Vercel preview origins, and cost over a full billing period.
 
 ---
 
@@ -528,7 +558,7 @@ Ordered by dependency and payoff.
 | Every diagram, standalone | [`diagrams/`](diagrams/) |
 | Measured evaluation results | [`evaluation_report.md`](evaluation_report.md) — generated from run records |
 | Dataset design and limitations | [`evaluation_data_design.md`](evaluation_data_design.md) |
-| Deployment target and blockers | [`DEPLOYMENT.md`](DEPLOYMENT.md) |
+| Deployment steps, problems hit, and verification | [`DEPLOYMENT.md`](DEPLOYMENT.md) |
 | Per-criterion self-assessment | [`grading-rubric.md`](grading-rubric.md) |
 | What works today, with runnable steps | [`../final_docs/v2/features-and-use-cases.md`](../final_docs/v2/features-and-use-cases.md) |
 | Every architectural decision | [`../final_docs/v2/adr/`](../final_docs/v2/adr/) — 17 ADRs |

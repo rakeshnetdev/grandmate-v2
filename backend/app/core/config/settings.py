@@ -103,7 +103,44 @@ class Settings(BaseModel):
             missing.append("SESSION_JWT_SECRET")
         if not self.llm.is_configured:
             missing.append("OPENAI_API_KEY")
+        # `SameSite=None` hands CSRF protection entirely to the CORS allow-list, so a
+        # wildcard there stops being a lax default and becomes the whole hole: any origin
+        # could then make a credentialed request with the user's session cookie attached.
+        # Reported as a missing requirement rather than silently allowed, because the
+        # combination is only ever reachable by setting both deliberately.
+        # Reported as the bare name to keep this list's names-only contract; the reason it
+        # can be missing *only* in this combination is in the comment above and in
+        # `.env.example`, not smuggled into the returned string.
+        #
+        # This one belongs in the *fatal* list rather than the advisory one below: a
+        # wildcard origin under `SameSite=None` is a live security hole, not an
+        # incomplete deployment. Refusing to start is the correct response.
+        if self.identity.session_cookie_samesite == "none" and "*" in self.app.cors_origins_list:
+            missing.append("CORS_ALLOWED_ORIGINS")
         return missing
+
+    def deployment_warnings(self) -> list[str]:
+        """Names of settings that are placeholders rather than real values.
+
+        Deliberately **not** part of `missing_required_for_production()`, which
+        `main.py`'s lifespan turns into a `RuntimeError` that refuses startup. The
+        distinction is the difference between "this process cannot function" and "this
+        process works but is not yet wired to its frontend".
+
+        `fly.toml` ships `CORS_ALLOWED_ORIGINS = 'https://REPLACE-ME.vercel.app'` because
+        the frontend's real origin cannot be known until Vercel has deployed, and Vercel
+        cannot build until it knows the backend's URL. Treating that placeholder as fatal
+        deadlocks the deployment: the backend crash-loops until the frontend exists, and
+        the frontend cannot be built until the backend does. Learned by doing exactly
+        that — ten restart attempts, `RuntimeError: Missing required configuration:
+        CORS_ALLOWED_ORIGINS`, on a container that was otherwise entirely healthy.
+
+        Surfaced at `/ready` instead, which reports it without taking the process down.
+        """
+        warnings: list[str] = []
+        if any("REPLACE-ME" in origin for origin in self.app.cors_origins_list):
+            warnings.append("CORS_ALLOWED_ORIGINS")
+        return warnings
 
 
 @lru_cache(maxsize=1)

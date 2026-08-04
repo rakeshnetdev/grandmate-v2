@@ -3,7 +3,8 @@
 Referenced from [`Deliverables.md` §2.2](../Deliverables.md#22-system-infrastructure-and-stack-justification)
 and [`ARCHITECTURE.md` §2](../ARCHITECTURE.md#2-component-architecture).
 
-The stack, one box per piece of infrastructure. Dashed edges are not yet built.
+The stack, one box per piece of infrastructure. Dashed edges are not yet built. The
+hosting layer is live — see [`deployment-topology.md`](deployment-topology.md).
 
 ```mermaid
 flowchart LR
