@@ -111,7 +111,16 @@ class Settings(BaseModel):
         # Reported as the bare name to keep this list's names-only contract; the reason it
         # can be missing *only* in this combination is in the comment above and in
         # `.env.example`, not smuggled into the returned string.
-        if self.identity.session_cookie_samesite == "none" and "*" in self.app.cors_origins_list:
+        #
+        # The placeholder check is not belt-and-braces. `fly.toml` ships
+        # `https://REPLACE-ME.vercel.app` deliberately, because the frontend's real origin
+        # cannot be known until Vercel has deployed it — so the first backend deploy
+        # *always* carries a wrong value. Without this, `/ready` returns ready against an
+        # origin that matches no browser, and the failure only appears later as a CORS
+        # rejection in the console of a page nobody is looking at yet.
+        cors_origins = self.app.cors_origins_list
+        placeholder = any("REPLACE-ME" in origin for origin in cors_origins)
+        if placeholder or (self.identity.session_cookie_samesite == "none" and "*" in cors_origins):
             missing.append("CORS_ALLOWED_ORIGINS")
         return missing
 

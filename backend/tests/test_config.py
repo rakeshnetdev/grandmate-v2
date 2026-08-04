@@ -97,6 +97,15 @@ class TestSessionCookiePolicy:
 
         assert "CORS_ALLOWED_ORIGINS" in Settings().missing_required_for_production()
 
+    def test_the_cors_placeholder_blocks_readiness(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """`fly.toml` ships a REPLACE-ME origin because the frontend's real URL cannot be
+        known until Vercel has deployed, so the first backend deploy always carries a wrong
+        value. Caught here rather than surfacing later as a CORS rejection in the console
+        of a page nobody is looking at yet."""
+        monkeypatch.setenv("CORS_ALLOWED_ORIGINS", "https://REPLACE-ME.vercel.app")
+
+        assert "CORS_ALLOWED_ORIGINS" in Settings().missing_required_for_production()
+
     def test_named_origins_with_samesite_none_are_fine(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
