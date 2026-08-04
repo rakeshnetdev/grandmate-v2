@@ -1,7 +1,15 @@
 # fly.toml app configuration file for GrandMate v2
 
 app = 'grandmate-v2-backend'
-primary_region = 'ams'
+# Matched to the database, not to users. One chat turn costs many round trips to Postgres
+# — session lookup, game queries, pgvector search, two LangGraph checkpointer writes —
+# while a user pays one round trip to this app, so app-to-database latency is what
+# multiplies. `sea` is Fly's closest region to the Neon project's AWS `us-west-2`
+# (Oregon). Moving either one means moving both.
+#
+# This previously read 'ams' with no comment, which was a `fly launch` default rather than
+# a decision.
+primary_region = 'sea'
 
 [build]
   dockerfile = 'Dockerfile'
