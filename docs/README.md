@@ -11,14 +11,16 @@ log, per-phase reports — see [`../final_docs/v2/`](../final_docs/v2/).
 | [`ARCHITECTURE.md`](ARCHITECTURE.md) | How the system is built: invariants, components, both graphs, request lifecycle, memory, RAG, grounding, observability |
 | [`evaluation_report.md`](evaluation_report.md) | Measured results across eight suites — **generated from recorded runs**, never hand-written |
 | [`evaluation_data_design.md`](evaluation_data_design.md) | What test data each suite uses, how it is built, and what it cannot prove |
-| [`DEPLOYMENT.md`](DEPLOYMENT.md) | The Fly + Vercel target and the four blockers in the way — **planned, not yet verified** |
+| [`DEPLOYMENT.md`](DEPLOYMENT.md) | How the live deployment was built, the seven problems hit on the way, and what was verified against it |
 | [`diagrams/`](diagrams/) | Every Mermaid diagram as a standalone file, with reading notes |
 
 ## Two things to know before reading
 
-**The application is not deployed.** It is built, tested, and verified running locally end
-to end. Hosting was deferred to Phase 17 by a Phase 0 decision. `DEPLOYMENT.md` documents
-the target and the blockers rather than implying a deployment exists.
+**The application is deployed.** Frontend at https://grandmate.vercel.app, backend at
+https://grandmate-v2-backend.fly.dev, Neon Postgres behind it. `DEPLOYMENT.md` §9 records
+what was verified against the live stack, and §0 records the seven problems in the way —
+three of which were only findable by deploying, and one of which was introduced by the fix
+for another.
 
 **One hard-gated evaluation metric is currently failing.** `fact_invariance_rate` is 94.4%
 against a zero-tolerance target of 1.0. It is reported as a failure in the generated

@@ -1,48 +1,117 @@
 # Deployment — Fly.io backend, Vercel frontend
 
-> ## ⚠️ PLANNED — NOT YET DEPLOYED
+> ## ✅ DEPLOYED AND VERIFIED — 2026-08-04
 >
-> **Nothing in this document has been run against a real deployment.** Every step below is
-> derived from reading the code, not from watching it work. The sibling project's
-> deployment guide could say "verified against a real container build"; this one cannot,
-> and says so rather than implying otherwise.
+> | | |
+> |---|---|
+> | Frontend | https://grandmate.vercel.app |
+> | Backend | https://grandmate-v2-backend.fly.dev |
+> | Database | Neon Postgres 17 + pgvector 0.8.0, AWS `us-west-2` |
 >
-> The hosting decision belongs to **Phase 17**, deferred from Phase 0 (D-006). The
-> Dockerfile's own header says it exists "so the deployment decision is not foreclosed."
+> This document used to say "nothing here has been run against a real deployment". That
+> is no longer true, and the change is worth stating precisely: **six of the seven
+> problems below were only findable by deploying.** Four were predicted by reading the
+> code; three were not, and one of those was introduced by the fix for another.
 >
-> **The four blockers this document used to list are now closed in code, along with a
-> fifth found while closing them** (§0). That
-> changes "a deploy would fail for known reasons" into "a deploy has not been attempted" —
-> a weaker claim, not a stronger one. The remaining unknowns are the ones only a real
-> deploy finds.
+> Every command in §8a was executed. The results are in §9.
 
 ---
 
-## 0. Blockers — all six now closed in code
+## 0. What went wrong, and why
 
-The four blockers this document originally listed have been fixed. Two more were found
-afterwards — one by reading the image, one by running the deploy for real. **That is not the same as a verified deploy** — see the banner above
-and §9. Nothing below has been watched working; the fixes are asserted by tests and by
-reading the code.
+Seven problems stood between a working local app and a working deployed one. They are
+listed in the order they were *hit*, not the order they were understood, because the order
+matters: two of them only became visible after an earlier one was fixed.
 
-| # | Blocker | Closed by |
+| # | Problem | How it presented | Fix |
+|---|---|---|---|
+| 1 | `data/` not copied into the image | Crash loop: `OpeningDatasetError: Opening dataset file not found` | `COPY data ./data` |
+| 2 | `alembic/` not copied into the image | Migrations could not run at all | `COPY alembic ./alembic`, `COPY alembic.ini ./` |
+| 3 | Session cookie hardcoded `SameSite=Lax` | Login returns a clean 200 with `Set-Cookie`; the *next* request 401s, forever | `SESSION_COOKIE_SAMESITE`, set to `none` |
+| 4 | Background jobs killed by machine auto-stop | Import succeeds, analysis silently never arrives | `min_machines_running = 1` |
+| 5 | **Stockfish not at the configured path** | Container perfectly healthy, no game ever analysed | `STOCKFISH_PATH = '/usr/games/stockfish'` |
+| 6 | **`scripts/` not copied into the image** | `ModuleNotFoundError: No module named 'scripts'` running the documented ingest command | `COPY scripts ./scripts` |
+| 7 | **CORS placeholder treated as fatal** | Ten restart attempts, `RuntimeError: Missing required configuration: CORS_ALLOWED_ORIGINS`, on an otherwise healthy container | Split fatal config from advisory warnings |
+
+Problems 1–4 were predicted by reading the code before any deploy was attempted. **5, 6 and
+7 were not**, and they are the interesting ones.
+
+### 5 — Stockfish was never where the app looked
+
+Debian's `stockfish` package installs the binary at `/usr/games/stockfish` and does not put
+it on `PATH`. `EngineSettings.stockfish_path` defaults to `/usr/local/bin/stockfish`, which
+is correct on a developer's machine with Homebrew and absent from the image.
+
+The failure mode is the dangerous kind: **nothing looks wrong**. The web process never
+touches the engine, so `/health` passes, imports return `201`, and jobs queue happily. Only
+the background worker needs Stockfish, and its failure is not on any request path.
+
+Found by running the Dockerfile's own `apt-get` line in `python:3.13-slim` and looking:
+
+```bash
+docker run --rm python:3.13-slim sh -c \
+  'apt-get update -qq && apt-get install -y -qq stockfish && ls -la /usr/games/stockfish'
+```
+
+`/ready` now reports `checks.stockfish_binary`, which is what makes this visible rather
+than inferred.
+
+### 6 — The documented command did not exist in the image
+
+`DEPLOYMENT.md` told the operator to run
+`fly ssh console -C 'uv run python -m scripts.ingest_corpus'`. The Dockerfile copied `app`,
+`data`, `alembic` and `alembic.ini` — not `scripts`. The command failed with
+`ModuleNotFoundError`.
+
+This one could not have been caught by reading code, because the thing that broke is a
+command a human runs by hand. It is the clearest argument for why the "planned, not
+verified" banner this document used to carry was honest rather than pedantic.
+
+Corpus ingestion is a **required deployment step**, not a development convenience: without
+it `search_knowledge` returns nothing and chat quietly degrades to answering from game
+analysis alone, with the container reporting healthy throughout — the same shape as
+problem 5.
+
+### 7 — A fix that deadlocked the deployment
+
+While closing the others, `/ready` was observed returning `ready` while
+`CORS_ALLOWED_ORIGINS` was still the `REPLACE-ME` placeholder. The obvious repair — add the
+placeholder to `missing_required_for_production()` — was wrong, because that list is not
+only read by `/ready`. `main.py`'s lifespan turns it into a `RuntimeError` and refuses
+startup.
+
+The result was a **deadlock**, not merely a wrong check:
+
+- The backend refused to start until it knew the frontend's origin.
+- The frontend could not be built until it knew the backend's URL, because
+  `VITE_API_BASE_URL` is compiled into the bundle rather than read at runtime.
+
+Neither side could go first. Ten restart attempts later, the container was still healthy in
+every respect except the one that stopped it existing.
+
+The fix splits the checks along the line that actually matters:
+
+| Method | Means | Effect |
 |---|---|---|
-| 1 | **Container crashed at startup** — `load_opening_index` raises `OpeningDatasetError` when `data/openings/dist/all.tsv` is absent, and the Dockerfile only copied `app/`. | `COPY data ./data` in `backend/Dockerfile`. Landed in P17; this document tracked it as open for longer than it was. |
-| 2 | **Migrations could not run** — `alembic` the package was installed, but `alembic/` and `alembic.ini` were never in the image. | `COPY alembic ./alembic` and `COPY alembic.ini ./`. Also P17. |
-| 3 | **Login silently failed from Vercel** — the session cookie was hardcoded `samesite="lax"`, and `*.vercel.app` → `*.fly.dev` is cross-site (both on the Public Suffix List), so the browser accepted the cookie at login and then never sent it. | `SESSION_COOKIE_SAMESITE`, defaulting to `lax`. Set it to `none` for a split-origin deployment — see §4. |
-| 4 | **Background jobs were killed** — engine analysis and imports run in `BackgroundTasks` *after* the response is sent, so a machine that auto-stops when idle died mid-Stockfish with the job left `pending`. | `min_machines_running = 1` in `backend/fly.toml`. A workaround, not a design — see §6. |
-| 6 | **`scripts/` was not in the image**, so the corpus ingestion step this document tells you to run failed with `ModuleNotFoundError: No module named 'scripts'`. Ingestion is a required deployment step, not a development convenience — without it `search_knowledge` returns nothing and chat degrades to analysis-only while the app stays healthy. | `COPY scripts ./scripts` in `backend/Dockerfile`. Found by running §8a step 6 against the real deployment. |
-| 5 | **Stockfish was never found in the container.** Debian's `stockfish` package installs to `/usr/games/stockfish` and does not put it on `PATH`; the settings default is `/usr/local/bin/stockfish`, and `fly.toml` set no override. Every analysis job would fail to start an engine while the container stayed perfectly healthy. | `STOCKFISH_PATH = '/usr/games/stockfish'` in `fly.toml`. Found by running the Dockerfile's own `apt-get` line in `python:3.13-slim` and looking. |
+| `missing_required_for_production()` | the process **cannot function** — `DATABASE_URL`, `SESSION_JWT_SECRET`, `OPENAI_API_KEY`, and a wildcard CORS origin under `SameSite=None` | refuses startup |
+| `deployment_warnings()` | the process **works but is not yet wired to its frontend** | reported in `/ready`'s `warnings`, verdict unchanged |
 
-Blockers 5 and 6 were not in the original list, and both are the same shape as the first
-two: something that is present on a developer's machine and absent from the image. Blocker
-6 is the sharper lesson, because it was found the only way it could be — by running §8a
-against a real deployment rather than by reading the code again.
+A wildcard origin under `SameSite=None` stays fatal: that is a live security hole, since
+the allow-list is then the only thing bounding who may make a credentialed request with a
+user's session. A placeholder origin is the opposite — nothing is unsafe, the frontend
+merely does not exist yet.
 
-Blocker 3 was the expensive one to meet unprepared: everything appears to work, the login
-response is a clean 200 with a `Set-Cookie` header, and only the *next* request reveals the
-problem. It is now a configuration mistake rather than a code change, and
-`test_auth_routes.py` asserts the emitted header carries both `SameSite=None` and `Secure`.
+### Two non-problems worth recording
+
+**`sea` is deprecated.** The Fly region was set to `sea` (Seattle) to sit closest to the
+Neon database in AWS `us-west-2` (Oregon). Fly rejects it outright — *"Region sea is
+deprecated and cannot have new resources provisioned"* — and recommends `sjc` in the same
+error. `sjc` is same-coast, roughly 10–15 ms further from the database. The reasoning was
+right; the region was not available.
+
+**`fly launch` overwrites `fly.toml` and strips every comment.** It also resets
+`primary_region` to whatever is nearest the developer. The values survived; the reasons did
+not. If you run it again, decline the overwrite prompt or restore from git.
 
 ---
 
@@ -251,50 +320,126 @@ mysterious network errors.
 
 ## 8a. The deploy, in order
 
-Everything above is reference. This is the sequence, and the order matters — steps 2 and 3
-must precede the first deploy or the release command fails, and step 6 must follow it
-because the corpus is ingested against the live database.
+This is the sequence that was actually run, with the ordering constraints that make it a
+sequence rather than a checklist:
+
+- The database must exist and have `pgvector` **before** the first deploy, because
+  `release_command` runs migrations before machines take traffic.
+- Secrets must be set **before** the first deploy, for the same reason. A blank
+  `DATABASE_URL` does not error — it falls back to the local development default and fails
+  as *"connection to 127.0.0.1:5433 refused"*, which reads like a networking problem and is
+  not one.
+- The corpus is ingested **after** the backend is up, because it writes to the live
+  database through the app's own code.
+- The frontend is built **after** the backend exists, because `VITE_API_BASE_URL` is
+  compiled into the bundle.
+- CORS is set **last**, because the frontend's origin does not exist until Vercel has
+  deployed it. This is why the placeholder must warn rather than be fatal — see problem 7.
+
+### 1 — Database
+
+Provision Postgres 17 with `pgvector`. Neon was used here; Fly Postgres and Supabase both
+work (§2). Pick the region closest to the Fly region, not to yourself: one chat turn costs
+many round trips to Postgres — session lookup, game queries, pgvector search, two LangGraph
+checkpointer writes — while a user pays one round trip to the app.
+
+```sql
+-- Neon's SQL editor, or psql
+CREATE EXTENSION IF NOT EXISTS vector;
+SELECT extversion FROM pg_extension WHERE extname = 'vector';   -- expect 0.8.x
+```
+
+Then convert the connection string for the app. Neon hands you a libpq URL; SQLAlchemy
+needs its dialect:
+
+```
+# what Neon gives you — use this for psql
+postgresql://user:pass@ep-xxx.us-west-2.aws.neon.tech/neondb?sslmode=require
+
+# what DATABASE_URL needs — driver prefix added, sslmode dropped
+postgresql+asyncpg://user:pass@ep-xxx.us-west-2.aws.neon.tech/neondb
+```
+
+`+asyncpg` is a SQLAlchemy dialect string, not a URL scheme — `psql` will reject it. And
+`sslmode` is a libpq parameter that asyncpg rejects; TLS is negotiated anyway. **Use the
+direct connection string, not the pooled one** (§2).
+
+### 2 — Backend service
 
 ```bash
-# 1. Postgres with pgvector, wherever you provisioned it (see §2)
-psql "$DATABASE_URL" -c 'CREATE EXTENSION IF NOT EXISTS vector;'
-
-# 2. Secrets — never in fly.toml, which is committed
 cd backend
-fly secrets set \
-  DATABASE_URL='postgresql+asyncpg://...' \
-  OPENAI_API_KEY='sk-...' \
-  SESSION_JWT_SECRET="$(openssl rand -base64 48)"
+fly auth login
+fly launch --no-deploy      # decline: its Postgres offer, and overwriting fly.toml
+```
 
-# 3. Point CORS at the real frontend origin. fly.toml ships a REPLACE-ME placeholder
-#    precisely so this cannot be forgotten silently.
-#    Edit CORS_ALLOWED_ORIGINS in fly.toml, or override:
-fly secrets set CORS_ALLOWED_ORIGINS='https://<your-app>.vercel.app'
+`fly launch` rewrites `fly.toml` and strips every comment even when you decline. Restore
+from git if it does.
 
-# 4. Deploy. `release_command` runs `alembic upgrade head` before machines take traffic.
+Secrets one at a time — a line continuation with trailing whitespace produces
+`could not parse secrets: ' ': must be in the format NAME=VALUE`:
+
+```bash
+fly secrets set --stage DATABASE_URL='postgresql+asyncpg://...'
+fly secrets set --stage OPENAI_API_KEY='sk-...'
+fly secrets set SESSION_JWT_SECRET="$(openssl rand -base64 48)"
+```
+
+`--stage` records without deploying; the last one applies all three. Single quotes protect
+`$` and `&` in Neon passwords; the `openssl` one needs double quotes to expand.
+
+```bash
 fly deploy
+curl -fsS https://<app>.fly.dev/health
+curl -fsS https://<app>.fly.dev/ready
+```
 
-# 5. Confirm the container is actually healthy, not merely running
-curl -fsS https://<your-app>.fly.dev/health
-curl -fsS https://<your-app>.fly.dev/ready           # unversioned, like /health
+`/ready` should return `200` with `missing_configuration: []` and
+`warnings: ["CORS_ALLOWED_ORIGINS"]` — healthy, and honest that the deploy is half done.
 
-# 6. Ingest the corpus, once, against the live database. Costs real embedding calls.
+### 3 — Corpus, once
+
+```bash
 fly ssh console -C 'uv run python -m scripts.ingest_corpus'
+```
 
-# 7. Frontend. VITE_API_BASE_URL is baked in at build time, so set it before building.
+Costs real embedding calls. Skipping it is not fatal and that is the problem: the app
+starts, chat answers, and `search_knowledge` silently returns nothing. Verify:
+
+```sql
+SELECT bucket, count(*) FROM knowledge_chunks GROUP BY bucket;
+```
+
+Four buckets, ~92 chunks. `analysis` is absent by design — it is profile-scoped and written
+at runtime.
+
+### 4 — UI
+
+```bash
 cd ../frontend
-vercel env add VITE_API_BASE_URL production      # https://<your-app>.fly.dev
+vercel login && vercel link
+vercel env add VITE_API_BASE_URL production     # https://<app>.fly.dev — no trailing slash
 vercel --prod
 ```
 
-**The `SESSION_JWT_SECRET` generation above is not decoration.** §7 records that a short
-secret is only *warned* about by PyJWT, not rejected at startup — so a weak one fails
-silently rather than loudly, which is the worst combination.
+No trailing slash: `api-client.ts` concatenates directly, so one would produce `//api/v1/…`.
+`vercel.json` is committed, so the build command, output directory and SPA rewrite need no
+dashboard configuration.
 
-**Step 5 is the honest stopping point for a smoke test.** `/health` proves the process is
-up; `/ready` runs `missing_required_for_production()` and is what catches a
-`DATABASE_URL` that was never overridden or a `CORS_ALLOWED_ORIGINS` still reading
-`REPLACE-ME`.
+### 5 — Close the loop
+
+```bash
+cd ../backend
+fly secrets set CORS_ALLOWED_ORIGINS='https://<app>.vercel.app'
+```
+
+Use the **stable alias**, not the per-deployment URL — the latter changes on every push and
+will be rejected. Setting a secret triggers its own redeploy. `/ready` should now return
+`warnings: []`.
+
+### 6 — Verify in a browser
+
+Log in, paste a PGN, wait for analysis, ask a question in chat. Everything before this
+proves the process is up; only this proves the product works.
 
 ---
 
@@ -310,52 +455,75 @@ them; they are what you reach for around a deploy rather than during one.
 | [`../final_docs/runbooks/incidents.md`](../final_docs/runbooks/incidents.md) | When a deployed container misbehaves |
 | [`../final_docs/playbooks/backup_and_recovery.md`](../final_docs/playbooks/backup_and_recovery.md) | Database restore |
 
-The incident runbook has an entry for blocker 1's crash loop (missing opening TSVs) and
-none yet for blocker 5 (Stockfish at the wrong path), which is the newer and quieter
-failure: the container reports healthy and simply never analyses anything.
+The incident runbook covers the crash loop from problem 1 (missing opening TSVs) and the
+silent-Stockfish failure from problem 5, which is the quieter of the two: the container
+reports healthy and simply never analyses anything.
 
 ---
 
-## 9. What "verified" would mean
+## 9. Verified — 2026-08-04
 
-The sibling project's deployment doc carries a table of checks run against a real
-container. This section is the placeholder for the equivalent, and is deliberately empty.
+This section was deliberately empty while the document was speculative. It is no longer.
+Every row below was executed against the live deployment.
 
 | Check | Result |
 |---|---|
-| Image builds | *not verified* |
-| No `.env` or key material in any layer | *not verified* |
-| Runs as non-root | *not verified* — the Dockerfile does not currently set a `USER` |
-| Stockfish reachable at the configured path | *not verified* in a deployed container |
-| Migrations run via release command | *not verified* |
-| Corpus ingestion chunk count | *not verified* |
-| `GET /health` and `/ready` | *not verified* |
-| Login round-trip from the deployed frontend | *not verified* — blocker 3 makes this the one most likely to fail |
-| Background analysis completes | *not verified* — blocker 4 |
+| Image builds and pushes | 230 MB |
+| `release_command` runs migrations | `alembic upgrade head` on Neon |
+| Container starts without crash-looping | after problem 7 was fixed |
+| `GET /health` | `200`, ~96 ms |
+| `GET /ready` | `200`, `missing_configuration: []`, `warnings: []` |
+| `checks.stockfish_binary` | `true` — problem 5 confirmed fixed *in the real image* |
+| `checks.llm_configured` | `true` |
+| Corpus ingested | **92 chunks** — rules 35, openings 27, tactics 16, strategy 14 |
+| Frontend serves | `200` at `https://grandmate.vercel.app` |
+| SPA rewrite | `/login` returns `200`, not `404` — `vercel.json` in effect |
+| `VITE_API_BASE_URL` baked into the bundle | `https://grandmate-v2-backend.fly.dev` present in `assets/index-*.js` |
+| CORS preflight from the real origin | `access-control-allow-origin: https://grandmate.vercel.app`, `access-control-allow-credentials: true` |
+| Full UI path | login → import → analysis → chat, confirmed in a browser |
 
-Fill this in from a real deploy. Do not fill it in from intent.
+The `analysis` bucket is absent from the chunk counts by design: it is profile-scoped and
+written at runtime as games are analysed, not seeded by ingestion.
+
+### What is still not verified
+
+- **Load of any kind.** One user, a handful of games. Nothing here says what happens at
+  ten concurrent imports.
+- **Recovery.** A machine restart mid-analysis still loses the job, because
+  `min_machines_running = 1` is a workaround for the missing worker, not a replacement
+  (§6). No retry path has been exercised.
+- **Preview deployments.** Only the production alias is in `CORS_ALLOWED_ORIGINS`. Vercel
+  preview URLs change per push and will be rejected. A wildcard is deliberately refused
+  under `SameSite=None`, so this needs a real decision rather than a quick fix.
+- **Cost.** An always-on 2 GB machine, unmeasured over time.
 
 ---
 
 ## 10. Relevance to the certification rubric
 
-**Task 4 is worth 15 points and requires a deployed, decoupled prototype.** Until the
-blockers in §0 are fixed and a real deployment exists, those points cannot honestly be
-claimed. This is recorded in [`grading-rubric.md`](grading-rubric.md) as an open item
-rather than self-scored as complete.
+**Task 4 is worth 15 points and requires a deployed, decoupled prototype.** That is now
+satisfied: the backend and frontend are separately deployed, separately toolchained, and
+talk over a typed HTTP contract across two hosting providers. §9 records the evidence.
 
-Estimated cost once deployed: a 2 GB Fly machine at roughly $15–20/month, managed Postgres
-free-tier to ~$25/month, Vercel free. OpenAI usage is already capped by
-`LLM_DAILY_TOKEN_CEILING`.
+Cost: a 2 GB Fly machine at roughly $15–20/month, Neon free tier, Vercel free. OpenAI usage
+is capped by `LLM_DAILY_TOKEN_CEILING`. Not yet measured over a full billing period.
 
 ---
 
-## 11. Troubleshooting — predicted, not observed
+## 11. Troubleshooting
 
-Every row here is a prediction from reading the code. Confirm against real logs.
+Rows marked **observed** were hit during the deploy this document records. The rest are
+still predictions from reading the code.
 
 | Symptom | Likely cause |
 |---|---|
+| **observed** — Release command fails, `connection to 127.0.0.1:5433 refused` | `DATABASE_URL` unset. It does not error; it falls back to the local development default. `release_command` calls Alembic directly and never runs `missing_required_for_production()`, so it cannot tell you that by name |
+| **observed** — `ModuleNotFoundError: No module named 'scripts'` | Problem 6 — `scripts/` not in the image |
+| **observed** — Container healthy, `/ready` passes, no game ever analysed | Problem 5 — Stockfish at the wrong path. Check `/ready`'s `checks.stockfish_binary` |
+| **observed** — Crash loop, `RuntimeError: Missing required configuration: CORS_ALLOWED_ORIGINS` | Problem 7 — a placeholder treated as fatal. Placeholders belong in `deployment_warnings()`, not the required list |
+| **observed** — `could not parse secrets: ' ': must be in the format NAME=VALUE` | Trailing whitespace after a `\` line continuation. Set secrets one at a time with `--stage` |
+| **observed** — `Region sea is deprecated and cannot have new resources provisioned` | Fly retired the region. Use `sjc` for AWS `us-west-2` |
+| **observed** — `fly.toml` loses all its comments | `fly launch` rewrote it. Restore from git |
 | Container crash-loops immediately, `OpeningDatasetError` | Blocker 1 — `data/` not in the image |
 | `alembic: command not found` or "no such file `alembic.ini`" | Blocker 2 |
 | Login returns 200, then every request is 401 | Blocker 3 — cookie set but never sent cross-site |

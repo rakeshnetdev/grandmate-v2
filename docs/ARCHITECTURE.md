@@ -5,7 +5,8 @@ graded write-up) and [`../project-plan.md`](../project-plan.md) (the phased buil
 Diagrams are GitHub-native Mermaid; each also exists standalone under
 [`diagrams/`](diagrams/).
 
-**This document describes the system as it is today** — Phases 0–16 of a 19-phase plan.
+**This document describes the system as it is today** — Phases 0–16 of a 19-phase plan,
+plus the deployment in §11.
 Anything not yet built is marked as such rather than described in the present tense. The
 deep reasoning behind individual choices lives in the 17 ADRs under
 [`../final_docs/v2/adr/`](../final_docs/v2/adr/); this document is the map, not the
@@ -459,7 +460,7 @@ existing sanitiser and tracing defaulting to off.
 
 ---
 
-## 11. Deployment topology — planned, not yet built
+## 11. Deployment topology — live
 
 ```mermaid
 flowchart LR
@@ -479,10 +480,15 @@ flowchart LR
 
 *(Standalone copy in [`diagrams/deployment-topology.md`](diagrams/deployment-topology.md).)*
 
-**Nothing above has been deployed.** The hosting decision is Phase 17's, deferred from
-Phase 0 (D-006). [`DEPLOYMENT.md`](DEPLOYMENT.md) documents the target and the four
-blockers that must be fixed first — all four are real, found by reading the code, and none
-has been worked around.
+**This is live** — frontend at https://grandmate.vercel.app, backend at
+https://grandmate-v2-backend.fly.dev (Fly `sjc`), Neon Postgres 17 + pgvector in AWS
+`us-west-2`. The database region is matched to the *app*, not to users: one chat turn costs
+many round trips to Postgres, while a user pays one to the app.
+
+[`DEPLOYMENT.md`](DEPLOYMENT.md) §9 records what was verified against the live stack, and §0
+the seven problems in the way. Three were findable only by deploying, including one
+introduced by the fix for another — worth reading before assuming a topology diagram is the
+same thing as a deployment.
 
 ---
 
