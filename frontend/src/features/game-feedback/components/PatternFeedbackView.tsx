@@ -11,8 +11,8 @@
  * broken. The backend decides which of the two applies (`sustained`); this component only
  * has to avoid flattening the distinction.
  */
-import { Button } from '@/shared/components/ui/button';
 import { PieceList, PieceListItem } from '@/shared/components/ui/piece-list';
+import { RegenerateButton } from '@/shared/components/ui/regenerate-button';
 import { Prose } from '@/shared/lib/prose';
 
 import type {
@@ -124,15 +124,7 @@ export function PatternFeedbackView({
           </p>
         </div>
         {onRegenerate && (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={isRegenerating}
-            onClick={onRegenerate}
-          >
-            {isRegenerating ? 'Regenerating…' : 'Regenerate'}
-          </Button>
+          <RegenerateButton onClick={onRegenerate} label="feedback" isBusy={isRegenerating} />
         )}
       </div>
 

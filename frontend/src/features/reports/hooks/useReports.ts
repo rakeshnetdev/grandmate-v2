@@ -8,7 +8,7 @@
  * queries poll while — and only while — the error says exactly that, and stop the moment
  * they get a report or a genuine failure.
  */
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { fetchGameReport, fetchGameStory, type PersonaValue } from '../api/reports';
 import { isAnalysisPending } from '../lib/pending';
@@ -62,5 +62,43 @@ export function useGameStory(gameId: string | undefined, profileId?: string) {
     enabled: Boolean(gameId),
     staleTime: Infinity,
     ...pollWhilePending,
+  });
+}
+
+/**
+ * The explicit "Regenerate" action for a persona report.
+ *
+ * A mutation rather than a query refetch, for the same reason `useRegeneratePatternFeedback`
+ * is one: it spends an LLM call every time by design, so it must be something the user asks
+ * for once — never something a refocus or a remount can trigger. `staleTime: Infinity` on
+ * the query above is what guarantees that. The result is written straight into the query's
+ * cache so the panel re-renders from a single source.
+ */
+export function useRegenerateGameReport(
+  gameId: string | undefined,
+  persona: PersonaValue,
+  profileId?: string,
+) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () =>
+      fetchGameReport(gameId as string, persona, profileId, undefined, { regenerate: true }),
+    onSuccess: (report) => {
+      queryClient.setQueryData(reportKeys.game(gameId ?? '', persona, profileId), report);
+    },
+  });
+}
+
+/** The explicit "Regenerate" action for the game story — same contract as
+ * `useRegenerateGameReport`, minus the persona. */
+export function useRegenerateGameStory(gameId: string | undefined, profileId?: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => fetchGameStory(gameId as string, profileId, undefined, { regenerate: true }),
+    onSuccess: (story) => {
+      queryClient.setQueryData(reportKeys.story(gameId ?? '', profileId), story);
+    },
   });
 }

@@ -229,6 +229,39 @@ class TestGetOrGenerate:
         assert first.id == second.id
         assert len(llm.calls) == 1
 
+    async def test_regenerate_bypasses_a_fresh_report_and_spends_another_call(
+        self, db_session: AsyncSession
+    ) -> None:
+        """The explicit "Regenerate" button, which is the one caller allowed to pay twice
+        for the same analysis version — the test above proves nothing else does."""
+        game, analysis = await _seed_game_with_analysis(db_session)
+        llm = FakeLLMProvider(responses=[_GOOD_RESPONSE, _GOOD_RESPONSE])
+        service = ReportService(db_session, llm, _report_settings(), _llm_settings())
+
+        first = await service.get_or_generate(
+            game=game,
+            analysis=analysis,
+            opening=None,
+            motifs=[],
+            themes=[],
+            persona=Persona.SELF_LEARNER,
+        )
+        second = await service.get_or_generate(
+            game=game,
+            analysis=analysis,
+            opening=None,
+            motifs=[],
+            themes=[],
+            persona=Persona.SELF_LEARNER,
+            regenerate=True,
+        )
+
+        assert second.id != first.id
+        assert len(llm.calls) == 2
+        # Regeneration rerolls the prose from the *same* analysis, so the chess verdict it
+        # is built on cannot drift — only the wording may.
+        assert second.analysis_version == first.analysis_version
+
     async def test_a_stale_report_triggers_regeneration(self, db_session: AsyncSession) -> None:
         game, analysis = await _seed_game_with_analysis(db_session)
         llm = FakeLLMProvider(responses=[_GOOD_RESPONSE, _GOOD_RESPONSE])

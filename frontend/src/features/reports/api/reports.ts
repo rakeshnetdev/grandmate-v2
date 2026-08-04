@@ -52,15 +52,21 @@ export const gameReportSchema = z.object({
 export type GameReport = z.infer<typeof gameReportSchema>;
 export type ReportFinding = z.infer<typeof reportFindingSchema>;
 
+/** `regenerate` forces a fresh generation (the explicit "Regenerate" action) rather than
+ * serving the stored report, matching `fetchPatternFeedback`'s option of the same name. */
 export function fetchGameReport(
   gameId: string,
   persona: PersonaValue,
   profileId?: string,
   signal?: AbortSignal,
+  options: { regenerate?: boolean } = {},
 ): Promise<GameReport> {
   const params = new URLSearchParams({ persona });
   if (profileId) {
     params.set('profile_id', profileId);
+  }
+  if (options.regenerate) {
+    params.set('regenerate', 'true');
   }
   return apiClient.get(
     `/api/v1/reports/games/${gameId}?${params.toString()}`,
@@ -75,10 +81,14 @@ export function fetchGameStory(
   gameId: string,
   profileId?: string,
   signal?: AbortSignal,
+  options: { regenerate?: boolean } = {},
 ): Promise<GameReport> {
   const params = new URLSearchParams();
   if (profileId) {
     params.set('profile_id', profileId);
+  }
+  if (options.regenerate) {
+    params.set('regenerate', 'true');
   }
   const query = params.toString();
   return apiClient.get(

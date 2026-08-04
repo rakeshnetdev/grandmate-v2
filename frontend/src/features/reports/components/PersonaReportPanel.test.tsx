@@ -147,4 +147,37 @@ describe('PersonaReportPanel', () => {
 
     expect(await screen.findByText('You did great!')).toBeInTheDocument();
   });
+
+  it('regenerates the loaded report on request', async () => {
+    const user = userEvent.setup();
+    mockFetchRoutes({
+      '/api/v1/reports/games/game-1?self_learner': { status: 200, body: report() },
+    });
+
+    renderWithProviders(<PersonaReportPanel gameId="game-1" />);
+    await screen.findByText('A close game.');
+
+    await user.click(screen.getByRole('button', { name: 'Regenerate report' }));
+
+    // The regenerate call is the one that carries `regenerate=true`; the initial load
+    // must not, or every mount would spend an LLM call.
+    const urls = (fetch as unknown as { mock: { calls: [string][] } }).mock.calls.map(
+      ([url]) => url,
+    );
+    expect(urls.some((url) => url.includes('regenerate=true'))).toBe(true);
+    expect(urls.filter((url) => url.includes('regenerate=true'))).toHaveLength(1);
+  });
+
+  it('still offers a retry when the report could not be loaded at all', async () => {
+    // Regression: the error branch rendered only text, so a failed load was a dead end —
+    // the refresh control lives on the badge, and a failed load renders no badge.
+    mockFetchRoutes({
+      '/api/v1/reports/games/game-1?self_learner': { status: 500, body: { detail: 'boom' } },
+    });
+
+    renderWithProviders(<PersonaReportPanel gameId="game-1" />);
+
+    expect(await screen.findByText(/Could not load the report/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Regenerate report' })).toBeInTheDocument();
+  });
 });
