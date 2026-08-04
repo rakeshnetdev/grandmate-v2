@@ -1,46 +1,66 @@
-# fly.toml app configuration file for GrandMate v2
+# fly.toml — GrandMate v2 backend
+#
+# `fly launch` rewrites this file and strips every comment. If you run it again, decline
+# the "overwrite fly.toml?" prompt, or restore this from git afterwards: the values below
+# are decisions, and several of them fail silently rather than loudly when wrong.
+#
+# See https://fly.io/docs/reference/configuration/
 
 app = 'grandmate-v2-backend'
 # Matched to the database, not to users. One chat turn costs many round trips to Postgres
 # — session lookup, game queries, pgvector search, two LangGraph checkpointer writes —
 # while a user pays one round trip to this app, so app-to-database latency is what
-# multiplies. `sea` is Fly's closest region to the Neon project's AWS `us-west-2`
-# (Oregon). Moving either one means moving both.
-#
-# This previously read 'ams' with no comment, which was a `fly launch` default rather than
-# a decision.
+# multiplies. `sea` is Fly's closest region to the Neon project's AWS `us-west-2` (Oregon).
+# `fly launch` defaulted this to `sjc`, which picks the region nearest the developer
+# rather than nearest the database. Moving either one means moving both.
 primary_region = 'sea'
 
 [build]
   dockerfile = 'Dockerfile'
 
+# Runs on every deploy, before the new machines take traffic. Alembic is in the image
+# (`COPY alembic ./alembic`), so this needs no separate release image.
+#
+# Note that this command does *not* go through `missing_required_for_production()` — it
+# calls Alembic directly. An unset DATABASE_URL therefore does not fail here as "missing
+# configuration"; it falls back to the local development default and fails as
+# "connection to 127.0.0.1:5433 refused", which is the same bug wearing a disguise.
+[deploy]
+  release_command = 'uv run alembic upgrade head'
+
 [env]
-  PORT = '7575'
-  HOST = '0.0.0.0'
   API_HOST = '0.0.0.0'
   API_PORT = '7575'
+  HOST = '0.0.0.0'
+  PORT = '7575'
   STORAGE_LOCAL_PATH = '/app/.storage'
   # Turns on Secure cookies, hard-disables every /dev/* route, and makes startup fail on
   # missing configuration rather than deferring to the first request that needs it.
   APP_ENV = 'production'
   # Debian's `stockfish` package installs to /usr/games/stockfish and does not put it on
   # PATH. The settings default is /usr/local/bin/stockfish, which does not exist in this
-  # image — without this override every analysis job fails to start an engine, and the
-  # container is otherwise perfectly healthy. Verified by running the Dockerfile's own
-  # apt-get line in python:3.13-slim.
+  # image — without this override every analysis job fails to start an engine while the
+  # container stays perfectly healthy. Verified by running the Dockerfile's own apt-get
+  # line in python:3.13-slim. See runbooks/incidents.md, incident 6.
   STOCKFISH_PATH = '/usr/games/stockfish'
-  # 1 GB of machine memory cannot hold 4 x ENGINE_HASH_MB=128 of hash tables alongside
-  # Python and the opening index (DEPLOYMENT.md §3). Two concurrent games fits; raise the
-  # machine to 2 GB before raising this back.
+  # 2 x ENGINE_HASH_MB=128 of hash tables plus ~350 MB of Python, FastAPI and the opening
+  # index. The machine is now 2 GB (see [[vm]]), so 4 would also fit — left at 2 because
+  # nothing has yet measured real memory use under concurrent analysis on this host.
   ENGINE_MAX_CONCURRENT_GAMES = '2'
   # Must name the deployed frontend origin exactly: allow_credentials is True, and a
-  # browser rejects a wildcard in that combination. Also see SESSION_COOKIE_SAMESITE —
-  # with SameSite=None this allow-list is the only thing bounding credentialed requests.
+  # browser rejects a wildcard in that combination. Under SESSION_COOKIE_SAMESITE=none
+  # this allow-list is the *only* thing bounding who may make a credentialed request
+  # carrying a user's session, so `/ready` reports it as missing config if left as '*'.
+  # The REPLACE-ME placeholder is deliberate: it fails readiness rather than silently
+  # allowing the wrong origin.
   CORS_ALLOWED_ORIGINS = 'https://REPLACE-ME.vercel.app'
-  # Vercel and Fly are cross-site (both registrable domains sit on the Public Suffix
-  # List), so `lax` would have the browser accept the session cookie at login and then
-  # never send it. See DEPLOYMENT.md §4.
+  # Vercel and Fly are cross-site — both registrable domains sit on the Public Suffix
+  # List — so `lax` would have the browser accept the session cookie at login and then
+  # never send it, and only the *next* request would 401. See DEPLOYMENT.md §4.
   SESSION_COOKIE_SAMESITE = 'none'
+
+# Secrets are NOT here — this file is committed. Set with `fly secrets set`:
+#   DATABASE_URL, OPENAI_API_KEY, SESSION_JWT_SECRET
 
 [[mounts]]
   source = 'grandmate_storage'
@@ -68,14 +88,9 @@ primary_region = 'sea'
     grace_period = '1m30s'
     path = '/health'
 
-# Runs on every deploy, before the new machines take traffic. Alembic is in the image
-# (`COPY alembic ./alembic`), so this needs no separate release image.
-[deploy]
-  release_command = 'uv run alembic upgrade head'
-
 [[vm]]
   size = 'shared-cpu-1x'
-  # 1 GB is the documented minimum and it is genuinely tight: 2 x 128 MB of Stockfish hash
-  # plus ~300 MB of Python, FastAPI and the opening index. DEPLOYMENT.md §3 calls 2 GB
-  # comfortable; raise both this and ENGINE_MAX_CONCURRENT_GAMES together.
-  memory = '1gb'
+  cpus = 1
+  # DEPLOYMENT.md §3 calls 1 GB the minimum and 2 GB comfortable; `fly launch` chose 2 GB
+  # and that is the right end of the range for Stockfish hash tables.
+  memory = '2gb'
