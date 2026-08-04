@@ -18,10 +18,10 @@
 
 ---
 
-## 0. Blockers — all five now closed in code
+## 0. Blockers — all six now closed in code
 
-The four blockers this document originally listed have been fixed, and a fifth was found
-while fixing them. **That is not the same as a verified deploy** — see the banner above
+The four blockers this document originally listed have been fixed. Two more were found
+afterwards — one by reading the image, one by running the deploy for real. **That is not the same as a verified deploy** — see the banner above
 and §9. Nothing below has been watched working; the fixes are asserted by tests and by
 reading the code.
 
@@ -31,11 +31,13 @@ reading the code.
 | 2 | **Migrations could not run** — `alembic` the package was installed, but `alembic/` and `alembic.ini` were never in the image. | `COPY alembic ./alembic` and `COPY alembic.ini ./`. Also P17. |
 | 3 | **Login silently failed from Vercel** — the session cookie was hardcoded `samesite="lax"`, and `*.vercel.app` → `*.fly.dev` is cross-site (both on the Public Suffix List), so the browser accepted the cookie at login and then never sent it. | `SESSION_COOKIE_SAMESITE`, defaulting to `lax`. Set it to `none` for a split-origin deployment — see §4. |
 | 4 | **Background jobs were killed** — engine analysis and imports run in `BackgroundTasks` *after* the response is sent, so a machine that auto-stops when idle died mid-Stockfish with the job left `pending`. | `min_machines_running = 1` in `backend/fly.toml`. A workaround, not a design — see §6. |
+| 6 | **`scripts/` was not in the image**, so the corpus ingestion step this document tells you to run failed with `ModuleNotFoundError: No module named 'scripts'`. Ingestion is a required deployment step, not a development convenience — without it `search_knowledge` returns nothing and chat degrades to analysis-only while the app stays healthy. | `COPY scripts ./scripts` in `backend/Dockerfile`. Found by running §8a step 6 against the real deployment. |
 | 5 | **Stockfish was never found in the container.** Debian's `stockfish` package installs to `/usr/games/stockfish` and does not put it on `PATH`; the settings default is `/usr/local/bin/stockfish`, and `fly.toml` set no override. Every analysis job would fail to start an engine while the container stayed perfectly healthy. | `STOCKFISH_PATH = '/usr/games/stockfish'` in `fly.toml`. Found by running the Dockerfile's own `apt-get` line in `python:3.13-slim` and looking. |
 
-Blocker 5 was not in the original list. It is the same shape as the other four — a default
-that is correct on a developer's machine and wrong in the image — and it is the reason this
-document's own §9 matters: the remaining unknowns are the ones only a real deploy finds.
+Blockers 5 and 6 were not in the original list, and both are the same shape as the first
+two: something that is present on a developer's machine and absent from the image. Blocker
+6 is the sharper lesson, because it was found the only way it could be — by running §8a
+against a real deployment rather than by reading the code again.
 
 Blocker 3 was the expensive one to meet unprepared: everything appears to work, the login
 response is a clean 200 with a `Set-Cookie` header, and only the *next* request reveals the
