@@ -1,10 +1,15 @@
 """Persona report generation orchestration (Phase 9, D-023).
 
-Get-or-generate, not a separate "regenerate" verb: a report is (re)generated
-automatically whenever none exists yet for `(game_id, persona)`, or the stored one was
-built from a now-superseded `GameAnalysis` run — the same self-refreshing reasoning
-`ProfileAnalyticsService` already documents for recomputing rather than serving stale
-numbers from a cache.
+Get-or-generate by default: a report is (re)generated automatically whenever none exists
+yet for `(game_id, persona)`, or the stored one was built from a now-superseded
+`GameAnalysis` run — the same self-refreshing reasoning `ProfileAnalyticsService` already
+documents for recomputing rather than serving stale numbers from a cache.
+
+`regenerate=True` is the one exception: the explicit user-driven "regenerate" action,
+which always spends an LLM call. It only bypasses the *stored report* — the facts are
+re-extracted from the same `GameAnalysis`, so a reroll can rephrase the write-up but
+cannot reach a different chess verdict. Same contract `GameFeedbackService` and
+`TrainingService` already implement for their own regenerate buttons.
 """
 
 from __future__ import annotations
@@ -67,10 +72,12 @@ class ReportService:
         motifs: list[MotifFinding],
         themes: list[StrategicThemeFinding],
         persona: Persona,
+        regenerate: bool = False,
     ) -> GameReport:
-        existing = await get_latest_report(self._session, game.id, persona)
-        if existing is not None and existing.analysis_version == analysis.analysis_version:
-            return existing
+        if not regenerate:
+            existing = await get_latest_report(self._session, game.id, persona)
+            if existing is not None and existing.analysis_version == analysis.analysis_version:
+                return existing
 
         moves = await get_moves(self._session, game.id, game.profile_id)
         facts = extract_facts(
@@ -106,16 +113,18 @@ class ReportService:
         opening: OpeningMatch | None,
         motifs: list[MotifFinding],
         themes: list[StrategicThemeFinding],
+        regenerate: bool = False,
     ) -> GameReport:
         """The full opening/middlegame/endgame game-story report (Phase 16b) —
         self-learner only, per the owner's scope decision; there is no coach/kid
         equivalent to switch on here the way `get_or_generate` does.
         """
-        existing = await get_latest_report(
-            self._session, game.id, Persona.SELF_LEARNER, report_type="story"
-        )
-        if existing is not None and existing.analysis_version == analysis.analysis_version:
-            return existing
+        if not regenerate:
+            existing = await get_latest_report(
+                self._session, game.id, Persona.SELF_LEARNER, report_type="story"
+            )
+            if existing is not None and existing.analysis_version == analysis.analysis_version:
+                return existing
 
         moves = await get_moves(self._session, game.id, game.profile_id)
         facts = extract_story_facts(

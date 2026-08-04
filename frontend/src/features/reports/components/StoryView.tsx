@@ -15,6 +15,7 @@ import type { ChessPiece } from '@/shared/components/ui/piece-list';
 import { Prose } from '@/shared/lib/prose';
 
 import type { GameReport, ReportFinding } from '../api/reports';
+import { SourceBadge } from './SourceBadge';
 
 const SECTION_ORDER = ['opening', 'middlegame', 'endgame', 'lesson'] as const;
 
@@ -39,21 +40,6 @@ const SECTION_TONES: Record<(typeof SECTION_ORDER)[number], string> = {
   endgame: 'text-amber-600/70 dark:text-amber-400/70',
   lesson: 'text-rose-600/70 dark:text-rose-400/70',
 };
-
-function SourceBadge({ source }: { source: GameReport['source'] }) {
-  if (source === 'fallback') {
-    return (
-      <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-        Deterministic summary
-      </span>
-    );
-  }
-  return (
-    <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-      AI-generated
-    </span>
-  );
-}
 
 function Section({
   title,
@@ -85,16 +71,24 @@ function Section({
 
 interface StoryViewProps {
   report: GameReport;
+  /** Optional: when absent the badge renders without a regenerate control. */
+  onRegenerate?: () => void;
+  isRegenerating?: boolean;
 }
 
-export function StoryView({ report }: StoryViewProps) {
+export function StoryView({ report, onRegenerate, isRegenerating }: StoryViewProps) {
   const bySection = (kind: string) => report.findings.filter((finding) => finding.kind === kind);
 
   return (
     <div className="space-y-5">
       <div className="flex items-start justify-between gap-3">
         <Prose className="flex-1">{report.summary}</Prose>
-        <SourceBadge source={report.source} />
+        <SourceBadge
+          source={report.source}
+          onRegenerate={onRegenerate}
+          isRegenerating={isRegenerating}
+          label="story"
+        />
       </div>
 
       {SECTION_ORDER.map((kind) => (

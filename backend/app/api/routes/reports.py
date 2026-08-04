@@ -62,9 +62,14 @@ async def get_game_report(
     settings: SettingsDep,
     llm_provider: LLMProviderDep,
     persona: Persona = Persona.SELF_LEARNER,
+    regenerate: bool = False,
 ) -> GameReportSummary:
     """The latest report for a game in the requested profile, generating one on demand
-    if none exists yet or the stored one predates the game's current analysis run."""
+    if none exists yet or the stored one predates the game's current analysis run.
+
+    `regenerate=true` forces a fresh generation for the explicit "Regenerate" action,
+    matching the pattern-feedback and training routes.
+    """
     game = await session.get(Game, game_id)
     if game is None or game.profile_id != profile_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Game not found")
@@ -87,6 +92,7 @@ async def get_game_report(
         motifs=findings.motifs,
         themes=findings.themes,
         persona=persona,
+        regenerate=regenerate,
     )
     return _to_summary(report)
 
@@ -98,9 +104,13 @@ async def get_game_story(
     session: DbSessionDep,
     settings: SettingsDep,
     llm_provider: LLMProviderDep,
+    regenerate: bool = False,
 ) -> GameReportSummary:
     """The full opening/middlegame/endgame game-story report (Phase 16b) —
-    self-learner only, no `persona` query param (unlike `get_game_report`)."""
+    self-learner only, no `persona` query param (unlike `get_game_report`).
+
+    `regenerate=true` forces a fresh one for the explicit "Regenerate" action.
+    """
     game = await session.get(Game, game_id)
     if game is None or game.profile_id != profile_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Game not found")
@@ -122,6 +132,7 @@ async def get_game_story(
         opening=opening,
         motifs=findings.motifs,
         themes=findings.themes,
+        regenerate=regenerate,
     )
     return _to_summary(report)
 

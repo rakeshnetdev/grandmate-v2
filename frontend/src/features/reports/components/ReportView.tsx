@@ -18,21 +18,7 @@
 import { Prose } from '@/shared/lib/prose';
 
 import type { GameReport, ReportFinding } from '../api/reports';
-
-function SourceBadge({ source }: { source: GameReport['source'] }) {
-  if (source === 'fallback') {
-    return (
-      <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-        Deterministic summary
-      </span>
-    );
-  }
-  return (
-    <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-      AI-generated
-    </span>
-  );
-}
+import { SourceBadge } from './SourceBadge';
 
 function FindingList({ findings }: { findings: ReportFinding[] }) {
   return (
@@ -60,9 +46,12 @@ function FindingGroup({ title, findings }: { title: string; findings: ReportFind
 
 interface ReportViewProps {
   report: GameReport;
+  /** Optional: when absent the badge renders without a regenerate control. */
+  onRegenerate?: () => void;
+  isRegenerating?: boolean;
 }
 
-export function ReportView({ report }: ReportViewProps) {
+export function ReportView({ report, onRegenerate, isRegenerating }: ReportViewProps) {
   const hasKindTags = report.findings.some((finding) => finding.kind != null);
   const strengths = report.findings.filter((finding) => finding.kind === 'strength');
   const mistakes = report.findings.filter((finding) => finding.kind === 'mistake');
@@ -74,7 +63,12 @@ export function ReportView({ report }: ReportViewProps) {
           {hasKindTags && <h3 className="text-sm font-semibold">Overview</h3>}
           <Prose>{report.summary}</Prose>
         </div>
-        <SourceBadge source={report.source} />
+        <SourceBadge
+          source={report.source}
+          onRegenerate={onRegenerate}
+          isRegenerating={isRegenerating}
+          label="report"
+        />
       </div>
 
       {hasKindTags ? (

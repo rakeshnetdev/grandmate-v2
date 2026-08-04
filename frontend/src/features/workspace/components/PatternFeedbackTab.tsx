@@ -10,6 +10,7 @@ import {
   useRegeneratePatternFeedback,
 } from '@/features/game-feedback';
 import { AnalyzingNotice, isAnalysisPending } from '@/features/reports';
+import { RegenerateButton } from '@/shared/components/ui/regenerate-button';
 
 interface PatternFeedbackTabProps {
   gameId: string;
@@ -17,7 +18,14 @@ interface PatternFeedbackTabProps {
 }
 
 export function PatternFeedbackTab({ gameId, profileId }: PatternFeedbackTabProps) {
-  const { data: feedback, isLoading, isError, error } = usePatternFeedback(gameId, profileId);
+  const {
+    data: feedback,
+    isLoading,
+    isError,
+    error,
+    refetch,
+    isFetching,
+  } = usePatternFeedback(gameId, profileId);
   const regenerate = useRegeneratePatternFeedback(gameId, profileId);
 
   // A game whose engine analysis has not finished is pending, not broken — same
@@ -26,11 +34,21 @@ export function PatternFeedbackTab({ gameId, profileId }: PatternFeedbackTabProp
     return <AnalyzingNotice gameId={gameId} />;
   }
   if (isError) {
+    // Same reasoning as the report tabs' error branches: with nothing rendered there is
+    // no badge to attach the refresh control to, so it sits beside the error text.
     return (
-      <p className="text-sm text-destructive">
-        Could not load pattern feedback for this game. The game may have failed to analyze — try
-        re-importing it.
-      </p>
+      <div className="flex items-start justify-between gap-3">
+        <p className="text-sm text-destructive">
+          Could not load pattern feedback for this game. The game may have failed to analyze — try
+          re-importing it.
+        </p>
+        <RegenerateButton
+          onClick={() => void refetch()}
+          label="feedback"
+          isBusy={isFetching}
+          className="text-destructive hover:text-destructive"
+        />
+      </div>
     );
   }
   if (isLoading || !feedback) {

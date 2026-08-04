@@ -155,6 +155,26 @@ class TestGetOrGenerateStory:
         assert second.id == first.id
         assert len(llm.calls) == 1
 
+    async def test_regenerate_bypasses_a_fresh_story_and_spends_another_call(
+        self, db_session: AsyncSession
+    ) -> None:
+        """The explicit "Regenerate" button — the one caller allowed to pay twice for the
+        same analysis version, per the test above."""
+        game, analysis = await _seed_game_with_analysis(db_session)
+        llm = FakeLLMProvider(responses=[_GOOD_STORY_RESPONSE, _GOOD_STORY_RESPONSE])
+        service = ReportService(db_session, llm, _report_settings(), _llm_settings())
+        first = await service.get_or_generate_story(
+            game=game, analysis=analysis, opening=None, motifs=[], themes=[]
+        )
+
+        second = await service.get_or_generate_story(
+            game=game, analysis=analysis, opening=None, motifs=[], themes=[], regenerate=True
+        )
+
+        assert second.id != first.id
+        assert len(llm.calls) == 2
+        assert second.analysis_version == first.analysis_version
+
     async def test_findings_report_and_story_report_coexist_independently(
         self, db_session: AsyncSession
     ) -> None:

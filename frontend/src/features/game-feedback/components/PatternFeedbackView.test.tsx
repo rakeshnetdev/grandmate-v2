@@ -123,7 +123,9 @@ describe('PatternFeedbackView', () => {
       <PatternFeedbackView feedback={feedback()} onRegenerate={onRegenerate} />,
     );
 
-    await userEvent.click(screen.getByRole('button', { name: 'Regenerate' }));
+    // Queried by accessible name, not by text: the control is icon-only, so `aria-label`
+    // is the only name it has.
+    await userEvent.click(screen.getByRole('button', { name: 'Regenerate feedback' }));
     expect(onRegenerate).toHaveBeenCalledOnce();
 
     // While in flight the button must not be clickable again — each press spends an
@@ -131,7 +133,7 @@ describe('PatternFeedbackView', () => {
     rerender(
       <PatternFeedbackView feedback={feedback()} onRegenerate={onRegenerate} isRegenerating />,
     );
-    expect(screen.getByRole('button', { name: 'Regenerating…' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Regenerating feedback…' })).toBeDisabled();
   });
 
   it('says so plainly when nothing recurred', () => {
