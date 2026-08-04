@@ -10,10 +10,17 @@ app = 'grandmate-v2-backend'
 # Matched to the database, not to users. One chat turn costs many round trips to Postgres
 # — session lookup, game queries, pgvector search, two LangGraph checkpointer writes —
 # while a user pays one round trip to this app, so app-to-database latency is what
-# multiplies. `sea` is Fly's closest region to the Neon project's AWS `us-west-2` (Oregon).
-# `fly launch` defaulted this to `sjc`, which picks the region nearest the developer
-# rather than nearest the database. Moving either one means moving both.
-primary_region = 'sea'
+# multiplies.
+#
+# The database is Neon on AWS `us-west-2` (Oregon). `sea` is geographically closest, and
+# was tried: **Fly has deprecated `sea` and refuses to provision new resources there**
+# ("Region sea is deprecated and cannot have new resources provisioned"). `sjc` is the
+# nearest available US-West region and what Fly itself recommends in that error — same
+# coast, roughly 10-15 ms further from the database than `sea` would have been.
+#
+# The `grandmate_storage` volume also lives in `sjc`, and Fly volumes do not move between
+# regions, so changing this later means recreating the volume.
+primary_region = 'sjc'
 
 [build]
   dockerfile = 'Dockerfile'
