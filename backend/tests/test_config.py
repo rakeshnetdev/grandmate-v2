@@ -97,14 +97,25 @@ class TestSessionCookiePolicy:
 
         assert "CORS_ALLOWED_ORIGINS" in Settings().missing_required_for_production()
 
-    def test_the_cors_placeholder_blocks_readiness(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_the_cors_placeholder_warns_but_does_not_block_startup(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """`fly.toml` ships a REPLACE-ME origin because the frontend's real URL cannot be
-        known until Vercel has deployed, so the first backend deploy always carries a wrong
-        value. Caught here rather than surfacing later as a CORS rejection in the console
-        of a page nobody is looking at yet."""
+        known until Vercel has deployed — and Vercel cannot build until it knows the
+        backend's URL. Treating the placeholder as *required* deadlocks the deployment:
+        `main.py`'s lifespan turns the required list into a RuntimeError, so the backend
+        crash-loops waiting for a frontend that cannot be built yet. Observed for real, at
+        ten restart attempts."""
         monkeypatch.setenv("CORS_ALLOWED_ORIGINS", "https://REPLACE-ME.vercel.app")
+        settings = Settings()
 
-        assert "CORS_ALLOWED_ORIGINS" in Settings().missing_required_for_production()
+        assert "CORS_ALLOWED_ORIGINS" in settings.deployment_warnings()
+        assert "CORS_ALLOWED_ORIGINS" not in settings.missing_required_for_production()
+
+    def test_a_real_origin_produces_no_warning(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("CORS_ALLOWED_ORIGINS", "https://grandmate.vercel.app")
+
+        assert Settings().deployment_warnings() == []
 
     def test_named_origins_with_samesite_none_are_fine(
         self, monkeypatch: pytest.MonkeyPatch

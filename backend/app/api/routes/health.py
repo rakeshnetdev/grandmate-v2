@@ -39,7 +39,12 @@ async def ready(settings: SettingsDep, response: Response) -> ReadinessResponse:
         "llm_configured": settings.llm.is_configured,
     }
 
-    missing = settings.missing_required_for_production() if settings.app.is_production else []
+    in_production = settings.app.is_production
+    missing = settings.missing_required_for_production() if in_production else []
+    # Warnings do not affect the verdict. A placeholder CORS origin means the frontend
+    # cannot talk to this process yet, not that the process cannot serve — and reporting
+    # it as not-ready would take an otherwise healthy container out of rotation.
+    warnings = settings.deployment_warnings() if in_production else []
     is_ready = not missing
 
     if not is_ready:
@@ -49,6 +54,7 @@ async def ready(settings: SettingsDep, response: Response) -> ReadinessResponse:
         status="ready" if is_ready else "not_ready",
         environment=settings.app.app_env,
         missing_configuration=missing,
+        warnings=warnings,
         checks=checks,
     )
 

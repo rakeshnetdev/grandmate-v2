@@ -112,17 +112,35 @@ class Settings(BaseModel):
         # can be missing *only* in this combination is in the comment above and in
         # `.env.example`, not smuggled into the returned string.
         #
-        # The placeholder check is not belt-and-braces. `fly.toml` ships
-        # `https://REPLACE-ME.vercel.app` deliberately, because the frontend's real origin
-        # cannot be known until Vercel has deployed it — so the first backend deploy
-        # *always* carries a wrong value. Without this, `/ready` returns ready against an
-        # origin that matches no browser, and the failure only appears later as a CORS
-        # rejection in the console of a page nobody is looking at yet.
-        cors_origins = self.app.cors_origins_list
-        placeholder = any("REPLACE-ME" in origin for origin in cors_origins)
-        if placeholder or (self.identity.session_cookie_samesite == "none" and "*" in cors_origins):
+        # This one belongs in the *fatal* list rather than the advisory one below: a
+        # wildcard origin under `SameSite=None` is a live security hole, not an
+        # incomplete deployment. Refusing to start is the correct response.
+        if self.identity.session_cookie_samesite == "none" and "*" in self.app.cors_origins_list:
             missing.append("CORS_ALLOWED_ORIGINS")
         return missing
+
+    def deployment_warnings(self) -> list[str]:
+        """Names of settings that are placeholders rather than real values.
+
+        Deliberately **not** part of `missing_required_for_production()`, which
+        `main.py`'s lifespan turns into a `RuntimeError` that refuses startup. The
+        distinction is the difference between "this process cannot function" and "this
+        process works but is not yet wired to its frontend".
+
+        `fly.toml` ships `CORS_ALLOWED_ORIGINS = 'https://REPLACE-ME.vercel.app'` because
+        the frontend's real origin cannot be known until Vercel has deployed, and Vercel
+        cannot build until it knows the backend's URL. Treating that placeholder as fatal
+        deadlocks the deployment: the backend crash-loops until the frontend exists, and
+        the frontend cannot be built until the backend does. Learned by doing exactly
+        that — ten restart attempts, `RuntimeError: Missing required configuration:
+        CORS_ALLOWED_ORIGINS`, on a container that was otherwise entirely healthy.
+
+        Surfaced at `/ready` instead, which reports it without taking the process down.
+        """
+        warnings: list[str] = []
+        if any("REPLACE-ME" in origin for origin in self.app.cors_origins_list):
+            warnings.append("CORS_ALLOWED_ORIGINS")
+        return warnings
 
 
 @lru_cache(maxsize=1)
