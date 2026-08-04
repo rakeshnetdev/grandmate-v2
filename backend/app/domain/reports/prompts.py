@@ -26,23 +26,24 @@ PERSONA_GUIDES: dict[Persona, str] = {
     Persona.SELF_LEARNER: (
         "Audience: the player studying their own game.\n"
         "Tone: direct, neutral, practical.\n"
-        "Explain why each move was good or bad using chess ideas like development, "
-        "center, king safety, tactic, pin, fork, or tempo.\n"
-        "Keep the output concise and useful for self-study."
+        "Explain why each move was good or bad using chess ideas like development, center, "
+        "king safety, tactic, pin, fork, or tempo.\n"
+        "Keep the report concise and useful for self-study."
     ),
     Persona.COACH: (
         "Audience: an expert coach preparing a lesson.\n"
         "Tone: technical, concise, peer-to-peer.\n"
-        "For each finding, explain the strategic or tactical consequence clearly.\n"
+        "Explain the strategic and tactical consequences clearly.\n"
         "Use stronger chess terminology and lesson-oriented phrasing.\n"
-        "Frame the report as coaching material."
+        "Keep the analysis dense and precise."
     ),
     Persona.KID: (
         "Audience: a young player, roughly 8-14 years old.\n"
         "Tone: encouraging, simple, short sentences.\n"
         "Explain what happened in plain chess language.\n"
         "For each mistake, say what White did and what that allowed Black to do.\n"
-        "Give exactly one simple recommendation."
+        "Keep one idea at a time.\n"
+        "Give exactly one simple and actionable recommendation."
     ),
 }
 
@@ -92,7 +93,7 @@ Rules:
 - Use only the facts given. Do not invent moves or motifs.
 - Explain the tactical or strategic consequence of each critical moment.
 - Write for an expert coach, not a beginner.
-- Make the report useful as lesson material.
+- Keep the report dense, precise, and lesson-useful.
 - Keep recommendations specific to training priorities.
 """.strip(),
     Persona.KID: """
@@ -108,7 +109,7 @@ Shape:
       "text": "<simple kid-friendly explanation>"
     }
   ],
-  "recommendations": ["<one simple recommendation>"]
+  "recommendations": ["<one simple and actionable recommendation>"]
 }
 
 Rules:
@@ -118,7 +119,7 @@ Rules:
 - Keep sentences short and easy to understand.
 - Explain what White did and what happened because of it.
 - Avoid vague phrases like "do better next time."
-- Give exactly one recommendation.
+- Give exactly one simple and actionable recommendation.
 """.strip(),
 }
 

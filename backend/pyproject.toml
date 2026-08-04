@@ -128,6 +128,11 @@ ignore = [
 # prompt *content* to satisfy a code-style rule. The wording is iterated on constantly
 # and is exactly what these files exist to hold, so the line limit is lifted here only.
 "app/domain/reports/*prompts.py" = ["E501"]
+# Same reasoning for the chat prompts. `multi_agent_prompts.py` currently escapes the
+# limit with backslash continuations, which works only because its paragraphs happen to
+# survive being split — it is listed too so the next edit is not forced to reflow prose
+# to keep the gate green.
+"app/domain/chat/*prompts.py" = ["E501"]
 
 [tool.mypy]
 # Kept at 3.12, not 3.11 (the project's `requires-python` floor), as of Phase 7: numpy
