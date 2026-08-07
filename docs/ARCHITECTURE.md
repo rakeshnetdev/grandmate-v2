@@ -1,16 +1,17 @@
 # Architecture — GrandMate v2
 
-Whole-system architecture reference. Pairs with [`Deliverables.md`](Deliverables.md) (the
-graded write-up) and [`../project-plan.md`](../project-plan.md) (the phased build).
-Diagrams are GitHub-native Mermaid; each also exists standalone under
+Whole-system architecture reference. Pairs with [`Deliverables.md`](Deliverables.md), the
+graded write-up. Diagrams are GitHub-native Mermaid; each also exists standalone under
 [`diagrams/`](diagrams/).
 
-**This document describes the system as it is today** — Phases 0–16 of a 19-phase plan,
-plus the deployment in §11.
-Anything not yet built is marked as such rather than described in the present tense. The
-deep reasoning behind individual choices lives in the 17 ADRs under
-[`../final_docs/v2/adr/`](../final_docs/v2/adr/); this document is the map, not the
-territory.
+**This document describes the system as it is today.** Anything not yet built is marked as
+such rather than described in the present tense.
+
+For the shorter version — what runs live, what was built and deliberately not shipped, and
+how to read the evaluation numbers — see
+[`production_and_experiments.md`](production_and_experiments.md). ADR references below name
+decisions recorded in a separate private engineering repository; each one's substance is
+restated here, so nothing in this document depends on having it.
 
 ---
 
@@ -35,7 +36,10 @@ is named.
    fallback. A reader never sees an error and never sees an unverified claim.
 
 4. **Personas change framing, never facts.** The same analysis renders for a self-learner,
-   a coach, or a child. `fact_invariance_rate` is a hard-gated metric, measured at 100%.
+   a coach, or a child. `fact_invariance_rate` is a hard-gated, zero-tolerance metric — and
+   it is **currently failing at 94.4%** on a 30-scenario run. This is the one invariant on
+   the list that is presently violated, and it is reported as a failure rather than
+   softened; see [`production_and_experiments.md`](production_and_experiments.md) §4.
 
 5. **Three memory layers stay distinct.** Short-term thread state, long-term profile
    memory, and analysis-database truth are three storage models, deliberately not
@@ -140,17 +144,19 @@ import.
 | Sparse retrieval | `rank-bm25`, in-memory | Simplest fully-testable option at this corpus size | Postgres full-text search would avoid loading the corpus into memory |
 | Migrations | Alembic, URL injected from settings | Credentials stay in `.env`, one source of truth | Two drivers in play: asyncpg for the app, psycopg for Alembic |
 | Frontend | React 19 + Vite + TS + Tailwind v4 + shadcn/ui | Typed contracts end to end; feature-driven structure | Next.js if SSR ever matters — it does not for an authenticated SPA |
-| Observability | Custom in-process tracing (ADR-0013) | Zero LLM cost, zero added latency, no data egress | Dev-only by design, so production is currently unobserved. LangSmith adopted for that in Phase 17 (ADR-0017) |
-| Evaluation | RAGAS plus purpose-built harnesses | 8 recorded suites, versioned runs, thresholds in config | Golden sets are self-authored and not yet human-reviewed |
+| Observability | Custom in-process tracing (ADR-0013) | Zero LLM cost, zero added latency, no data egress | Dev-only by design, so production is currently unobserved. LangSmith is the adopted successor (ADR-0017), not yet deployed |
+| Evaluation | RAGAS plus purpose-built harnesses | 8 recorded suites, versioned runs, thresholds in config | Golden sets are author-reviewed, not independently reviewed |
 
 ---
 
 ## 4. Agent workflow (control flow)
 
 Two graphs exist. The **chat graph** serves production traffic. The **multi-agent
-supervisor graph** is built, tested, and evaluated head-to-head against it, but is
-deliberately not wired to any route pending the evidence-based decision Phase 13 was
-scoped to make.
+supervisor graph** was built, tested, and evaluated head-to-head against it, **lost on both
+pre-declared metrics, and is not wired to any route** — `USE_MULTI_AGENT=false`. That decision was made on
+evidence against a pre-declared exit criterion; the numbers and the transcript analysis
+behind it are in
+[`production_and_experiments.md`](production_and_experiments.md) §2.1.
 
 ### 4.1 Chat graph — the production path
 
@@ -201,7 +207,7 @@ checkpointer, not diagramming the scratch work.
 told, and a failure there must not fail the turn. Two responsibilities that must never
 entangle get two places to change independently.
 
-### 4.2 Multi-agent supervisor graph — built, evaluated, not routed
+### 4.2 Multi-agent supervisor graph — built, evaluated, rejected on the evidence
 
 ```mermaid
 flowchart TD
@@ -339,7 +345,7 @@ a wrong memory stays traceable.
 **Library-owned tables are deliberately outside Alembic.** LangGraph's checkpointer and
 store create and version their own DDL via `.setup()`. `alembic/env.py` carries an
 `include_object` filter matching `checkpoint*`/`store*` prefixes, so autogenerate cannot
-propose dropping them — a real failure the first Phase 11 migration attempt produced.
+propose dropping them — a real failure the first migration attempt against them produced.
 
 ---
 
@@ -455,7 +461,7 @@ capture forced `False` regardless of configuration, because prompt text can cont
 user's game history.
 
 **Consequence, stated plainly**: a hosted deployment today runs the agent completely
-unobserved. Phase 17 closes this with LangSmith (ADR-0017), with redaction reusing the
+unobserved. LangSmith closes this (ADR-0017), with redaction reusing the
 existing sanitiser and tracing defaulting to off.
 
 ---
@@ -500,9 +506,9 @@ same thing as a deployment.
 | **Cost control** | `LLM_DAILY_TOKEN_CEILING` enforced atomically via a Postgres upsert, not read-then-write. Agent step, tool-call, and token ceilings are hard limits |
 | **Isolation** | Enforced at the retriever interface and in the tool schemas, tested adversarially |
 | **Configuration** | Every tunable in `.env` through typed settings; a test asserts secrets never appear in reprs |
-| **Testing** | 785 backend tests, 72 frontend, all passing; `mypy --strict` clean; layer-boundary check as its own CI step |
+| **Testing** | 936 backend tests and 177 frontend, all passing; `mypy --strict` clean; layer-boundary check as its own CI step |
 | **Auth** | ⚠️ **Known gap.** Username-claim login proves an account exists, not that the user owns it (ADR-0014). `ProfileSource.verified` is `False` on every row. Acceptable only while the system holds nothing private; must close before any private-data feature |
-| **Scaling** | Background jobs run in-process via `BackgroundTasks`. Fine at MVP scale; a real worker reading the existing `jobs` table is the next step, and the table was designed for it from Phase 3 |
+| **Scaling** | Background jobs run in-process via `BackgroundTasks`. Fine at MVP scale; a real worker reading the existing `jobs` table is the next step, and the table was designed for it |
 | **Failover** | ⚠️ **Known gap.** One LLM provider, no fallback. A provider outage stops all generation |
 
 ---
@@ -513,11 +519,9 @@ This document says *what* the system is. For *why*:
 
 | Question | Document |
 |---|---|
-| What is being built, for whom | [`../final_docs/v2/prd.md`](../final_docs/v2/prd.md) |
-| Every architectural decision, with alternatives | [`../final_docs/v2/adr/`](../final_docs/v2/adr/) — 17 ADRs |
-| Every product decision, locked or open | [`../final_docs/v2/decisions-log.md`](../final_docs/v2/decisions-log.md) |
-| Retrieval and grounding design in depth | [`../final_docs/v2/rag-architecture.md`](../final_docs/v2/rag-architecture.md) |
-| Tables, columns, relationships | [`../final_docs/v2/data-model.md`](../final_docs/v2/data-model.md) |
-| What works today, with runnable steps | [`../final_docs/v2/features-and-use-cases.md`](../final_docs/v2/features-and-use-cases.md) |
-| Phase-by-phase delivery record | [`../final_docs/v2/phase-reports/`](../final_docs/v2/phase-reports/) |
-| Evaluation results | [`evaluation_report.md`](evaluation_report.md) |
+| What is being built, for whom, and how it was evaluated | [`Deliverables.md`](Deliverables.md) |
+| What runs live, what was tried and rejected, and every known failure | [`production_and_experiments.md`](production_and_experiments.md) |
+| Measured evaluation results | [`evaluation_report.md`](evaluation_report.md) |
+| What each evaluation suite's data can and cannot prove | [`evaluation_data_design.md`](evaluation_data_design.md) |
+| How the live deployment was built | [`DEPLOYMENT.md`](DEPLOYMENT.md) |
+| Tables, columns, relationships | `backend/app/db/models/` and `backend/alembic/versions/` |

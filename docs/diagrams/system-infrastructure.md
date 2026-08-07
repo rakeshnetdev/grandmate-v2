@@ -1,6 +1,6 @@
 # System infrastructure
 
-Referenced from [`Deliverables.md` §2.2](../Deliverables.md#22-system-infrastructure-and-stack-justification)
+Referenced from [`Deliverables.md` §2.2](../Deliverables.md#22-infrastructure-and-stack)
 and [`ARCHITECTURE.md` §2](../ARCHITECTURE.md#2-component-architecture).
 
 The stack, one box per piece of infrastructure. Dashed edges are not yet built. The
@@ -44,7 +44,7 @@ flowchart LR
     API --> LICH
     API --> CCOM
 
-    ORCH -. "traces — Phase 17, ADR-0017" .-> LS["LangSmith"]
+    ORCH -. "traces — planned, ADR-0017" .-> LS["LangSmith"]
     API -. "not yet deployed" .-> HOST["Fly.io + Vercel"]
 
     classDef planned stroke-dasharray: 5 5,fill:#f5f5f5,color:#666;
@@ -64,5 +64,5 @@ flowchart LR
 | **Postgres 17 + pgvector** | One engine for relational data *and* vectors, so profile-scoped retrieval joins against application tables inside the same authorization boundary. |
 | **OpenAI `gpt-4o-mini`** | Cheap enough to run per chat turn, behind an `LLMProvider` Protocol so the vendor is one adapter away from replaceable. |
 | **Lichess / Chess.com public APIs** | Account existence at login and public game archives at import — no OAuth approval gate on either path. |
-| **Fly.io + Vercel** *(planned)* | Fly ships the Stockfish binary in a container; Vercel serves a static SPA on a CDN. Decision belongs to Phase 17. |
+| **Fly.io + Vercel** *(planned)* | Fly ships the Stockfish binary in a container; Vercel serves a static SPA on a CDN. |
 | **LangSmith** *(planned)* | Native LangGraph tracing — the production observability the in-process tracer deliberately does not provide (ADR-0017). |

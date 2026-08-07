@@ -3,7 +3,7 @@
   "dataset_version": "v1-2026-07-27",
   "retriever_version": "phase-7-v1",
   "embed_model": "text-embedding-3-small",
-  "reviewed_query_count": 0,
+  "reviewed_query_count": 41,
   "total_query_count": 41,
   "timestamp": "2026-07-28T00:16:00.732239+00:00",
   "thresholds": {

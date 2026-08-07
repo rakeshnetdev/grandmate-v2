@@ -10,11 +10,11 @@ reviewable in a pull request.
 | Diagram | What it shows | Referenced from |
 |---|---|---|
 | [`system-flow.md`](system-flow.md) | Every feature in one diagram: what is deterministic, where the LLM is called, and which prompt builder each call uses | — (standalone) |
-| [`user-workflow-pain-points.md`](user-workflow-pain-points.md) | How a player tries to learn from their games today, and where that loop fails | `Deliverables.md` §1.3 |
+| [`user-workflow-pain-points.md`](user-workflow-pain-points.md) | How a player tries to learn from their games today, and where that loop fails | `Deliverables.md` §1.5 |
 | [`system-infrastructure.md`](system-infrastructure.md) | The stack, one box per piece of infrastructure, with a one-sentence justification per choice | `Deliverables.md` §2.2 · `ARCHITECTURE.md` §2 |
 | [`component-architecture.md`](component-architecture.md) | Module-level view, and the one dependency edge that is a CI-enforced rule | `ARCHITECTURE.md` §2 |
 | [`agent-workflow.md`](agent-workflow.md) | The chat graph that serves production traffic — three nodes, eight tools, guardrail loop | `ARCHITECTURE.md` §4.1 · `Deliverables.md` §2.3 |
-| [`multi-agent-graph.md`](multi-agent-graph.md) | The five-agent supervisor graph: built and evaluated, deliberately not routed | `ARCHITECTURE.md` §4.2 |
+| [`multi-agent-graph.md`](multi-agent-graph.md) | The five-agent supervisor graph: built and evaluated, **not adopted** — it lost the head-to-head | `ARCHITECTURE.md` §4.2 · `production_and_experiments.md` §2.1 |
 | [`request-lifecycle.md`](request-lifecycle.md) | What one `POST /imports` triggers across a request, a background job, and a later chat turn | `ARCHITECTURE.md` §5 |
 | [`grounding-guardrail.md`](grounding-guardrail.md) | How an unsupported claim is stopped before a reader sees it | `ARCHITECTURE.md` §9 |
 | [`memory-layers.md`](memory-layers.md) | Three memory layers, and why they are not one | `ARCHITECTURE.md` §7 · ADR-0005 |
@@ -28,6 +28,6 @@ a reader who wants only the picture should not have to scroll a 400-line archite
 reference to find it.
 
 When a diagram changes, both copies change. There is no generator keeping them in sync —
-Phase 17 adds a mermaid export from the compiled LangGraph graphs plus a drift test, which
+A planned mermaid export from the compiled LangGraph graphs, plus a drift test, would
 will make `agent-workflow.md` and `multi-agent-graph.md` verifiable against the real
 topology rather than hand-maintained.

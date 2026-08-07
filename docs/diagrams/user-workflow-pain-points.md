@@ -1,6 +1,6 @@
 # Current-state workflow and its pain points
 
-Referenced from [`Deliverables.md` §1.3](../Deliverables.md#13-current-state-workflow-and-bottlenecks).
+Referenced from [`Deliverables.md` §1.5](../Deliverables.md#15-current-state-workflow).
 
 How a club player tries to learn from their games today, without GrandMate. Red nodes are
 the points where the loop fails to produce a lesson.

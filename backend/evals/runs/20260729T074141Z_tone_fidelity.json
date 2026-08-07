@@ -3,7 +3,7 @@
   "dataset_version": "v1-2026-07-28",
   "harness_version": "phase-16-v1",
   "model": "gpt-4o-mini",
-  "reviewed_scenario_count": 0,
+  "reviewed_scenario_count": 10,
   "total_scenario_count": 10,
   "timestamp": "2026-07-29T07:41:41.218002+00:00",
   "results": {

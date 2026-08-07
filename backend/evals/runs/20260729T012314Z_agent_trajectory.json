@@ -22,7 +22,7 @@
     "routing_accuracy": 0.9166666666666666
   },
   "exit_criterion": {
-    "rule": "multi-agent must match or beat single-agent on both faithfulness and response_relevancy to be adopted; otherwise the Phase 10 baseline stays (rag-architecture.md \u00a77)",
+    "rule": "multi-agent must match or beat single-agent on both faithfulness and response_relevancy to be adopted; otherwise the single-agent baseline stays",
     "multi_agent_wins": false,
     "directional_only": true
   },

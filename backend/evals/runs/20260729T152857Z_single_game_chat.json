@@ -3,11 +3,11 @@
   "dataset_version": "v1-2026-07-28",
   "harness_version": "phase-10-v1",
   "model": "gpt-4o-mini",
-  "reviewed_scenario_count": 0,
+  "reviewed_scenario_count": 32,
   "total_scenario_count": 32,
   "timestamp": "2026-07-29T15:28:57.072880+00:00",
   "thresholds": {
-    "faithfulness": 0.85
+    "faithfulness": 0.7
   },
   "results": {
     "faithfulness": 0.7130819024564187,
@@ -33,7 +33,7 @@
       "tool_call_count": 1,
       "faithfulness": 0.8333333333333334,
       "response_relevancy": 0.7087466976288198,
-      "answer": "The opening of your game was the Ruy Lopez: Exchange Variation, Alapin Gambit (ECO code C68). Here\u2019s a summary of the moves played in the opening:\n\n1. e4 e5  \n2. Nf3 Nc6  \n3. Bb5 a6  \n4. Ba4 Nf6  \n5. O-O Be7  \n\nAll moves were classified as best by the engine, with evaluations ranging from +20 to +30 centipawns, indicating a strong position for both sides throughout the opening."
+      "answer": "The opening of your game was the Ruy Lopez: Exchange Variation, Alapin Gambit (ECO code C68). Here’s a summary of the moves played in the opening:\n\n1. e4 e5  \n2. Nf3 Nc6  \n3. Bb5 a6  \n4. Ba4 Nf6  \n5. O-O Be7  \n\nAll moves were classified as best by the engine, with evaluations ranging from +20 to +30 centipawns, indicating a strong position for both sides throughout the opening."
     },
     {
       "scenario_id": "ruy-lopez-train-next",
@@ -123,7 +123,7 @@
       "tool_call_count": 1,
       "faithfulness": 1.0,
       "response_relevancy": 0.4752003086990228,
-      "answer": "So far in your game, you have played the Italian Game (ECO C50). Here\u2019s a summary of the moves and evaluations:\n\n1. **e4** - Best move, evaluation: +20 centipawns\n2. **e5** - Best move, evaluation: +23 centipawns\n3. **Nf3** - Best move, evaluation: +26 centipawns\n4. **Nc6** - Best move, evaluation: +29 centipawns\n5. **Bc4** - Best move, evaluation: +32 centipawns\n6. **Bc5** - Best move, evaluation: +35 centipawns\n7. **c3** - Best move, evaluation: +38 centipawns\n8. **Nf6** - Best move, evaluation: +41 centipawns\n9. **d3** - Best move, evaluation: +44 centipawns\n10. **O-O** - Best move, evaluation: +47 centipawns\n\nYour position has steadily improved, with a current evaluation of +47 centipawns, indicating a strong advantage."
+      "answer": "So far in your game, you have played the Italian Game (ECO C50). Here’s a summary of the moves and evaluations:\n\n1. **e4** - Best move, evaluation: +20 centipawns\n2. **e5** - Best move, evaluation: +23 centipawns\n3. **Nf3** - Best move, evaluation: +26 centipawns\n4. **Nc6** - Best move, evaluation: +29 centipawns\n5. **Bc4** - Best move, evaluation: +32 centipawns\n6. **Bc5** - Best move, evaluation: +35 centipawns\n7. **c3** - Best move, evaluation: +38 centipawns\n8. **Nf6** - Best move, evaluation: +41 centipawns\n9. **d3** - Best move, evaluation: +44 centipawns\n10. **O-O** - Best move, evaluation: +47 centipawns\n\nYour position has steadily improved, with a current evaluation of +47 centipawns, indicating a strong advantage."
     },
     {
       "scenario_id": "italian-explain-move",

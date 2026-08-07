@@ -74,8 +74,8 @@ flowchart TB
 
 `tests/test_layer_boundaries.py` runs as its own CI step and fails the build if any module
 in the green cluster acquires an import from the blue cluster or from an LLM package. It
-was written in Phase 1, before there was any deterministic core to check — its own six
-self-tests ran against a synthetic fixture until Phase 4 produced real modules for it to
+was written before there was any deterministic core to check — its own six
+self-tests ran against a synthetic fixture until there were real modules for it to
 police.
 
 The dependency in the other direction is allowed and deliberate: `domain/imports` imports
