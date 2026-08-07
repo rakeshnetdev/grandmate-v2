@@ -8,6 +8,8 @@ Thin per the "routes delegate, they do not decide" rule: platform lookup lives i
 from __future__ import annotations
 
 import uuid
+from dataclasses import dataclass
+from typing import Literal
 
 from fastapi import APIRouter, HTTPException, Response, status
 
@@ -36,13 +38,28 @@ def _to_current_user(result: LoginResult) -> CurrentUser:
     )
 
 
-def _set_session_cookie(response: Response, settings: SettingsDep, user_id: uuid.UUID) -> None:
-    token = issue_session(user_id, settings.identity)
+@dataclass(frozen=True)
+class _SessionCookieAttrs:
+    """The cookie attributes that must be identical when setting and when clearing.
+
+    A browser only replaces a cookie when the attributes it is given match the ones it
+    stored. A deletion that omits `Secure` or sends a different `SameSite` is ignored
+    silently — no error, no warning, the user simply stays logged in. This type exists so
+    the two call sites cannot drift: that drift is a real defect that shipped, where
+    `delete_cookie` took Starlette's defaults (`SameSite=lax`, `secure=False`) while login
+    issued `SameSite=none; Secure` in production, so cross-site logout never cleared
+    anything.
+    """
+
+    secure: bool
+    samesite: Literal["lax", "strict", "none"]
+    path: str = "/"
+    httponly: bool = True
+
+
+def _session_cookie_attrs(settings: SettingsDep) -> _SessionCookieAttrs:
     samesite = settings.identity.session_cookie_samesite
-    response.set_cookie(
-        key=COOKIE_NAME,
-        value=token.value,
-        httponly=True,
+    return _SessionCookieAttrs(
         # Secure requires HTTPS, which local development does not have. Production sets
         # APP_ENV=production and gets the real protection.
         #
@@ -52,8 +69,20 @@ def _set_session_cookie(response: Response, settings: SettingsDep, user_id: uuid
         # Forcing it here makes the pair impossible to get half-right.
         secure=settings.app.is_production or samesite == "none",
         samesite=samesite,
+    )
+
+
+def _set_session_cookie(response: Response, settings: SettingsDep, user_id: uuid.UUID) -> None:
+    token = issue_session(user_id, settings.identity)
+    attrs = _session_cookie_attrs(settings)
+    response.set_cookie(
+        key=COOKIE_NAME,
+        value=token.value,
         expires=token.expires_at,
-        path="/",
+        httponly=attrs.httponly,
+        secure=attrs.secure,
+        samesite=attrs.samesite,
+        path=attrs.path,
     )
 
 
@@ -88,9 +117,20 @@ async def me(current: CurrentLoginDep) -> CurrentUser:
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
-async def logout(response: Response) -> None:
-    """Clear the session cookie. Stateless tokens mean there is nothing to revoke server-side."""
-    response.delete_cookie(key=COOKIE_NAME, path="/")
+async def logout(response: Response, settings: SettingsDep) -> None:
+    """Clear the session cookie. Stateless tokens mean there is nothing to revoke server-side.
+
+    Clears with the *same* attributes login set, via `_session_cookie_attrs` — a mismatch
+    here is not an error the browser reports, it just leaves the session in place.
+    """
+    attrs = _session_cookie_attrs(settings)
+    response.delete_cookie(
+        key=COOKIE_NAME,
+        httponly=attrs.httponly,
+        secure=attrs.secure,
+        samesite=attrs.samesite,
+        path=attrs.path,
+    )
 
 
 __all__ = ["router"]

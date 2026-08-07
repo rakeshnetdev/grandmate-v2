@@ -1,0 +1,38 @@
+name: Docs
+
+# Path-scoped like the backend and frontend workflows (ADR-0001): a code-only change does
+# not run this, and a docs-only change does not run the test suites.
+#
+# This exists because every `final_docs/...` link in `docs/` was dead for months. That
+# directory is a submodule on a private repository, so the links resolved for the author
+# and for nobody else, and a broken Markdown link is invisible until someone clicks it.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - 'README.md'
+      - 'scripts/check_doc_links.py'
+      - '.github/workflows/docs.yml'
+  pull_request:
+    paths:
+      - 'docs/**'
+      - 'README.md'
+      - 'scripts/check_doc_links.py'
+      - '.github/workflows/docs.yml'
+
+jobs:
+  links:
+    runs-on: ubuntu-latest
+    steps:
+      # Deliberately no `submodules:` key — `final_docs` is private and the checkout would
+      # fail. The public documentation must stand alone, which is exactly what this job
+      # verifies.
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Check documentation links and anchors
+        run: python scripts/check_doc_links.py

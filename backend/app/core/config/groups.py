@@ -262,7 +262,23 @@ class RetrievalSettings(BaseSettings):
     # Reciprocal rank fusion constant. Rank-based fusion avoids calibrating dense and
     # sparse scores against each other, which drifts as the corpus grows.
     retrieval_fusion_k: int = 60
-    retrieval_min_score: float = 0.0
+    # Cosine-similarity floor for dense retrieval and the profile-scoped analysis
+    # retriever. At the previous 0.0 every retriever returned its full `top_k` regardless
+    # of relevance, so all five out-of-corpus evaluation queries ("who won the football")
+    # produced a confident false positive — the negatives were measuring the *absence* of
+    # a threshold rather than the quality of the retriever.
+    #
+    # 0.2 is deliberately conservative. With `text-embedding-3-small`, genuinely relevant
+    # chunks score well above it and clearly unrelated text falls below, so it is not
+    # expected to cost recall — but that expectation is not yet measured, and the recorded
+    # retrieval run predates this value. Re-run the retrieval suite before treating the
+    # negative false-positive rate in `docs/evaluation_report.md` as fixed.
+    #
+    # NOTE: this bounds the *dense* path only. BM25 scores are unbounded and are not
+    # comparable to a cosine similarity, so sparse and hybrid can still return an
+    # irrelevant chunk for an out-of-corpus query. Closing that needs a separate,
+    # rank- or score-normalised sparse floor.
+    retrieval_min_score: float = 0.2
     # Resolved relative to BACKEND_ROOT by the knowledge ingestion pipeline, same
     # convention as PatternSettings.openings_data_dir.
     corpus_data_dir: str = "data/corpus"

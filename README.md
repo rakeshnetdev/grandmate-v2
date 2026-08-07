@@ -142,6 +142,11 @@ The internal engineering record — ADRs, the decisions log, and delivery report
 separate private repository and is not required to review the system. Nothing in `docs/`
 depends on it.
 
+> **`final_docs/` is a submodule on that private repository.** `git clone
+> --recurse-submodules` will fail to fetch it without access, and a plain `git clone` leaves
+> the directory empty. Both are expected and neither affects the application or its
+> documentation — clone normally and ignore it.
+
 ## Development process
 
 Delivery is incremental and gated: each increment ships implementation, tests, evaluation,

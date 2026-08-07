@@ -512,9 +512,12 @@ def build_report() -> str:
     parts = [
         "# Evaluation Report — GrandMate v2",
         "",
-        "> **Generated from recorded runs by `backend/evals/report.py`.** No figure in this "
-        "report is hand-written. Regenerate with `cd backend && uv run python -m "
-        "evals.report` after any evaluation run.",
+        "> **Generated from recorded runs by `backend/evals/report.py`.** Every figure here "
+        "is read out of a run record under `backend/evals/runs/` — none is typed by hand, "
+        "so a number cannot drift from the run it describes. The surrounding prose is "
+        "written in the generator, not in this file: editing this file directly is "
+        "pointless, because the next regeneration overwrites it. Regenerate with "
+        "`cd backend && uv run python -m evals.report` after any evaluation run.",
         "",
         f"Generated: {generated_at}",
         "",

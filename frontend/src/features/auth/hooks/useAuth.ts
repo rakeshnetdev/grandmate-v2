@@ -42,6 +42,14 @@ export function useLogout() {
   return useMutation({
     mutationFn: logout,
     onSuccess: () => {
+      // Drop the whole cache, not just the user. Games, analytics, chat threads and
+      // memory entries are all profile-scoped, and leaving them cached means the next
+      // person to log in on this browser sees the previous session's data render for a
+      // frame before their own request resolves. Clearing first and then seeding `null`
+      // matters in that order: `clear()` would otherwise wipe the null straight back out
+      // and leave `useCurrentUser` briefly undefined, which reads as "still loading"
+      // rather than "logged out".
+      queryClient.clear();
       queryClient.setQueryData(authKeys.currentUser(), null);
     },
   });

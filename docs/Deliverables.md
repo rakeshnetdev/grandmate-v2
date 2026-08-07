@@ -430,10 +430,14 @@ result first. The honest part is that the rule said switch and the switch was no
 Recorded in [`production_and_experiments.md`](production_and_experiments.md) §2.2 rather than
 presented as a clean win.
 
-**A known gap, measured**: with `RETRIEVAL_MIN_SCORE=0.0` every retriever returns its `top_k`
-regardless of relevance, so all five out-of-corpus queries produce a false positive at every
-strategy. A measured consequence of a configuration default, not a retrieval defect — but it
-means the negatives currently measure the absence of a threshold.
+**A known gap, measured — and partly closed since**: the recorded run had
+`RETRIEVAL_MIN_SCORE=0.0`, so every retriever returned its `top_k` regardless of relevance
+and all five out-of-corpus queries produced a false positive. That was a configuration
+default rather than a retrieval defect, but it meant the negatives measured the *absence* of
+a threshold. The floor is now **0.2**. It bounds the dense path only — BM25 scores are
+unbounded and not comparable to a cosine similarity — so sparse and hybrid can still return
+something for an out-of-corpus query, and **the retrieval suite has not been re-run against
+the new floor**. The 100% figure above is the last measured value, not the current one.
 
 ### 6.3 Second improvement: detector precision from external ground truth
 

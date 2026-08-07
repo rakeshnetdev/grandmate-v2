@@ -162,6 +162,15 @@ class TestMe:
         assert response.status_code == 401
 
 
+def _cookie_attrs(set_cookie: str) -> dict[str, str]:
+    """`Set-Cookie` attributes, lowercased, valueless flags mapped to ''."""
+    attrs = {}
+    for part in set_cookie.split(";")[1:]:
+        name, _, value = part.strip().partition("=")
+        attrs[name.lower()] = value.lower()
+    return attrs
+
+
 class TestLogout:
     async def test_logout_clears_the_session_so_me_becomes_unauthorized(
         self, auth_client: httpx.AsyncClient
@@ -175,3 +184,45 @@ class TestLogout:
 
         me_response = await auth_client.get("/api/v1/auth/me")
         assert me_response.status_code == 401
+
+    @pytest.mark.parametrize("samesite", ["lax", "none"])
+    async def test_logout_clears_with_the_same_attributes_login_set(
+        self, auth_settings: Settings, db_session: AsyncSession, samesite: str
+    ) -> None:
+        """A browser only replaces a cookie when the attributes match the stored ones.
+
+        This is a real defect that shipped: `delete_cookie` took Starlette's defaults
+        (`SameSite=lax`, no `Secure`) while production login issued `SameSite=none; Secure`,
+        so the cross-site logout response was rejected outright and the session survived.
+        Nothing errored — the user simply stayed logged in.
+
+        The `none` case is the one that mattered in production, and asserting on the
+        `Set-Cookie` header rather than on client state is deliberate: httpx's cookie jar
+        matches on name and path only, so it drops the cookie regardless and the
+        round-trip test above passed throughout the bug's life.
+        """
+        auth_settings.identity.session_cookie_samesite = samesite  # type: ignore[assignment]
+        app = create_app(auth_settings)
+
+        async def _override_db_session() -> AsyncIterator[AsyncSession]:
+            yield db_session
+
+        app.dependency_overrides[get_db_session] = _override_db_session
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+            login = await client.post(
+                "/api/v1/auth/login", json={"provider": "lichess", "username": "magnus"}
+            )
+            logout = await client.post("/api/v1/auth/logout")
+
+        set_attrs = _cookie_attrs(login.headers["set-cookie"])
+        clear_attrs = _cookie_attrs(logout.headers["set-cookie"])
+
+        for attr in ("samesite", "path", "secure", "httponly"):
+            assert set_attrs.get(attr) == clear_attrs.get(attr), (
+                f"logout's {attr!r} does not match login's — the browser will ignore the "
+                f"deletion and the session will survive (set={set_attrs}, clear={clear_attrs})"
+            )
+        # SameSite=None is only accepted alongside Secure; a cleared cookie is no exception.
+        if samesite == "none":
+            assert "secure" in clear_attrs

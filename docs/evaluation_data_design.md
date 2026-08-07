@@ -2,9 +2,9 @@
 
 What test data the evaluation harnesses use, how each set is built, and what it can and
 cannot prove. The measured results live in [`evaluation_report.md`](evaluation_report.md),
-which is generated from recorded runs; how to read those numbers — including the two
-currently-failing hard metrics, and why `faithfulness` sits below target beside a 100%
-`grounded_rate` — is in
+which is generated from recorded runs; how to read those numbers — including the
+currently-failing `fact_invariance_rate`, and why `faithfulness` sits where it does beside a
+100% `grounded_rate` — is in
 [`production_and_experiments.md`](production_and_experiments.md) §3. Thresholds themselves
 are configuration, in `backend/app/core/config/groups.py`.
 
@@ -106,12 +106,6 @@ remains the highest-value improvement available to the evaluation programme.
 The synthetic sets are deliberately still `reviewed_by: null` — they are generated, they live
 in a separate directory, and no harness reads them as golden.
 
-> **Recorded runs predate this review.** The run records under `evals/runs/` were written
-> while `reviewed_by` was still null, so they carry `reviewed_*_count: 0` and the generated
-> `evaluation_report.md` still reports the sets as unreviewed. That is a timestamp artifact,
-> not a contradiction: the counts were accurate when written. The next evaluation run will
-> record them as reviewed.
-
 **Sample sizes are small.** 24 classifier positions, 12 trajectory scenarios, 3 to 30
 scenarios per judged suite. Adequate to catch a regression that breaks a class of
 behaviour; inadequate to distinguish a 3-point difference between two systems. The
@@ -124,7 +118,9 @@ is the most likely explanation for hybrid not beating BM25 on context precision 
 corpus size. LLM-generated paraphrases would be a fairer test; the sibling project found
 exactly this and the finding is inherited here rather than rediscovered.
 
-**Negative queries have no relevance floor to catch them.** With `RETRIEVAL_MIN_SCORE=0.0`,
+**Negative queries had no relevance floor to catch them.** In this run
+`RETRIEVAL_MIN_SCORE` was `0.0` (it is now 0.2, dense-only, and not yet re-measured). At
+`0.0`,
 every retriever returns its `top_k` regardless of relevance, so all five out-of-corpus
 queries produce a 100% false-positive rate. That is a measured consequence of a
 configuration default, not a retrieval defect — but it means the negatives currently
