@@ -1,7 +1,7 @@
 # Agent workflow — the chat graph
 
 Referenced from [`ARCHITECTURE.md` §4.1](../ARCHITECTURE.md#41-chat-graph--the-production-path)
-and [`Deliverables.md` §2.3](../Deliverables.md#23-agent-workflow-end-to-end).
+and [`Deliverables.md` §2.3](../Deliverables.md#23-agent-workflow).
 
 The graph that serves production traffic. Three nodes; the agent's tool selection is a
 bounded Python loop inside the middle one.

@@ -1,7 +1,7 @@
 # Three-layer memory model
 
 Referenced from [`ARCHITECTURE.md` §7](../ARCHITECTURE.md#7-memory-design--three-layers-deliberately-not-one)
-and [ADR-0005](../../final_docs/v2/adr/0005-three-layer-memory-model.md).
+(ADR-0005).
 
 Three storage models, deliberately not collapsed into one. Collapsing them is the common
 shortcut and it is the thing this design refuses.
@@ -55,7 +55,7 @@ repeat rather than superseding each other.
 
 **Layers 1 and 2 are library-owned DDL, not Alembic migrations.** `alembic/env.py` carries
 an `include_object` filter on `checkpoint*`/`store*` prefixes so autogenerate cannot
-propose dropping them — a real failure the first Phase 11 migration attempt produced before
+propose dropping them — a real failure the first migration attempt against them produced before
 the filter existed.
 
 **Extraction reads only what the user said.** An evaluation scenario deliberately checks

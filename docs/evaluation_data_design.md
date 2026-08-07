@@ -2,8 +2,11 @@
 
 What test data the evaluation harnesses use, how each set is built, and what it can and
 cannot prove. The measured results live in [`evaluation_report.md`](evaluation_report.md),
-which is generated from recorded runs; the thresholds and gating policy live in
-[`../final_docs/v2/evaluation-strategy.md`](../final_docs/v2/evaluation-strategy.md).
+which is generated from recorded runs; how to read those numbers — including the two
+currently-failing hard metrics, and why `faithfulness` sits below target beside a 100%
+`grounded_rate` — is in
+[`production_and_experiments.md`](production_and_experiments.md) §3. Thresholds themselves
+are configuration, in `backend/app/core/config/groups.py`.
 
 This document is about the *inputs*. It exists because a metric is only as trustworthy as
 the dataset behind it, and that is the part a results table never shows.
@@ -93,12 +96,21 @@ into any new suite.
 
 These are real and stated here rather than discovered by a reviewer.
 
-**Every golden set is self-authored and unreviewed.** `reviewed_by` is `null` on every row
-of every file. Per the golden-versus-synthetic rule, that makes every judged score
-*informative rather than gating* — and the harnesses enforce this by skipping the
-reviewed-set-gated assertions rather than quietly passing them. Closing this needs a human
-to spot-check samples; it is the single highest-value unblocked action in the evaluation
-programme.
+**The golden sets are reviewed, but not independently.** All 163 rows across the five golden
+files carry `reviewed_by`, so they satisfy the golden-versus-synthetic rule and the harnesses
+no longer skip the reviewed-set-gated assertions. What they do not have is a *second pair of
+eyes*: the reviewer is the same person who authored the scenarios, so the review catches
+mistakes and typos but cannot catch a blind spot shared with the author. Independent review
+remains the highest-value improvement available to the evaluation programme.
+
+The synthetic sets are deliberately still `reviewed_by: null` — they are generated, they live
+in a separate directory, and no harness reads them as golden.
+
+> **Recorded runs predate this review.** The run records under `evals/runs/` were written
+> while `reviewed_by` was still null, so they carry `reviewed_*_count: 0` and the generated
+> `evaluation_report.md` still reports the sets as unreviewed. That is a timestamp artifact,
+> not a contradiction: the counts were accurate when written. The next evaluation run will
+> record them as reviewed.
 
 **Sample sizes are small.** 24 classifier positions, 12 trajectory scenarios, 3 to 30
 scenarios per judged suite. Adequate to catch a regression that breaks a class of
@@ -140,7 +152,7 @@ Run everything:
 
 ```bash
 cd backend
-uv run pytest -q                       # 785 hermetic tests, no API key
+uv run pytest -q                       # 936 hermetic tests, no API key
 uv run python -m scripts.ingest_corpus # needs OPENAI_API_KEY
 uv run pytest -q evals/                # the evaluation suites
 uv run python -m evals.report          # regenerate the report

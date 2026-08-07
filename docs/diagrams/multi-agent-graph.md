@@ -1,10 +1,10 @@
 # Multi-agent supervisor graph
 
-Referenced from [`ARCHITECTURE.md` §4.2](../ARCHITECTURE.md#42-multi-agent-supervisor-graph--built-evaluated-not-routed).
+Referenced from [`ARCHITECTURE.md` §4.2](../ARCHITECTURE.md#42-multi-agent-supervisor-graph--built-evaluated-rejected-on-the-evidence).
 
-Five agents under a supervisor, with a critic that loops back. **Built, tested, and
-evaluated head-to-head against the single agent — deliberately not wired to any API route
-yet**, pending the evidence-based ship decision Phase 13 was scoped to make.
+Five agents under a supervisor, with a critic that loops back. **Built, tested, evaluated
+head-to-head against the single agent — and not adopted.** It lost on both pre-declared
+metrics, so it is not wired to any API route: `USE_MULTI_AGENT=false`.
 
 ```mermaid
 flowchart TD
@@ -40,8 +40,15 @@ chat graph's deterministic guardrail — but note that the *deterministic* guard
 one that actually gates delivery. An LLM critic that approves an ungrounded claim must not
 be the only thing standing between a model and a reader.
 
-**Why it is not routed yet.** Phase 13 was scoped to decide on evidence whether
-multi-agent orchestration ships. The trajectory evaluation runs both graphs against the
-same seeded scenarios and scores them identically; the recorded run is in
-[`evaluation_report.md`](../evaluation_report.md). Wiring it to a route before that
-decision would have prejudged it.
+**Why it is not routed.** Whether multi-agent orchestration ships was scoped to be decided
+on evidence, with the exit criterion declared before the run. The trajectory
+evaluation runs both graphs against the same seeded scenarios and scores them identically:
+single-agent faithfulness 0.600 / relevancy 0.406, multi-agent 0.504 / 0.118. It did not
+clear the bar. The recorded run is in
+[`evaluation_report.md`](../evaluation_report.md); the transcript analysis of *why* — the
+`coach` node never touches a tool, so a thin handoff makes a zero-citation hedge its
+cheapest grounded answer — is in
+[`production_and_experiments.md`](../production_and_experiments.md) §2.1.
+
+The graph stays built and tested. One environment variable flips it back on, which is what
+makes this a recorded decision rather than a dead end.

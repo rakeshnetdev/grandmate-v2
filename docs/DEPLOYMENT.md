@@ -231,14 +231,14 @@ ever in play.
 
 ## 6. Background work
 
-This is the architectural decision Fly forces, and Phase 14 made it sharper: a Lichess
+This is the architectural decision Fly forces, and the platform connectors made it sharper: a Lichess
 import of 60 games is an HTTP fetch plus roughly 7 seconds per game of Stockfish —
 **several minutes** of work with no HTTP request holding the machine awake.
 
 | Approach | Trade-off |
 |---|---|
 | `auto_stop_machines = false`, `min_machines_running = 1` | Simplest. Machine always on. Work still dies on deploy or restart, and no retry exists to recover it. |
-| A worker process polling the `jobs` table | The right shape. `jobs` already has `kind`, `status`, and an unused `idempotency_key` — it was designed for this in Phase 3, and `run_pending_analysis_jobs` already takes a job id and opens its own session. |
+| A worker process polling the `jobs` table | The right shape. `jobs` already has `kind`, `status`, and an unused `idempotency_key` — it was designed for this, and `run_pending_analysis_jobs` already takes a job id and opens its own session. |
 
 For a demo, the first. For anything real, the second.
 
@@ -249,7 +249,7 @@ For a demo, the first. For anything real, the second.
 Secrets via `fly secrets set`: `OPENAI_API_KEY`, `SESSION_JWT_SECRET`, `DATABASE_URL`.
 Everything else can be plain `[env]` in `fly.toml`.
 
-`SESSION_JWT_SECRET` needs ≥32 bytes of real randomness. A known gap from Phase 2: a short
+`SESSION_JWT_SECRET` needs ≥32 bytes of real randomness. A known gap: a short
 secret is **not rejected at startup**, only warned about by PyJWT — so this will not fail
 loudly if you get it wrong.
 
@@ -445,19 +445,13 @@ proves the process is up; only this proves the product works.
 
 ## 8b. Related operational documents
 
-These live in `final_docs/`, which is a **git submodule on a private repository** — run
-`git submodule update --init` if the directory is empty. Nothing in the deploy path reads
-them; they are what you reach for around a deploy rather than during one.
-
-| Document | When you want it |
-|---|---|
-| [`../final_docs/beta/release_checklist.md`](../final_docs/beta/release_checklist.md) | Pre-flight, before running §8a |
-| [`../final_docs/runbooks/incidents.md`](../final_docs/runbooks/incidents.md) | When a deployed container misbehaves |
-| [`../final_docs/playbooks/backup_and_recovery.md`](../final_docs/playbooks/backup_and_recovery.md) | Database restore |
-
-The incident runbook covers the crash loop from problem 1 (missing opening TSVs) and the
-silent-Stockfish failure from problem 5, which is the quieter of the two: the container
-reports healthy and simply never analyses anything.
+A beta release checklist, an incident runbook, and a backup-and-recovery playbook exist in
+a separate private engineering repository. Nothing in the deploy path above reads them —
+they are what you reach for *around* a deploy rather than during one, and §0 and §11 of
+this document already carry the two failures they were written for: the crash loop from
+problem 1 (missing opening TSVs) and the silent-Stockfish failure from problem 5, which is
+the quieter of the two because the container reports healthy and simply never analyses
+anything.
 
 ---
 

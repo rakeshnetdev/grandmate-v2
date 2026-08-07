@@ -1,12 +1,13 @@
 # GrandMate v2 — Documentation
 
-Submission and architecture documentation. For the engineering record — ADRs, the decisions
-log, per-phase reports — see [`../final_docs/v2/`](../final_docs/v2/).
+Everything needed to review this project. Self-contained: no document here depends on a
+repository you cannot see.
 
 ## Start here
 
 | Document | What it answers |
 |---|---|
+| [`production_and_experiments.md`](production_and_experiments.md) | **Read first.** What runs live, what was built and deliberately not shipped, and how to read the evaluation numbers |
 | [`Deliverables.md`](Deliverables.md) | The complete certification submission: problem, solution, data, prototype, evals, improvements, next steps |
 | [`ARCHITECTURE.md`](ARCHITECTURE.md) | How the system is built: invariants, components, both graphs, request lifecycle, memory, RAG, grounding, observability |
 | [`evaluation_report.md`](evaluation_report.md) | Measured results across eight suites — **generated from recorded runs**, never hand-written |
@@ -14,7 +15,7 @@ log, per-phase reports — see [`../final_docs/v2/`](../final_docs/v2/).
 | [`DEPLOYMENT.md`](DEPLOYMENT.md) | How the live deployment was built, the seven problems hit on the way, and what was verified against it |
 | [`diagrams/`](diagrams/) | Every Mermaid diagram as a standalone file, with reading notes |
 
-## Two things to know before reading
+## Three things to know before reading
 
 **The application is deployed.** Frontend at https://grandmate.vercel.app, backend at
 https://grandmate-v2-backend.fly.dev, Neon Postgres behind it. `DEPLOYMENT.md` §9 records
@@ -24,10 +25,18 @@ for another.
 
 **One hard-gated evaluation metric is currently failing.** `fact_invariance_rate` is 94.4%
 against a zero-tolerance target of 1.0. It is reported as a failure in the generated
-evaluation report, in the deliverables, and in the rubric self-assessment.
+evaluation report and in
+[`production_and_experiments.md`](production_and_experiments.md) §4, which also explains
+why `faithfulness` sits at 0.70 while `grounded_rate` is 100% — the question this
+documentation set gets asked most.
 
-Both are stated here because a documentation set that requires a reader to hunt for its own
-gaps is not honest documentation.
+**Some things were built and not shipped.** Multi-agent orchestration lost a head-to-head
+against the single agent and is not routed; fine-tuning was evaluated and declined; the MCP
+server was deferred. Each decision has a recorded run behind it, in
+[`production_and_experiments.md`](production_and_experiments.md) §2.
+
+All three are stated here because a documentation set that requires a reader to hunt for
+its own gaps is not honest documentation.
 
 ## Regenerating the evaluation report
 
@@ -48,23 +57,15 @@ suite has no recorded run, the report says so rather than omitting the row.
   transcribed from it, and should be re-checked against it after any evaluation run.
 - Anything unverified says so at the point of the claim, not in a footnote.
 
-## Related
-
-`final_docs/` is a **git submodule** pointing at the private repository
-`rakeshnetdev/grandmate_final_docs`. In a checkout made without
-`--recurse-submodules` the directory is empty and every link below is dead; run
-`git submodule update --init` to populate it. The links are paths into a local checkout —
-because the documentation repository is private, they do not resolve on github.com for
-readers without access to it.
+## Elsewhere in the repository
 
 | | |
 |---|---|
-| [`../final_docs/v2/README.md`](../final_docs/v2/README.md) | The engineering documentation index |
-| [`../final_docs/v2/adr/`](../final_docs/v2/adr/) | 17 architecture decision records |
-| [`../final_docs/v2/decisions-log.md`](../final_docs/v2/decisions-log.md) | Every product decision, locked or open |
-| [`../final_docs/v2/features-and-use-cases.md`](../final_docs/v2/features-and-use-cases.md) | What works today, with runnable steps |
-| [`../final_docs/v2/phase-reports/`](../final_docs/v2/phase-reports/) | Phase-by-phase delivery record |
-| [`../final_docs/beta/`](../final_docs/beta/) | Beta cohort plan, feedback rubric, release checklist, post-beta backlog |
-| [`../final_docs/runbooks/`](../final_docs/runbooks/) | Incident response |
-| [`../final_docs/playbooks/`](../final_docs/playbooks/) | Backup and recovery |
-| [`../project-plan.md`](../project-plan.md) | The 19-phase build plan |
+| [`../README.md`](../README.md) | Setup, commands, and layout |
+| [`../backend/README.md`](../backend/README.md) · [`../frontend/README.md`](../frontend/README.md) | Per-side setup and module layout |
+| [`../backend/evals/`](../backend/evals/) | Datasets, harnesses, suites, and the raw run records behind every number |
+
+The internal engineering record — 17 ADRs, the product decisions log, and the
+delivery reports — lives in a separate private repository. It is the audit trail for how
+the project was built, not a prerequisite for understanding what it is; the decisions that
+matter to a reader are restated here.

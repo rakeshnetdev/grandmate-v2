@@ -108,15 +108,29 @@ class TestFindRegressions:
 
 
 class TestCheckGates:
+    # Derived from the configured floor rather than hardcoded: these tests are about the
+    # gating *logic*, not about any particular threshold, and a literal here silently stops
+    # testing anything the moment `ragas_faithfulness_threshold` is retuned past it.
+    def _below_faithfulness_floor(self) -> float:
+        return _settings().ragas_faithfulness_threshold - 0.1
+
     def test_faithfulness_below_threshold_fails_once_reviewed(self) -> None:
-        run = _run("single_game_chat", {"faithfulness": 0.70}, reviewed_scenario_count=5)
+        run = _run(
+            "single_game_chat",
+            {"faithfulness": self._below_faithfulness_floor()},
+            reviewed_scenario_count=5,
+        )
         gates = check_gates(run, _settings())
         assert len(gates) == 1
         assert gates[0].hard is True
         assert gates[0].passed is False
 
     def test_faithfulness_below_threshold_is_informative_only_when_unreviewed(self) -> None:
-        run = _run("single_game_chat", {"faithfulness": 0.70}, reviewed_scenario_count=0)
+        run = _run(
+            "single_game_chat",
+            {"faithfulness": self._below_faithfulness_floor()},
+            reviewed_scenario_count=0,
+        )
         gates = check_gates(run, _settings())
         assert gates[0].hard is False
         assert gates[0].passed is False

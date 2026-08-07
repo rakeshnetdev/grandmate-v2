@@ -1,41 +1,41 @@
-{"query": "Fork", "bucket": "tactics", "expected_headings": ["The Fork"], "qtype": "lexical", "reviewed_by": null}
-{"query": "How can one chess piece threaten two enemy pieces at the same time?", "bucket": "tactics", "expected_headings": ["The Fork"], "qtype": "semantic", "reviewed_by": null}
-{"query": "Pin", "bucket": "tactics", "expected_headings": ["The Pin"], "qtype": "lexical", "reviewed_by": null}
-{"query": "What tactic stops an enemy piece from moving because something valuable is behind it?", "bucket": "tactics", "expected_headings": ["The Pin"], "qtype": "semantic", "reviewed_by": null}
-{"query": "Skewer", "bucket": "tactics", "expected_headings": ["The Skewer"], "qtype": "lexical", "reviewed_by": null}
-{"query": "What happens when an attack forces a valuable piece to move, exposing a weaker piece standing behind it?", "bucket": "tactics", "expected_headings": ["The Skewer"], "qtype": "semantic", "reviewed_by": null}
-{"query": "Hanging Piece", "bucket": "tactics", "expected_headings": ["Hanging Piece"], "qtype": "lexical", "reviewed_by": null}
-{"query": "What do you call an undefended piece that can simply be captured for free?", "bucket": "tactics", "expected_headings": ["Hanging Piece"], "qtype": "semantic", "reviewed_by": null}
-{"query": "Discovered Attack", "bucket": "tactics", "expected_headings": ["Discovered Attack"], "qtype": "lexical", "reviewed_by": null}
-{"query": "What happens when a piece moves out of the way to unmask an attack from a friendly piece behind it?", "bucket": "tactics", "expected_headings": ["Discovered Attack"], "qtype": "semantic", "reviewed_by": null}
-{"query": "Sicilian Defence", "bucket": "openings", "expected_headings": ["Sicilian Defence (B20-B99)"], "qtype": "lexical", "reviewed_by": null}
-{"query": "What is the most popular reply to 1.e4, creating an asymmetrical pawn structure?", "bucket": "openings", "expected_headings": ["Sicilian Defence (B20-B99)"], "qtype": "semantic", "reviewed_by": null}
-{"query": "Ruy Lopez", "bucket": "openings", "expected_headings": ["Ruy Lopez / Spanish Opening (C60-C99)"], "qtype": "lexical", "reviewed_by": null}
-{"query": "Which old, deeply studied opening pressures the knight defending e5 with an early bishop move?", "bucket": "openings", "expected_headings": ["Ruy Lopez / Spanish Opening (C60-C99)"], "qtype": "semantic", "reviewed_by": null}
-{"query": "Queen's Gambit", "bucket": "openings", "expected_headings": ["Queen's Gambit (D06-D69)"], "qtype": "lexical", "reviewed_by": null}
-{"query": "What 1.d4 d5 opening offers a flank pawn to gain central influence and open lines?", "bucket": "openings", "expected_headings": ["Queen's Gambit (D06-D69)"], "qtype": "semantic", "reviewed_by": null}
-{"query": "King's Indian Defence", "bucket": "openings", "expected_headings": ["King's Indian Defence (E60-E99)"], "qtype": "lexical", "reviewed_by": null}
-{"query": "Which hypermodern defence fianchettoes the dark-squared bishop and allows White a full pawn centre before striking back later?", "bucket": "openings", "expected_headings": ["King's Indian Defence (E60-E99)"], "qtype": "semantic", "reviewed_by": null}
-{"query": "French Defence", "bucket": "openings", "expected_headings": ["French Defence (C00-C19)"], "qtype": "lexical", "reviewed_by": null}
-{"query": "Which e4 defence builds a solid pawn chain but restricts the light-squared bishop?", "bucket": "openings", "expected_headings": ["French Defence (C00-C19)"], "qtype": "semantic", "reviewed_by": null}
-{"query": "Isolated Queen's Pawn", "bucket": "strategy", "expected_headings": ["Isolated Queen's Pawn (IQP)"], "qtype": "lexical", "reviewed_by": null}
-{"query": "What is a d-pawn called when there are no friendly pawns on the c-file or e-file next to it?", "bucket": "strategy", "expected_headings": ["Isolated Queen's Pawn (IQP)"], "qtype": "semantic", "reviewed_by": null}
-{"query": "Bad Bishop", "bucket": "strategy", "expected_headings": ["Bad Bishop"], "qtype": "lexical", "reviewed_by": null}
-{"query": "What do you call a bishop whose own side's pawns are fixed on the same colour squares it moves on?", "bucket": "strategy", "expected_headings": ["Bad Bishop"], "qtype": "semantic", "reviewed_by": null}
-{"query": "Passed Pawn Creation", "bucket": "strategy", "expected_headings": ["Passed Pawn Creation"], "qtype": "lexical", "reviewed_by": null}
-{"query": "What kind of pawn has no enemy pawn left on its file or the adjacent files to stop it reaching promotion?", "bucket": "strategy", "expected_headings": ["Passed Pawn Creation"], "qtype": "semantic", "reviewed_by": null}
-{"query": "Weak King Safety", "bucket": "strategy", "expected_headings": ["Weak King Safety"], "qtype": "lexical", "reviewed_by": null}
-{"query": "How is a vulnerable, exposed king position typically measured in a chess position?", "bucket": "strategy", "expected_headings": ["Weak King Safety"], "qtype": "semantic", "reviewed_by": null}
-{"query": "Opposition (King and Pawn Endgames)", "bucket": "strategy", "expected_headings": ["Opposition (King and Pawn Endgames)"], "qtype": "lexical", "reviewed_by": null}
-{"query": "In a king and pawn endgame, which side is favoured when it is not their move to face the enemy king?", "bucket": "strategy", "expected_headings": ["Opposition (King and Pawn Endgames)"], "qtype": "semantic", "reviewed_by": null}
-{"query": "UCI Move Notation", "bucket": "rules", "expected_headings": ["UCI Move Notation"], "qtype": "lexical", "reviewed_by": null}
-{"query": "How do chess engines represent a move using a start square and an end square?", "bucket": "rules", "expected_headings": ["UCI Move Notation"], "qtype": "semantic", "reviewed_by": null}
-{"query": "Centipawn Evaluation", "bucket": "rules", "expected_headings": ["Centipawn Evaluation"], "qtype": "lexical", "reviewed_by": null}
-{"query": "What unit do chess engines use to express a fractional pawn advantage?", "bucket": "rules", "expected_headings": ["Centipawn Evaluation"], "qtype": "semantic", "reviewed_by": null}
-{"query": "What is the special pawn capture called when a pawn passes an enemy pawn's attack square?", "bucket": "rules", "expected_content_contains": "en passant", "qtype": "semantic", "reviewed_by": null}
-{"query": "What rule requires a player to move a piece they deliberately touch?", "bucket": "rules", "expected_content_contains": "touch", "qtype": "semantic", "reviewed_by": null}
-{"query": "What is the offside rule in association football?", "bucket": null, "expected_headings": [], "qtype": "negative", "reviewed_by": null}
-{"query": "How do you move pieces in checkers?", "bucket": null, "expected_headings": [], "qtype": "negative", "reviewed_by": null}
-{"query": "What is the ko rule in the game of Go?", "bucket": null, "expected_headings": [], "qtype": "negative", "reviewed_by": null}
-{"query": "How many players are on a cricket team?", "bucket": null, "expected_headings": [], "qtype": "negative", "reviewed_by": null}
-{"query": "What is the rule for doubling in backgammon?", "bucket": null, "expected_headings": [], "qtype": "negative", "reviewed_by": null}
+{"query": "Fork", "bucket": "tactics", "expected_headings": ["The Fork"], "qtype": "lexical", "reviewed_by": "rakesh-barenkala"}
+{"query": "How can one chess piece threaten two enemy pieces at the same time?", "bucket": "tactics", "expected_headings": ["The Fork"], "qtype": "semantic", "reviewed_by": "rakesh-barenkala"}
+{"query": "Pin", "bucket": "tactics", "expected_headings": ["The Pin"], "qtype": "lexical", "reviewed_by": "rakesh-barenkala"}
+{"query": "What tactic stops an enemy piece from moving because something valuable is behind it?", "bucket": "tactics", "expected_headings": ["The Pin"], "qtype": "semantic", "reviewed_by": "rakesh-barenkala"}
+{"query": "Skewer", "bucket": "tactics", "expected_headings": ["The Skewer"], "qtype": "lexical", "reviewed_by": "rakesh-barenkala"}
+{"query": "What happens when an attack forces a valuable piece to move, exposing a weaker piece standing behind it?", "bucket": "tactics", "expected_headings": ["The Skewer"], "qtype": "semantic", "reviewed_by": "rakesh-barenkala"}
+{"query": "Hanging Piece", "bucket": "tactics", "expected_headings": ["Hanging Piece"], "qtype": "lexical", "reviewed_by": "rakesh-barenkala"}
+{"query": "What do you call an undefended piece that can simply be captured for free?", "bucket": "tactics", "expected_headings": ["Hanging Piece"], "qtype": "semantic", "reviewed_by": "rakesh-barenkala"}
+{"query": "Discovered Attack", "bucket": "tactics", "expected_headings": ["Discovered Attack"], "qtype": "lexical", "reviewed_by": "rakesh-barenkala"}
+{"query": "What happens when a piece moves out of the way to unmask an attack from a friendly piece behind it?", "bucket": "tactics", "expected_headings": ["Discovered Attack"], "qtype": "semantic", "reviewed_by": "rakesh-barenkala"}
+{"query": "Sicilian Defence", "bucket": "openings", "expected_headings": ["Sicilian Defence (B20-B99)"], "qtype": "lexical", "reviewed_by": "rakesh-barenkala"}
+{"query": "What is the most popular reply to 1.e4, creating an asymmetrical pawn structure?", "bucket": "openings", "expected_headings": ["Sicilian Defence (B20-B99)"], "qtype": "semantic", "reviewed_by": "rakesh-barenkala"}
+{"query": "Ruy Lopez", "bucket": "openings", "expected_headings": ["Ruy Lopez / Spanish Opening (C60-C99)"], "qtype": "lexical", "reviewed_by": "rakesh-barenkala"}
+{"query": "Which old, deeply studied opening pressures the knight defending e5 with an early bishop move?", "bucket": "openings", "expected_headings": ["Ruy Lopez / Spanish Opening (C60-C99)"], "qtype": "semantic", "reviewed_by": "rakesh-barenkala"}
+{"query": "Queen's Gambit", "bucket": "openings", "expected_headings": ["Queen's Gambit (D06-D69)"], "qtype": "lexical", "reviewed_by": "rakesh-barenkala"}
+{"query": "What 1.d4 d5 opening offers a flank pawn to gain central influence and open lines?", "bucket": "openings", "expected_headings": ["Queen's Gambit (D06-D69)"], "qtype": "semantic", "reviewed_by": "rakesh-barenkala"}
+{"query": "King's Indian Defence", "bucket": "openings", "expected_headings": ["King's Indian Defence (E60-E99)"], "qtype": "lexical", "reviewed_by": "rakesh-barenkala"}
+{"query": "Which hypermodern defence fianchettoes the dark-squared bishop and allows White a full pawn centre before striking back later?", "bucket": "openings", "expected_headings": ["King's Indian Defence (E60-E99)"], "qtype": "semantic", "reviewed_by": "rakesh-barenkala"}
+{"query": "French Defence", "bucket": "openings", "expected_headings": ["French Defence (C00-C19)"], "qtype": "lexical", "reviewed_by": "rakesh-barenkala"}
+{"query": "Which e4 defence builds a solid pawn chain but restricts the light-squared bishop?", "bucket": "openings", "expected_headings": ["French Defence (C00-C19)"], "qtype": "semantic", "reviewed_by": "rakesh-barenkala"}
+{"query": "Isolated Queen's Pawn", "bucket": "strategy", "expected_headings": ["Isolated Queen's Pawn (IQP)"], "qtype": "lexical", "reviewed_by": "rakesh-barenkala"}
+{"query": "What is a d-pawn called when there are no friendly pawns on the c-file or e-file next to it?", "bucket": "strategy", "expected_headings": ["Isolated Queen's Pawn (IQP)"], "qtype": "semantic", "reviewed_by": "rakesh-barenkala"}
+{"query": "Bad Bishop", "bucket": "strategy", "expected_headings": ["Bad Bishop"], "qtype": "lexical", "reviewed_by": "rakesh-barenkala"}
+{"query": "What do you call a bishop whose own side's pawns are fixed on the same colour squares it moves on?", "bucket": "strategy", "expected_headings": ["Bad Bishop"], "qtype": "semantic", "reviewed_by": "rakesh-barenkala"}
+{"query": "Passed Pawn Creation", "bucket": "strategy", "expected_headings": ["Passed Pawn Creation"], "qtype": "lexical", "reviewed_by": "rakesh-barenkala"}
+{"query": "What kind of pawn has no enemy pawn left on its file or the adjacent files to stop it reaching promotion?", "bucket": "strategy", "expected_headings": ["Passed Pawn Creation"], "qtype": "semantic", "reviewed_by": "rakesh-barenkala"}
+{"query": "Weak King Safety", "bucket": "strategy", "expected_headings": ["Weak King Safety"], "qtype": "lexical", "reviewed_by": "rakesh-barenkala"}
+{"query": "How is a vulnerable, exposed king position typically measured in a chess position?", "bucket": "strategy", "expected_headings": ["Weak King Safety"], "qtype": "semantic", "reviewed_by": "rakesh-barenkala"}
+{"query": "Opposition (King and Pawn Endgames)", "bucket": "strategy", "expected_headings": ["Opposition (King and Pawn Endgames)"], "qtype": "lexical", "reviewed_by": "rakesh-barenkala"}
+{"query": "In a king and pawn endgame, which side is favoured when it is not their move to face the enemy king?", "bucket": "strategy", "expected_headings": ["Opposition (King and Pawn Endgames)"], "qtype": "semantic", "reviewed_by": "rakesh-barenkala"}
+{"query": "UCI Move Notation", "bucket": "rules", "expected_headings": ["UCI Move Notation"], "qtype": "lexical", "reviewed_by": "rakesh-barenkala"}
+{"query": "How do chess engines represent a move using a start square and an end square?", "bucket": "rules", "expected_headings": ["UCI Move Notation"], "qtype": "semantic", "reviewed_by": "rakesh-barenkala"}
+{"query": "Centipawn Evaluation", "bucket": "rules", "expected_headings": ["Centipawn Evaluation"], "qtype": "lexical", "reviewed_by": "rakesh-barenkala"}
+{"query": "What unit do chess engines use to express a fractional pawn advantage?", "bucket": "rules", "expected_headings": ["Centipawn Evaluation"], "qtype": "semantic", "reviewed_by": "rakesh-barenkala"}
+{"query": "What is the special pawn capture called when a pawn passes an enemy pawn's attack square?", "bucket": "rules", "expected_content_contains": "en passant", "qtype": "semantic", "reviewed_by": "rakesh-barenkala"}
+{"query": "What rule requires a player to move a piece they deliberately touch?", "bucket": "rules", "expected_content_contains": "touch", "qtype": "semantic", "reviewed_by": "rakesh-barenkala"}
+{"query": "What is the offside rule in association football?", "bucket": null, "expected_headings": [], "qtype": "negative", "reviewed_by": "rakesh-barenkala"}
+{"query": "How do you move pieces in checkers?", "bucket": null, "expected_headings": [], "qtype": "negative", "reviewed_by": "rakesh-barenkala"}
+{"query": "What is the ko rule in the game of Go?", "bucket": null, "expected_headings": [], "qtype": "negative", "reviewed_by": "rakesh-barenkala"}
+{"query": "How many players are on a cricket team?", "bucket": null, "expected_headings": [], "qtype": "negative", "reviewed_by": "rakesh-barenkala"}
+{"query": "What is the rule for doubling in backgammon?", "bucket": null, "expected_headings": [], "qtype": "negative", "reviewed_by": "rakesh-barenkala"}

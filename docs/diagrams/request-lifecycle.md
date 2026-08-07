@@ -61,7 +61,7 @@ sequenceDiagram
 
 ## Why the commit annotation is there
 
-That step is a real defect that shipped in Phase 5 and was fixed in Phase 7.
+That step is a real defect that shipped and was later fixed.
 
 The route created the `Job` row on the *request's* session, then handed the id to
 `BackgroundTasks`, which opens a **separate** session. Under normal read-committed
@@ -71,5 +71,5 @@ No exception, no log, no Stockfish process — every job stayed `pending` foreve
 
 It reproduced 100% of the time and was invisible to the test suite, because the automated
 tests called the dispatcher directly and never exercised the real HTTP →
-`BackgroundTasks` → dual-session path. It was found by manual browser testing during a
-later phase. The regression test now exercises that real path specifically.
+`BackgroundTasks` → dual-session path. It was found later, by manual browser testing. The
+regression test now exercises that real path specifically.

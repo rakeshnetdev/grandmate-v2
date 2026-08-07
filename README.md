@@ -1,34 +1,37 @@
 # GrandMate v2
 
-A chess analysis and coaching platform. Ingests games from PGN files, Lichess, and
-Chess.com; enriches each one with deterministic engine-backed analysis; aggregates
-patterns across many games; and explains the results differently depending on who is
-asking.
+A chess analysis and coaching platform that finds a player's **long-term habits**, not just
+their single blunders. Ingests games from PGN files, Lichess, and Chess.com; enriches each
+one with deterministic engine-backed analysis; aggregates patterns across many games; and
+explains the results differently depending on who is asking.
 
 Architecturally it is an **agentic RAG system built on a deterministic chess core**. The
 core computes what is true about a game. The agent layer decides what to retrieve and how
-to say it. Neither does the other's job — see
-[ADR-0003](final_docs/v2/adr/0003-deterministic-core-vs-llm-layer.md).
+to say it. Neither does the other's job, and a CI check fails the build if the first ever
+imports the second.
 
 **Live**: [grandmate.vercel.app](https://grandmate.vercel.app) — frontend on Vercel,
 backend on [Fly.io](https://grandmate-v2-backend.fly.dev), Neon Postgres 17 + pgvector
 behind it. Deployment steps, and the seven problems that stood in the way, are in
 [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
 
+**Start with [`docs/production_and_experiments.md`](docs/production_and_experiments.md)**
+if you want the short version: what runs live, what was built and deliberately not shipped
+(multi-agent orchestration, fine-tuning, an MCP server), and how to read the evaluation
+numbers.
+
 ## Layout
 
 ```
 grandmate-v2/
-  backend/      FastAPI + uv. Analysis core, retrieval, agents, MCP server.
+  backend/      FastAPI + uv. Analysis core, retrieval, agents.
   frontend/     Vite + React + Tailwind + shadcn/ui. Feature-driven.
-  final_docs/   Architecture decisions, phase reports, evaluation strategy.
-                A git submodule -> rakeshnetdev/grandmate_final_docs (private).
+  docs/         Architecture, deliverables, evaluation results, deployment, diagrams.
   .github/      Path-scoped CI, issue and PR templates.
 ```
 
 Backend and frontend are independently toolchained with no shared dependency graph. The
-only coupling is a typed API contract. See
-[ADR-0001](final_docs/v2/adr/0001-monorepo-with-hard-boundaries.md).
+only coupling is a typed API contract.
 
 ## Prerequisites
 
@@ -37,7 +40,7 @@ only coupling is a typed API contract. See
 | Python | 3.11+ | Backend |
 | [uv](https://docs.astral.sh/uv/) | 0.11+ | Python dependency and script running |
 | Node | 22+ | Frontend |
-| Stockfish | any recent | Engine analysis (Phase 5 onward) |
+| Stockfish | any recent | Engine analysis |
 | Docker | optional | Containerised dev, Supabase CLI |
 
 ```bash
@@ -65,7 +68,8 @@ is not running.
 
 `.env` files are gitignored. **No secret or tunable is hardcoded anywhere in the
 codebase** — engine depth, model names, thresholds, and keys all come from `.env` through
-a typed settings module. See [configuration.md](final_docs/v2/configuration.md).
+a typed settings module (`backend/app/core/config/`). Every variable is documented in
+`backend/.env.example` and `frontend/.env.example`.
 
 ## Commands
 
@@ -102,8 +106,9 @@ uv tool install pre-commit && pre-commit install   # secret scanning + lint on c
 ## Architecture in brief
 
 **Three truth levels.** A canonical object per game, aggregates across a window of games,
-and persona views over both. Personas change wording, never chess facts — and that
-invariant is enforced by test.
+and persona views over both. Personas change wording, never chess facts — that invariant
+is measured, and it is currently **failing at 94.4%** against a zero-tolerance target,
+reported as a failure rather than rounded up.
 
 **Two engineering halves.** The deterministic core (`domain/games`, `analysis`,
 `patterns`, `aggregation`) is reproducible and asserted exactly. The agent layer
@@ -112,44 +117,34 @@ fails the build if the first ever imports the second.
 
 **Retrieval is first-class.** A five-bucket corpus with per-bucket chunking and hybrid
 dense + sparse search, exposed to the agent as tools rather than run as a fixed prefix
-step. See [rag-architecture.md](final_docs/v2/rag-architecture.md).
+step.
 
-**Identity comes from chess platforms.** Log in with Lichess via OAuth2 PKCE; link a
-Chess.com username. See [ADR-0007](final_docs/v2/adr/0007-identity-and-oauth-strategy.md).
+**One agent, not five.** A multi-agent supervisor graph was built and evaluated
+head-to-head against the single-agent baseline, lost on both pre-declared metrics, and is
+not routed. The reasoning and the numbers are in
+[`docs/production_and_experiments.md`](docs/production_and_experiments.md) §2.1.
 
 ## Documentation
 
-`final_docs/` is a **git submodule** pointing at the private repository
-`rakeshnetdev/grandmate_final_docs`. A plain `git clone` leaves the directory empty and
-every `final_docs/...` link below dead. Populate it with:
-
-```bash
-git clone --recurse-submodules https://github.com/rakeshnetdev/grandmate-v2.git
-# or, in an existing checkout:
-git submodule update --init
-```
-
-Because the documentation repository is private, those links also do not resolve on
-github.com for anyone without access to it — they are paths into a local checkout, not
-browsable URLs.
-
-Start at [`final_docs/v2/README.md`](final_docs/v2/README.md).
+Everything needed to review this project is in [`docs/`](docs/).
 
 | Document | What it answers |
 |----------|----------------|
-| [prd.md](final_docs/v2/prd.md) | What is being built and for whom |
-| [project-plan.md](project-plan.md) | The 19-phase delivery plan |
-| [decisions-log.md](final_docs/v2/decisions-log.md) | What has been decided, and what is open |
-| [configuration.md](final_docs/v2/configuration.md) | Every environment variable |
-| [evaluation-strategy.md](final_docs/v2/evaluation-strategy.md) | How quality is measured and gated |
-| [definition-of-done.md](final_docs/v2/definition-of-done.md) | When a phase is finished |
+| [production_and_experiments.md](docs/production_and_experiments.md) | What runs live, what was tried and dropped, how to read the eval numbers |
+| [Deliverables.md](docs/Deliverables.md) | The full submission: problem, solution, data, prototype, evals, next steps |
+| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | How the system is built — invariants, graphs, request lifecycle, memory, RAG |
+| [evaluation_report.md](docs/evaluation_report.md) | Measured results, generated from recorded runs |
+| [evaluation_data_design.md](docs/evaluation_data_design.md) | What data each suite uses and what it cannot prove |
+| [DEPLOYMENT.md](docs/DEPLOYMENT.md) | How the live deployment was built, and the seven problems in the way |
+| [diagrams/](docs/diagrams/) | Every diagram standalone, with reading notes |
+
+The internal engineering record — ADRs, the decisions log, and delivery reports — lives in a
+separate private repository and is not required to review the system. Nothing in `docs/`
+depends on it.
 
 ## Development process
 
-Delivery is phase-gated. Each phase ships implementation, tests, evaluation, and
-documentation, and does not begin until the previous one is signed off. `claude.md` is the
-execution contract; `project-plan.md` is the blueprint.
-
-The sibling `grandmate/` directory is a **read-only reference implementation**. Anything
-adapted from it is recorded in
-[the reuse ledger](final_docs/v2/changes/0001-reuse-ledger.md).
+Delivery is incremental and gated: each increment ships implementation, tests, evaluation,
+and documentation together, and does not begin until the previous one is signed off.
+Nothing is committed with failing tests, and no evaluation result is discarded because it
+was inconvenient — negative results are recorded and acted on.

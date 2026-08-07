@@ -1,15 +1,16 @@
 # GrandMate v2 — Certification Challenge Deliverables
 
-The complete set of deliverables for the AI Makerspace Certification Challenge. Structured
-to the rubric's seven tasks; the per-criterion self-assessment lives in
-[`grading-rubric.md`](grading-rubric.md).
+The complete deliverables for the AI Makerspace Certification Challenge, structured to the
+rubric's seven tasks.
 
-**Deployed and running**: frontend at https://grandmate.vercel.app, backend at
-https://grandmate-v2-backend.fly.dev. Task 4 asks for a deployed, decoupled prototype and
-that criterion is now met — see §4.2 for the evidence, and `DEPLOYMENT.md` §0 for the seven
-problems in the way, three of which were only findable by deploying.
+**Live**: frontend at https://grandmate.vercel.app, backend at
+https://grandmate-v2-backend.fly.dev. Task 4's deployed, decoupled prototype is met — §4.2
+has the evidence.
 
-## Table of contents
+**Short version**: what runs live, what was built and deliberately not shipped, and how to
+read the evaluation numbers — [`production_and_experiments.md`](production_and_experiments.md).
+
+## Contents
 
 1. [Problem definition and target audience](#1-problem-definition-and-target-audience)
 2. [Proposed solution and architecture](#2-proposed-solution-and-architecture)
@@ -27,44 +28,62 @@ problems in the way, three of which were only findable by deploying.
 ### 1.1 Problem statement
 
 > Chess engines tell a player *what* went wrong in one game, but nothing tells them **which
-> of their mistakes are habits** — so players receive a verdict on a single game instead of
-> a diagnosis of how they actually play.
+> of their mistakes are habits** — so players get a verdict on a single game instead of a
+> diagnosis of how they actually play.
 
-### 1.2 Why this is a problem for this user
+The name is **Grand**master + check**mate**, "mate" in its colloquial sense: a companion
+rather than a stricter coach or a colder analysis tool, and a layer on top of the sites
+people already play on rather than a replacement for them.
 
-The primary user is the **self-directed club player**, roughly 800–1800 rated on Lichess or
-Chess.com, who plays regularly and wants to improve. They finish a game, run the engine,
-and see `-2.4` at move 23 — and learn almost nothing they can act on. The limitation is
-structural, not a quality problem: engine output is per-move and per-game *by
-construction*. It can state that a move lost material. It cannot state "this is the fourth
-time this month you have castled into a weakened king position," or "you score 68% with
-White in the Ruy Lopez and 31% with Black in the French." Playing platforms optimise for
-the game just played; nobody optimises for the pattern across the last sixty. The player is
-left performing the hardest part of coaching — pattern recognition across their own history
-— by memory and intuition, which is exactly what they are least equipped to do about their
-own blind spots.
+### 1.2 The shape of the problem
 
-A human coach breaks this loop, but at $30–100/hour reviewing perhaps one game per session,
-which scales to neither thirty games nor a coach's dozen students. And the two other people
-who need this information are served worse still. A **coach** preparing for a lesson needs
-per-student synthesis across many games and currently does it by hand, per student. A
-**junior player** needs feedback they can read: centipawn losses and engine notation are
-not feedback for an eleven-year-old, they are noise. Today all three audiences receive the
-same undifferentiated engine output — and when a tool does try to explain in natural
-language, a general LLM will confidently invent a variation that was never played, which is
-worse than no explanation, because a learner cannot tell the difference.
+A player competes regularly with nobody available to review the games afterwards. Without
+clear feedback the same mistakes repeat, and motivation drains away. Read back through a
+season of those games and the real problem is visible at once — not one bad move, but the
+same opening trap walked into game after game.
 
-| User | Wants | Persona served |
+One blunder is an accident. The same blunder across a season is a habit, and a habit is the
+thing a player can actually train away — if anyone tells them it exists. Nobody does. The
+hardest part of coaching is pattern recognition across a player's own history, and it is
+exactly the part no existing tool performs.
+
+### 1.3 Why the existing tools do not close the gap
+
+| Tool | Good at | Why it does not solve this |
 |---|---|---|
-| Club player, self-directed | To know which mistakes are habits, and what to drill | `self_learner` |
-| Coach with several students | Fast per-student preparation before a lesson | `coach` |
-| Junior player (8–14) | Feedback they can actually read and act on | `kid` |
-| Parent of a junior | Whether the child is genuinely improving | deferred, post-MVP |
-| Tournament preparer | An opponent's tendencies | deferred, post-MVP |
+| **Engines (Stockfish)** | Exact chess truth — evaluation, best move, principal variation | Per-move and per-game *by construction*. It can say a move lost material; not that it is the fourth time this month |
+| **Chess.com / Lichess** | Playing, plus solid single-game review and accuracy scores | Optimised for the game just played, not the pattern across the last sixty |
+| **General LLMs** | Sounding like a coach over one pasted game | No cross-game memory, loses track of board state, invents moves that were never played — worse than no explanation, because a learner cannot tell the difference |
+| **A human coach** | All of the above, properly | $30–100/hour for roughly one game per session; scales to neither thirty games nor a dozen students |
 
-The persona layer is built so the last two are additions rather than rewrites.
+GrandMate replaces none of them. Stockfish computes the truth, the platforms stay where you
+play, and the missing piece — *which of these mistakes are habits, and what should I
+practise* — is the product.
 
-### 1.3 Current-state workflow and bottlenecks
+### 1.4 Who it is for
+
+The primary user is the **self-directed club player**, roughly 800–1800 rated, who sees
+`-2.4` at move 23 and learns nothing they can act on. Two more audiences are served worse
+still: a **coach**, who does per-student synthesis by hand, and a **junior player**, for whom
+centipawn losses are noise rather than feedback.
+
+Because the language layer may never override the deterministic core, one set of computed
+facts can be re-voiced for whoever is reading — which is what makes three audiences one
+product rather than three:
+
+| Audience | Wants | Persona | Status |
+|---|---|---|---|
+| Club player, self-directed | Which mistakes are habits, and what to drill | `self_learner` | ✅ Live |
+| Junior player (8–14) | Feedback they can read — no centipawns | `kid` | ✅ Live |
+| Coach preparing a lesson | Fast synthesis across a student's games | `coach` | ⚠️ Partial — the persona is live on any profile you can see; the flow that *links* a coach to a student is not built (§8) |
+| Parent of a junior | Whether the child is genuinely improving | `coach` | ⚠️ Partial — same limitation, same unblocking work |
+| Tournament preparer | An opponent's tendencies | — | Deferred, post-MVP |
+
+A kid gets a supportive story, an adult gets a direct lesson, **and the chess facts
+underneath are identical**. That invariant is measured rather than asserted — and it is
+currently failing at 94.4%, reported as a failure in §5.3.
+
+### 1.5 Current-state workflow
 
 ```mermaid
 flowchart LR
@@ -84,31 +103,32 @@ flowchart LR
     class C,E,F,H,I pain
 ```
 
-*(Standalone copy with commentary: [`diagrams/user-workflow-pain-points.md`](diagrams/user-workflow-pain-points.md).)*
+*Standalone copy with commentary:
+[`diagrams/user-workflow-pain-points.md`](diagrams/user-workflow-pain-points.md).*
 
-The red nodes are where the loop fails to produce a lesson. Nothing in it retains anything,
-so the next game starts from zero.
+Red nodes are where the loop fails to produce a lesson. Nothing in it retains anything, so
+the next game starts from zero.
 
-### 1.4 Evaluation dataset
+### 1.6 Evaluation dataset
 
-Eight versioned datasets across eight evaluation suites, each traceable to a concrete
-scenario file, seeded position, or test — never to asserted narrative. Full design in
-[`evaluation_data_design.md`](evaluation_data_design.md); measured results in
+Eight versioned datasets across eight suites, each traceable to a concrete scenario file,
+seeded position, or test — never to asserted narrative. Design in
+[`evaluation_data_design.md`](evaluation_data_design.md); results in
 [`evaluation_report.md`](evaluation_report.md).
 
-Representative scenarios spanning the product's real claims:
+Representative scenarios, spanning the product's real claims:
 
-| # | Scenario | What it must prove | Ground truth from |
-|---|---|---|---|
-| 1 | A move classified `blunder` by the production classifier | Detection agrees with an independent engine | Stockfish at **depth 24**, against a production classifier running depth 12 |
-| 2 | "What was my opening in this game?" | The agent retrieves and cites a real `OpeningMatch` | `game_openings`, seeded |
-| 3 | "What do I keep getting wrong?" | Routes to profile aggregate, not a single game | `profile_aggregate_snapshots` |
-| 4 | Same game rendered for all three personas | The **fact set is identical** across renderings | The scenario's own fact list |
-| 5 | Kid persona on a complex game | No centipawn values; ≤3 findings; low-confidence suppressed | `REPORT_KID_*` settings |
-| 6 | An answer citing a move that was never played | The guardrail rejects it before delivery | `game_moves`, seeded |
-| 7 | "I prefer short answers" stated in chat | Written to long-term memory above the confidence floor | The scenario's expected kind |
-| 8 | Assistant says "I'll remember that", user replies only "ok" | **Nothing** is written — the durable statement was not the user's | Adversarial negative case |
-| 9 | Out-of-corpus query (Go, football) | Bounds how much junk retrieval will confidently return | Known-negative by construction |
+| Scenario | What it must prove | Ground truth from |
+|---|---|---|
+| A move classified `blunder` | Detection agrees with an independent engine | Stockfish at **depth 24**, against a classifier running depth 12 |
+| "What was my opening?" | The agent retrieves and cites a real `OpeningMatch` | `game_openings`, seeded |
+| "What do I keep getting wrong?" | Routes to profile aggregate, not a single game | `profile_aggregate_snapshots` |
+| One game, all three personas | The **fact set is identical** across renderings | The scenario's own fact list |
+| Kid persona, complex game | No centipawns; ≤3 findings; low-confidence suppressed | `REPORT_KID_*` settings |
+| An answer citing a move never played | The guardrail rejects it before delivery | `game_moves`, seeded |
+| "I prefer short answers" | Written to long-term memory above the confidence floor | The scenario's expected kind |
+| Assistant offers to remember; user says only "ok" | **Nothing** is written — the durable statement was not the user's | Adversarial negative |
+| Out-of-corpus query (Go, football) | Bounds how much junk retrieval returns confidently | Known-negative by construction |
 
 ---
 
@@ -121,10 +141,7 @@ Representative scenarios spanning the product's real claims:
 > explains them differently depending on who is reading — with every generated claim
 > verified against the deterministic record before anyone sees it.
 
-The name is a play on **Grand**master and check**mate**, with "mate" in its colloquial
-sense — a companion rather than a cold analysis tool.
-
-### 2.2 System infrastructure and stack justification
+### 2.2 Infrastructure and stack
 
 ```mermaid
 flowchart LR
@@ -161,95 +178,79 @@ flowchart LR
     API --> CCOM
 ```
 
-*(Standalone copy: [`diagrams/system-infrastructure.md`](diagrams/system-infrastructure.md).)*
+*Standalone copy:
+[`diagrams/system-infrastructure.md`](diagrams/system-infrastructure.md).*
 
-| Choice | One-sentence justification |
+The four choices that carried real weight:
+
+| Choice | Why |
 |---|---|
-| **React 19 + Vite + TypeScript** | Typed contracts from API schema to component props, with a build fast enough to keep the dev loop tight. |
-| **Tailwind v4 + shadcn/ui** | Shared primitives that theme light and dark from one token set, rather than a component library to fight. |
-| **FastAPI** | Async throughout — required, since Stockfish and OpenAI calls are both I/O-bound — with Pydantic validation on every boundary. |
-| **LangGraph** | A state graph plus a Postgres checkpointer gives durable multi-turn conversation without building persistence ourselves. |
-| **python-chess** | The reference implementation for PGN parsing, legality, and FEN/EPD generation; reimplementing it would be inventing bugs. |
-| **Stockfish, local, single-threaded** | Free, deterministic, no per-call cost — and it is the ground truth every other layer depends on. |
-| **Postgres 17 + pgvector** | One engine for relational data *and* vectors, so profile-scoped retrieval joins application tables inside the same authorization boundary. |
-| **OpenAI `gpt-4o-mini`** | Cheap enough to run per chat turn, behind an `LLMProvider` Protocol so the vendor is one adapter from replaceable. |
-| **Lichess / Chess.com public APIs** | Account existence at login and public game archives at import, with no OAuth approval gate on either path. |
+| **Stockfish, local, single-threaded** | Free, no per-call cost, deterministic at `ENGINE_THREADS=1`. It is the ground truth everything else is checked against, so it cannot be the stochastic part |
+| **Postgres 17 + pgvector** | One engine for relational data *and* vectors, so profile-scoped retrieval joins application tables inside the same authorization boundary rather than across a network hop |
+| **LangGraph** | A state graph plus a Postgres checkpointer gives durable multi-turn conversation without building persistence ourselves |
+| **OpenAI `gpt-4o-mini`** | Cheap enough per chat turn, behind an `LLMProvider` Protocol so the vendor is one adapter from replaceable |
 
-### 2.3 Agent workflow, end to end
+Every choice, with its rejected alternative and accepted tradeoff, is in
+[`ARCHITECTURE.md`](ARCHITECTURE.md) §3.
 
-```mermaid
-flowchart TD
-    IN["User turn<br/>question + persona + active game"] --> CI["classify_intent<br/><i>explain · compare · summarise · train_next</i>"]
-    CI --> RA["run_agent"]
-    subgraph AGENT["run_agent — bounded by AGENT_MAX_STEPS / MAX_TOOL_CALLS / TOKEN_BUDGET"]
-      SEL{"Agent selects tools"}
-      SEL --> KN["search_knowledge"]
-      SEL --> AN["search_analysis<br/><i>profile-scoped</i>"]
-      SEL --> GA["get_game_analysis"]
-      SEL --> CM["list_critical_moments"]
-      SEL --> PA["get_profile_aggregate"]
-      SEL --> LO["lookup_opening"]
-      SEL --> VL["validate_line"]
-      SEL --> RM["recall_memory"]
-      KN & AN & GA & CM & PA & LO & VL & RM --> DR["Draft: {answer, citations[]}"]
-      DR --> GD{"Grounding guardrail"}
-      GD -- "rejected · retry 1" --> SEL
-      GD -- "rejected twice" --> FB["Deterministic fallback"]
-      GD -- "approved" --> OK["Grounded answer"]
-    end
-    RA --> WM["write_memory<br/><i>confidence-gated, silent</i>"]
-    WM --> E([END · checkpointed])
-```
+### 2.3 Agent workflow
 
-*(Standalone copy: [`diagrams/agent-workflow.md`](diagrams/agent-workflow.md). Full
-architecture: [`ARCHITECTURE.md`](ARCHITECTURE.md).)*
+One turn is `classify_intent` → `run_agent` → `write_memory`, checkpointed in Postgres. The
+agent selects from **eight tools** inside a bounded Python loop, drafts an answer with
+citations, and passes it to the grounding guardrail — which retries once, then falls back to
+deterministic text rather than ship an unverified claim. `write_memory` runs last, in its
+own node, so an extraction failure cannot fail a turn the user has already seen.
 
 **This is agentic RAG, not a retrieve-then-generate chain.** Retrieval is exposed to the
-agent *as tools*, so it chooses strategy per query. Eight tools, none of which accepts
-`profile_id` — one `ToolContext` binds it for the whole turn, so no model output can
-request another profile's data.
+agent *as tools*, so it chooses what to fetch per query rather than running a fixed prefix
+step. No tool accepts `profile_id` — one `ToolContext` binds it for the whole turn, so no
+model output can request another profile's data.
+
+Diagram and node-by-node reasoning: [`ARCHITECTURE.md`](ARCHITECTURE.md) §4.1.
 
 ---
 
 ## 3. Dealing with the data
 
-### 3.1 Data sources and external APIs
+### 3.1 Sources and provenance
 
 | Source | Type | Purpose | Licence / provenance |
 |---|---|---|---|
-| **User PGN** — paste, file, batch upload | User-supplied | Primary ingestion path; one endpoint handles all three | User's own |
-| **Lichess API** — `/api/user/{u}`, game export | External REST | Account existence at login; public game archives at import | Public, unauthenticated |
-| **Chess.com API** — `/pub/player/{u}`, monthly archives | External REST | Same two purposes | Public, unauthenticated |
-| **`lichess-org/chess-openings`** | Vendored dataset | ~3,800 EPD-keyed opening entries for ECO identification | **CC0 1.0** — commit pinned, `PROVENANCE.md` records source, commit, retrieval date, reviewer |
-| **FIDE Laws of Chess** | Vendored PDF | The `rules` corpus bucket | **Licence unclear** — recorded honestly as unresolved rather than invented, per an explicit owner decision |
-| **Authored corpus** — tactics, openings, strategy, engine semantics | Original prose | The other three buckets | Original; cross-checked against reference material, no text reproduced |
+| **User PGN** — paste, file, batch | User-supplied | Primary ingestion; one endpoint handles all three | User's own |
+| **Lichess API** | External REST | Account existence at login; public archives at import | Public, unauthenticated |
+| **Chess.com API** | External REST | Same two purposes | Public, unauthenticated |
+| **`lichess-org/chess-openings`** | Vendored dataset | ~3,800 EPD-keyed entries for ECO identification | **CC0 1.0** — commit pinned; `PROVENANCE.md` records source, commit, date, reviewer |
+| **FIDE Laws of Chess** | Vendored PDF | The `rules` bucket | **Licence unclear** — recorded as unresolved rather than invented, per an explicit owner decision |
+| **Authored corpus** | Original prose | Tactics, openings, strategy, engine semantics | Original; cross-checked against reference material, no text reproduced |
 | **Stockfish** | Local binary | All evaluation ground truth | GPL, run as a subprocess |
-| **OpenAI** | External API | `gpt-4o-mini` completions, `text-embedding-3-small` embeddings | Commercial |
+| **OpenAI** | External API | Completions and embeddings | Commercial |
 
 **Provenance is enforced, not documented.** `domain/knowledge/provenance.py` parses a
 required header (`Title` / `Source` / `Source-URL` / `Licence` / `Retrieved`) from every
-corpus document and **rejects** any document missing a field. A document without provenance
+corpus document and **rejects** any that is missing a field. A document without provenance
 cannot enter a bucket.
 
-### 3.2 Chunking strategy and rationale
+### 3.2 Chunking strategy
 
-Five buckets. Two chunkers — deliberately not a token-size knob per bucket.
+Five buckets, **two chunkers** — deliberately not a token-size knob per bucket. The
+per-bucket breakdown is in [`ARCHITECTURE.md`](ARCHITECTURE.md) §8; the reasoning belongs
+here.
 
-| Bucket | Source | Chunk unit | Rationale |
-|---|---|---|---|
-| `rules` | FIDE PDF | Token window (`CHUNK_SIZE_TOKENS=512`, overlap 64) | PDF-extracted text has no heading structure left to exploit; overlap keeps an article and its clauses together across a boundary |
-| `rules` | Authored engine-semantics notes | One `##` section | Written one topic per heading |
-| `openings` | Authored family notes | One `##` section | One opening family per chunk — a split family loses the ECO range it is defined by |
-| `tactics` | Authored motif notes | One `##` section | Motifs are atomic; half a fork explanation retrieves as noise |
-| `strategy` | Authored principle notes | One `##` section | One theme per chunk |
-| `analysis` | Projected from a profile's own analysed games | One finding per chunk | A finding is the unit a coach reasons about; **profile-scoped**, `NOT NULL profile_id` |
+- **`chunk_markdown_by_heading`** — one `##` section per chunk, for the four authored
+  buckets. A motif is atomic (half a fork explanation retrieves as noise); an opening family
+  split across chunks loses the ECO range that defines it; a strategic theme is one theme.
+- **`chunk_by_tokens`** (`CHUNK_SIZE_TOKENS=512`, overlap 64) — for the one genuinely
+  unstructured input, the FIDE PDF, whose extracted text has no headings left to exploit.
+  The overlap keeps an article and its clauses together across a boundary.
 
-**Why two chunkers rather than per-bucket token targets.** Every authored document is
-already written at the granularity its bucket calls for, so heading boundaries *are* the
-correct chunk boundaries — a configured token target would cut across them and could not
-improve on them. `chunk_by_tokens` exists for the one genuinely unstructured input.
+**Why not per-bucket token targets.** Every authored document is already written at the
+granularity its bucket calls for, so heading boundaries *are* the correct chunk boundaries;
+a token target would cut across them and could not improve on them. And
 `chunk_markdown_by_heading` **raises** if a document has no `##` headings, so a
-badly-formatted document fails ingestion instead of silently producing one enormous chunk.
+badly-formatted document fails ingestion instead of silently becoming one enormous chunk.
+
+The fifth bucket, `analysis`, is chunked one finding per chunk — the unit a coach reasons
+about — and is **profile-scoped** behind a `NOT NULL profile_id`.
 
 ---
 
@@ -260,35 +261,35 @@ badly-formatted document fails ingestion instead of silently producing one enorm
 A decoupled full-stack application: FastAPI backend, React SPA frontend, no shared
 dependency graph, path-scoped CI per side.
 
-**Backend** — 12 route modules, 15 domain modules, 29 database tables, reversible Alembic
-migrations with up→down→up tested per phase. Deterministic core (ingestion, canonical game
-objects, tiered Stockfish analysis, 10 tactical motifs, 10 strategic themes, multi-game
-aggregation) kept structurally separate from the generative layer by a CI-enforced
-layer-boundary check.
+**Backend** — 12 route modules, 15 domain modules, 29 tables, reversible Alembic migrations
+tested up→down→up. The deterministic core (ingestion, canonical game objects,
+tiered Stockfish analysis, 10 tactical motifs, 10 strategic themes, aggregation) is kept
+structurally separate from the generative layer by a CI-enforced layer-boundary check.
 
-**Frontend** — 14 features: `auth`, `imports`, `games`, `analytics`, `reports`, `chat`,
-`memory`, `training`, `profiles`, `devinsight`, `health`, `learning`, `game-feedback`,
-`workspace`.
+**Frontend** — 14 features across three routes (`/`, `/login`, catch-all). Import, Games,
+Dashboard, Chat, Memory and Game-Detail were six separate pages earlier in the build; they are
+now panels and tabs in one workspace shell, so the surface is a single application screen
+rather than a set of destinations.
 
-Three routes only — `/` , `/login`, and a catch-all. Import, Games, Dashboard, Chat, Memory
-and Game-Detail were six separate pages until Phase 16a (D-035); they are now panels and
-tabs inside one three-panel workspace shell, so the surface is a single application screen
-rather than a set of destinations. The engine-detail tabs ("Moves", "Patterns") are opt-in
-behind a persisted switch: they show the raw deterministic output, and a reader who came to
-understand one game should not have to walk past it first.
+**Two product decisions worth naming**, both about refusing to lead with maths:
 
-**Verified running locally, end to end**, against real Postgres, a real Stockfish binary,
-and real `gpt-4o-mini` calls — not mocks. The full demo path: log in → paste a PGN → watch
-background analysis complete → read per-move classifications, opening, motifs and themes →
-open the dashboard for recurring weaknesses → switch personas → ask a question in chat and
-get a cited answer → state a preference and see it persist to the memory audit page.
-Runnable steps for every capability:
-[`../final_docs/v2/features-and-use-cases.md`](../final_docs/v2/features-and-use-cases.md).
+- **A game opens as a story.** The Story tab narrates opening, middlegame and endgame in the
+  reader's persona voice, from the same deterministic facts, with its own grounded fallback.
+  The engine-detail tabs ("Moves", "Patterns") are opt-in behind a persisted switch.
+- **The dashboard refuses to overclaim a habit.** Below `ANALYTICS_MIN_GAMES_FOR_TREND`
+  (default 5) analysed games, trends are computed but flagged `sufficient_sample=False`
+  rather than asserted — two bad games are not a trend. A weakness must recur in at least
+  `ANALYTICS_WEAKNESS_MIN_OCCURRENCE_RATE` (default 30%) of the window to be named.
 
-> `final_docs/` is a git submodule pointing at a **private** repository
-> (`rakeshnetdev/grandmate_final_docs`). Every `../final_docs/...` link in this document
-> needs `git submodule update --init` in a local checkout, and does not resolve on
-> github.com without access to that repository.
+**Verified end to end** against real Postgres, a real Stockfish binary, and real
+`gpt-4o-mini` calls — not mocks. The full path: connect a Lichess or Chess.com account (or
+paste a PGN) → background analysis completes → read the story, then classifications,
+opening, motifs and themes → open the dashboard for recurring weaknesses and a training plan
+→ switch personas → ask a question in chat and get a cited answer → say "I prefer short
+answers" and see it persist to the memory audit page, where it can be deleted.
+
+Capability-by-capability, with the module behind each:
+[`production_and_experiments.md`](production_and_experiments.md) §1.
 
 ### 4.2 Deployment — met
 
@@ -301,37 +302,22 @@ Runnable steps for every capability:
 Decoupled as the rubric asks: two hosting providers, two toolchains, no shared dependency
 graph, talking over a typed HTTP contract.
 
-Verified against the live stack rather than asserted — `/ready` returns
-`missing_configuration: []` with `stockfish_binary: true`, the corpus holds 92 chunks
-across four buckets, the SPA rewrite serves deep links, CORS preflight returns the exact
-origin with credentials allowed, and the full path (login → import → analysis → chat) was
-walked in a browser. The evidence table is [`DEPLOYMENT.md`](DEPLOYMENT.md) §9.
+**Verified against the live stack, not asserted** — `/ready` returns
+`missing_configuration: []` with `stockfish_binary: true`, the corpus holds 92 chunks across
+four buckets, the SPA rewrite serves deep links, CORS preflight returns the exact origin with
+credentials allowed, and the full path was walked in a browser. Evidence table:
+[`DEPLOYMENT.md`](DEPLOYMENT.md) §9.
 
-**The more useful part of that document is §0.** Seven problems stood between a working
-local application and a working deployed one. Four were predicted by reading the code
-before any deploy was attempted. Three were not:
+**Seven problems stood in the way, and three were findable only by deploying**: Stockfish
+sitting at a different path on Debian than on a developer's machine (container healthy,
+nothing ever analysed, because no request path touches the engine); `scripts/` missing from
+the image, so the ingest command this documentation told an operator to run did not exist;
+and a fix for one problem deadlocking against another, since the backend refused to start
+without the frontend's origin while the frontend could not build without the backend's URL.
+Leaving the verification table empty rather than filling it from intent is what kept that
+visible. Full account: [`DEPLOYMENT.md`](DEPLOYMENT.md) §0.
 
-- **Stockfish was never at the configured path.** Debian installs it to
-  `/usr/games/stockfish`; the default is `/usr/local/bin/stockfish`. The container reported
-  perfectly healthy and analysed nothing, because only the background worker touches the
-  engine and its failure is on no request path.
-- **`scripts/` was not in the image**, so the corpus-ingestion command this very document
-  told the operator to run failed with `ModuleNotFoundError`. That could not have been
-  caught by reading code: the thing that broke is a command a human runs by hand.
-- **A fix for one problem deadlocked the deployment.** Treating a placeholder CORS origin
-  as required configuration made the backend refuse to start until it knew the frontend's
-  origin — while the frontend could not be built until it knew the backend's URL, since
-  `VITE_API_BASE_URL` is compiled into the bundle. Ten restart attempts on an otherwise
-  healthy container. The repair splits "cannot function" from "not yet wired to its
-  frontend", so placeholders warn instead of being fatal.
-
-This document previously said `DEPLOYMENT.md` was "marked PLANNED — NOT YET VERIFIED
-throughout, and its Verified table deliberately left empty rather than filled in from
-intent." That restraint turned out to be worth something: three of the seven problems were
-findable *only* by deploying, which is precisely what an intent-filled table would have
-claimed was already fine.
-
-**What is still not verified**: load of any kind, recovery from a mid-analysis restart
+**Still not verified**: load of any kind, recovery from a mid-analysis restart
 (`min_machines_running = 1` is a workaround for the absent worker, not a replacement),
 Vercel preview origins, and cost over a full billing period.
 
@@ -343,95 +329,85 @@ Vercel preview origins, and cost over a full billing period.
 
 **Ground truth never comes from the code being graded.** A retrieval query whose correct
 chunk was chosen by the retriever, or a move label produced by the classifier being scored,
-measures self-consistency and reports it as accuracy — silently, and with excellent
-numbers. Two corollaries, both enforced in the harnesses: a metric that could not be
-measured is reported as *not measured* rather than defaulted to a pass, and a synthetic set
-is never read as though it were the golden set.
+measures self-consistency and reports it as accuracy — silently, and with excellent numbers.
+Two corollaries, both enforced in the harnesses: a metric that could not be measured is
+reported as *not measured* rather than defaulted to a pass, and a synthetic set is never read
+as though it were the golden set.
 
 ### 5.2 The harness
 
-Three layers, deliberately distinguished because conflating them is how an evaluation
-section becomes a rubber stamp:
-
-1. **Deterministic** — free, exactly reproducible. Classifier accuracy against an
-   independent depth-24 oracle; retrieval hit rate and MRR against queries with a
-   known-by-construction correct chunk.
-2. **Judged** — real cost, run-to-run variance. RAGAS faithfulness, response relevancy,
-   LLM-judged tone fidelity.
-3. **Structural** — not sampled at all. `grounded_rate`, `intent_valid_rate`,
-   `staleness_resolved`, `cross_profile_isolated` are properties the code *guarantees* and
-   that are verified against real Postgres.
+Three layers — **deterministic** (free, exactly reproducible), **judged** (real cost,
+run-to-run variance), and **structural** (not sampled at all; properties the code guarantees,
+verified against real Postgres). Conflating them is how an evaluation section becomes a
+rubber stamp. What belongs in each, and how to read a 100% from one versus another:
+[`production_and_experiments.md`](production_and_experiments.md) §3.1.
 
 Eight suites, each with a versioned dataset and a timestamped run record.
 [`evaluation_report.md`](evaluation_report.md) is **generated** from those records by
-`backend/evals/report.py` — no figure in it is hand-written, so it cannot drift from the
-runs it describes.
+`backend/evals/report.py`, so no figure in it can drift from the run it describes.
 
 ### 5.3 Results and conclusions
 
 Full tables in [`evaluation_report.md`](evaluation_report.md). The conclusions that matter:
 
-**The deterministic core is sound, and the test proving it can fail.** Detection F1
-**1.000**, severity accuracy **0.750** against an independent depth-24 oracle (n=24). The
-negative control — the same harness against deliberately corrupted thresholds — collapses
-to F1 **0.500** and severity **0.125**. A test that cannot fail proves nothing, so the
-collapse matters more than the passing score. Per-class breakdown shows accuracy is not
-uniform: `inaccuracy` is weakest (F1 0.571), which is the expected place for a classifier
-to disagree with an oracle.
+**The deterministic core is sound, and the test proving it can fail.** Detection F1 **1.000**
+and severity accuracy **0.750** against an independent depth-24 oracle (n=24). The negative
+control — the same harness against deliberately corrupted thresholds — collapses to F1
+**0.500** and severity **0.125**. A test that cannot fail proves nothing, so the collapse
+matters more than the passing score. Per class, `inaccuracy` is weakest (F1 0.571), which is
+the expected place for a classifier to disagree with an oracle.
 
 **Grounding is structurally guaranteed and measured at 100%.** `grounded_rate` and
 `intent_valid_rate` are both 100% — by construction, not by sampling. Observed live: on one
-real game the kid persona failed grounding twice and fell back to the deterministic
-summary, while self-learner and coach succeeded, in the same session.
+real game the kid persona failed grounding twice and fell back to the deterministic summary
+while self-learner and coach succeeded, in the same session.
 
-**Retrieval is strong, and hybrid does not win outright.** Context precision 0.936 /
-recall 0.977 / MRR 0.949 for hybrid — but *sparse alone* matches or exceeds it on
-precision and recall at this corpus size. Recorded as the honest outcome rather than
-smoothed over. Hybrid does have the best MRR, which asks a narrower question.
+**⚠️ A hard-gated metric is failing.** `fact_invariance_rate` is **94.4%** on the 30-scenario
+persona run, against a zero-tolerance target. An earlier 5-scenario run scored 100%; the
+expanded set found a real violation of the product's central claim. An open item, not a
+passing result — listed with everything else failing or missing in
+[`production_and_experiments.md`](production_and_experiments.md) §4.
 
-**⚠️ A hard-gated metric is currently failing.** `fact_invariance_rate` is **94.4%** on the
-most recent 30-scenario persona run. That metric is zero-tolerance — the product's central
-claim is that personas never change chess truth — and an earlier 5-scenario run scored
-100%. The expanded set found a real violation. This is an open item, not a passing result,
-and is recorded as such in [`grading-rubric.md`](grading-rubric.md).
+**Faithfulness is 0.701, and understood**, alongside a 100% `grounded_rate`. Not a
+contradiction: the two score different objects by different mechanisms, and the sentences
+pulling faithfulness down are coaching advice that no corpus passage can entail — not
+fabricated chess claims, of which manually reading every answer in the run found none. The
+threshold was recalibrated from 0.85 to 0.70 on that reasoning, which is a statement about
+what the metric can measure here, **not** an improvement in the score: the score did not
+move. The correct fix — splitting the answer contract into facts and advice so faithfulness
+scores only the facts — is not done. Full argument:
+[`production_and_experiments.md`](production_and_experiments.md) §3.2.
 
-**Multi-agent orchestration was evaluated and not adopted.** Single-agent faithfulness
-0.600 vs multi-agent 0.504; relevancy 0.406 vs 0.118. Against a pre-declared exit criterion
-("multi-agent must match or beat single-agent on both to be adopted"), it did not. The
-supervisor graph stays built, tested, and unrouted. The run is flagged `directional_only` —
-12 scenarios cannot quantify the gap, only show it did not clear the bar.
+**Multi-agent orchestration was evaluated and not adopted.** Single-agent faithfulness 0.600
+vs multi-agent 0.504; relevancy 0.406 vs 0.118. Against a pre-declared exit criterion, it did
+not clear the bar, so the supervisor graph stays built, tested and unrouted behind
+`USE_MULTI_AGENT=false`. The run is flagged `directional_only` — 12 scenarios can show it did
+not clear the bar, not quantify the gap. Why it lost, from the transcripts:
+[`production_and_experiments.md`](production_and_experiments.md) §2.1.
 
-**Faithfulness is below target and understood.** 0.701 against a 0.85 target. Manually
-reading all answers found no fabricated game-specific claim; RAGAS scores every sentence
-including legitimate uncited coaching advice. Either the threshold needs recalibrating for
-a system that intentionally gives advice, or the output contract needs an explicit
-advice-versus-fact split.
-
-**Limitations, stated rather than found by a reviewer.** Every golden set is self-authored
-with `reviewed_by` null, so judged scores are informative rather than gating. Sample sizes
-are small (24 classifier positions, 12 trajectory scenarios). Retrieval "semantic" queries
-retain vocabulary overlap with their source chunks, which structurally favours BM25 and is
-the likely reason hybrid does not win. Everything is scored against one model.
+**Limitations, stated rather than found by a reviewer.** The golden sets are reviewed, but by
+their own author — that catches errors, not blind spots the author shares, so independent
+review is still the highest-value improvement available. Sample sizes are small (24 classifier
+positions, 12 trajectory scenarios). Retrieval "semantic" queries retain vocabulary overlap
+with their source chunks, which structurally favours BM25. Everything is scored against one
+model.
 
 ---
 
 ## 6. Advanced retrieval and iterative improvements
 
-### 6.1 Advanced retrieval: hybrid RRF over a bucket-routed multi-corpus index
+### 6.1 Advanced retrieval: hybrid RRF over a bucket-routed index
 
-**The problem.** Dense vector search generalises away exact terms — an ECO code like `C89`,
-a coordinate like `e4`, an opening name like "Marshall Attack" — and returns diluted
-results. Sparse search catches those but misses conceptual paraphrase.
+**The problem.** Dense vector search generalises away exactly the terms chess runs on — an
+ECO code like `C89`, a coordinate like `e4`, a name like "Marshall Attack" — and returns
+diluted results. Sparse search catches those and misses conceptual paraphrase.
 
-**The implementation.** Dense (pgvector) and sparse (BM25) retrieval fused by **reciprocal
-rank fusion**, over a corpus partitioned into five buckets with a heuristic router
-(`select_buckets`) selecting which to search. The bucket filter applies before fusion, so
-rules language cannot bleed into strategy advice. All three strategies run through the same
-production entry point, so the benchmark measures what the application actually does.
-
-The fifth bucket, `analysis`, is **profile-scoped**: a player's own games become retrievable
-knowledge, isolated at the retriever interface with `profile_id` as a keyword-only argument
-and a `NOT NULL` column behind it.
+**The implementation.** Dense (pgvector) and sparse (BM25) fused by **reciprocal rank
+fusion**, over five buckets with a heuristic router (`select_buckets`) choosing which to
+search. The bucket filter applies *before* fusion, so rules language cannot bleed into
+strategy advice. All three strategies run through the same production entry point, so the
+benchmark measures what the application actually does. Subsystem detail:
+[`ARCHITECTURE.md`](ARCHITECTURE.md) §8.
 
 ### 6.2 Retrieval comparison — baseline vs advanced
 
@@ -441,30 +417,34 @@ Measured over 41 corpus-derived queries (17 lexical, 19 semantic, 5 negative) ag
 | Retriever | Context precision | Context recall | MRR | Negative FP rate |
 |---|---|---|---|---|
 | Dense (baseline) | 0.907 | 0.951 | 0.914 | 100% |
-| Sparse (BM25) | **0.927** | **0.983** | 0.921 | 100% |
+| Sparse / BM25 (baseline) | 0.927 | **0.983** | 0.921 | 100% |
 | **Hybrid RRF (advanced)** | **0.936** | 0.977 | **0.949** | 100% |
 
-**Honest reading**: hybrid has the best context precision and the best MRR, but sparse
-edges it on recall — so hybrid does **not** beat both baselines on both metrics, and
-`rag-architecture.md`'s own rule ("if hybrid does not beat both baselines, the simpler
-retriever ships") applies. Hybrid remains fully implemented and available, since the agent
-chooses strategy per query anyway. Recorded rather than presented as a clean win.
+**Honest reading**: hybrid has the best context precision and the best MRR, but sparse edges
+it on recall — so hybrid does **not** beat both baselines on both metrics, and the project's
+pre-declared rule ("if hybrid does not beat both baselines, the simpler retriever ships") was
+not satisfied. **Hybrid ships anyway**: `search_knowledge` calls `hybrid_search` directly.
+The defensible part is that these gaps sit inside the noise of a 92-chunk corpus and 41
+queries, and that MRR — the metric hybrid wins — is what matters for an agent reading the top
+result first. The honest part is that the rule said switch and the switch was not made.
+Recorded in [`production_and_experiments.md`](production_and_experiments.md) §2.2 rather than
+presented as a clean win.
 
-**A known gap, measured**: with `RETRIEVAL_MIN_SCORE=0.0` every retriever returns its
-`top_k` regardless of relevance, so all five out-of-corpus queries produce a false positive
-at every strategy. That is a measured consequence of a configuration default, not a
-retrieval defect — but it means the negatives currently measure the absence of a threshold.
+**A known gap, measured**: with `RETRIEVAL_MIN_SCORE=0.0` every retriever returns its `top_k`
+regardless of relevance, so all five out-of-corpus queries produce a false positive at every
+strategy. A measured consequence of a configuration default, not a retrieval defect — but it
+means the negatives currently measure the absence of a threshold.
 
-### 6.3 Second improvement: detector precision, driven by external ground truth
+### 6.3 Second improvement: detector precision from external ground truth
 
-The tactical motif detectors were first validated only against hand-built positions — which
-is the detector grading its own homework. The improvement was to score them against **real,
-independently tagged Lichess puzzles** (CC0), where the ground truth is Lichess's own
+The tactical motif detectors were first validated only against hand-built positions — the
+detector grading its own homework. The improvement was to score them against **real,
+independently tagged Lichess puzzles** (CC0), where ground truth is Lichess's own
 community-vetted theme tag.
 
-**That immediately found a real bug.** Both `skewer` puzzles failed. `skewer.py` required
-the front piece's trade value to exceed the back piece's, but `PIECE_VALUES_CP[KING] == 0`
-by design — so the textbook case where a *king* is checked and forced to move, exposing a
+**That immediately found a real bug.** Both `skewer` puzzles failed: `skewer.py` required the
+front piece's trade value to exceed the back piece's, but `PIECE_VALUES_CP[KING] == 0` by
+design — so the textbook case where a *king* is checked and forced to move, exposing a
 valuable piece behind it, could never satisfy the comparison. Fixed, with a regression test
 built from one of the two puzzles that caught it.
 
@@ -473,12 +453,6 @@ built from one of the two puzzles that caught it.
 | Recall on tagged puzzles | 18 / 20 | **20 / 20** |
 | False positives on near-miss fixtures | 0 / 10 | **0 / 10** |
 
-A second, negative-result iteration is worth naming because it was also driven by
-evaluation: the **multi-agent supervisor graph** was built, scored head-to-head against the
-single agent, and **not adopted** because it lost on both pre-declared metrics. Recording a
-negative result and leaving the code unrouted is the same discipline as fixing the skewer
-bug — the evaluation decided, not the intuition.
-
 ---
 
 ## 7. Future reflections
@@ -486,52 +460,38 @@ bug — the evaluation decided, not the intuition.
 ### 7.1 What worked, and should stay
 
 **Deterministic ground truth, structurally separated.** The layer-boundary check that fails
-CI if `domain/analysis` imports anything LLM-related is the single most valuable rule in the
-codebase. It is why "the LLM never computes chess truth" is a property rather than an
+CI if `domain/analysis` acquires an LLM import is the single most valuable rule in the
+codebase — it is why "the LLM never computes chess truth" is a property rather than an
 aspiration.
 
-**Guardrails with a fallback, not a refusal.** Never showing an ungrounded claim *and*
-never showing an error are both requirements; the retry-then-deterministic-fallback pattern
-satisfies both, and disclosing which path produced the text keeps it honest.
+**Guardrails with a fallback, not a refusal.** Never showing an ungrounded claim *and* never
+showing an error are both requirements; retry-then-deterministic-fallback satisfies both, and
+disclosing which path produced the text keeps it honest.
 
 **Evaluating against ground truth the system did not produce.** The depth-24 oracle and the
-Lichess puzzle tags each found a real defect that internal fixtures had not. The negative
-control is the practice most worth carrying into any new suite.
+Lichess puzzle tags each found a real defect internal fixtures had not. The negative control
+is the practice most worth carrying into any new suite.
 
-**Recording negative results.** Hybrid retrieval not beating sparse; multi-agent losing its
-head-to-head. Both are in the documentation as findings rather than quietly dropped.
+**Being bound by a pre-declared exit criterion.** Multi-agent orchestration was built,
+scored, and dropped because it lost — the same discipline as fixing the skewer bug. The
+evaluation decided, not the intuition.
 
 ### 7.2 What to change
 
-**Close the login trust gap.** ADR-0014's username-claim login proves an account exists,
-not that the user owns it. Acceptable while the system holds nothing private; it must close
-before any private-data feature or public deployment.
-
-**Get the golden sets human-reviewed.** Every `reviewed_by` is null, which caps every judged
-metric at "informative." This is the highest-value unblocked action in the whole evaluation
-programme.
+The complete list of what is failing, missing, or knowingly compromised is kept in one place
+— [`production_and_experiments.md`](production_and_experiments.md) §4 — rather than scattered
+through this document. The three that would change decisions:
 
 **Resolve the `fact_invariance_rate` regression.** A zero-tolerance metric at 94.4% is an
-open defect, not a rounding error.
+open defect, not a rounding error, and it sits on the claim the whole product rests on.
 
-**Add LLM failover.** One provider, no fallback: an outage stops all generation. The
-`LLMProvider` Protocol makes this an adapter, not a redesign.
+**Get the golden sets independently reviewed.** They are author-reviewed today, which catches
+errors but not shared blind spots. A second reader is the highest-value improvement available
+to the evaluation programme, and it needs a reader rather than code.
 
-**Move background work to a real worker.** `BackgroundTasks` is fine at MVP scale and
-becomes wrong the moment the process can stop. The `jobs` table was designed for this in
-Phase 3 and its `idempotency_key` column is still unused.
-
-### 7.3 Where the product could go
-
-**The interactive board.** The analysis view shows a move table and best moves in UCI
-(`e2e4`) rather than SAN on a board. The highest visible payoff per unit of effort.
-
-**Coach and academy dashboards.** The permission model (ADR-0012) and the
-`profile_relationships` table exist; no flow creates a relationship row, so a coach cannot
-yet view a student.
-
-**Plain-English engine lines.** Translating a principal variation into the plan behind it —
-*"a3 stops the knight coming to b4"* — is the part players cannot read for themselves.
+**Split the answer contract into facts and advice.** It would let faithfulness score only the
+sentences it was ever meant to score, and make the advice surface explicit rather than
+implicit (§5.3).
 
 ---
 
@@ -541,12 +501,16 @@ Ordered by dependency and payoff.
 
 | # | Item | Scope | Why here |
 |---|---|---|---|
-| 1 | **Fix the four deployment blockers and deploy** | Backend config + one cookie setting; ~half a day | Task 4 is 15 rubric points and cannot be claimed without it. Everything else is already built. |
-| 2 | **Investigate `fact_invariance_rate` at 94.4%** | Evaluation + reports; small | A failing zero-tolerance metric on the product's central claim outranks new features. |
-| 3 | **Human-review the golden sets** | No code; a reading task | Unlocks every judged metric from "informative" to "gating". |
-| 4 | **Interactive chessboard** | Frontend only, no backend change | Largest visible improvement for a demo; touches nothing already verified. |
-| 5 | **LangSmith tracing + LangGraph Studio** | Phase 17, ADR-0017 already written | A deployed agent with no production observability is not operable. |
-| 6 | **Coach–student linking flow** | New flow + permission gate | Unblocks the one PRD journey with nothing behind it. |
+| 1 | **Investigate `fact_invariance_rate` at 94.4%** | Evaluation; small | A failing zero-tolerance metric on the central claim outranks every new feature |
+| 2 | **Human-review and enlarge the golden sets** | No code; a reading task | Unlocks every judged metric from "informative" to "gating" — and the one metric that has failed did so only once its set grew |
+| 3 | **Interactive chessboard, then voice** | Frontend-led | Moves are shown as a table and UCI (`e2e4`) rather than SAN on a board; largest visible gain per unit of effort |
+| 4 | **Split the answer contract into `facts[]` and `advice[]`** | Backend contract + consumers | Makes faithfulness measure what it was meant to measure (§5.3) |
+| 5 | **LangSmith tracing + LangGraph Studio** | ADR-0017 already written | The deployed agent runs unobserved, which is not operable — and is a prerequisite for real users |
+| 6 | **A small pilot cohort, then gradual expansion** | Product, not code | Real usage is the only source of feedback golden sets cannot supply |
+| 7 | **Coach and parent accounts — the linking flow** | New flow + permission gate | The persona and permission model exist; nothing creates a relationship row, so this is the audience in §1.4 only partly served |
+| 8 | **A real background worker** | Read the existing `jobs` table out of process | `BackgroundTasks` loses work the moment the process stops; the table was designed for this |
+| 9 | **Deeper habit tracking and progress over time** | Analytics + UI | The premise is habits; showing a player a habit *shrinking* is what sustains motivation |
+| 10 | **Plain-English engine lines** | Prompt + contract | Translating a principal variation into the plan behind it — *"a3 stops the knight coming to b4"* — is the part players cannot read for themselves |
 
 ---
 
@@ -554,13 +518,10 @@ Ordered by dependency and payoff.
 
 | Claim | Where to verify it |
 |---|---|
+| What runs live, what was dropped, every known failure | [`production_and_experiments.md`](production_and_experiments.md) |
 | Architecture and design invariants | [`ARCHITECTURE.md`](ARCHITECTURE.md) |
 | Every diagram, standalone | [`diagrams/`](diagrams/) |
 | Measured evaluation results | [`evaluation_report.md`](evaluation_report.md) — generated from run records |
 | Dataset design and limitations | [`evaluation_data_design.md`](evaluation_data_design.md) |
-| Deployment steps, problems hit, and verification | [`DEPLOYMENT.md`](DEPLOYMENT.md) |
-| Per-criterion self-assessment | [`grading-rubric.md`](grading-rubric.md) |
-| What works today, with runnable steps | [`../final_docs/v2/features-and-use-cases.md`](../final_docs/v2/features-and-use-cases.md) |
-| Every architectural decision | [`../final_docs/v2/adr/`](../final_docs/v2/adr/) — 17 ADRs |
-| Every product decision | [`../final_docs/v2/decisions-log.md`](../final_docs/v2/decisions-log.md) |
-| Phase-by-phase delivery record | [`../final_docs/v2/phase-reports/`](../final_docs/v2/phase-reports/) |
+| Raw run records behind every number | [`../backend/evals/runs/`](../backend/evals/runs/) |
+| Deployment steps, problems, verification | [`DEPLOYMENT.md`](DEPLOYMENT.md) |

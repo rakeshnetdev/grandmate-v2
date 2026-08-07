@@ -18,7 +18,7 @@ flowchart LR
     BE --> BLOB[("Object storage<br/>raw PGNs — Fly volume or S3/R2")]
     BE --> OAI["OpenAI<br/>completions + embeddings"]
     BE --> PLAT["Lichess / Chess.com<br/>public APIs"]
-    BE -. "Phase 17, ADR-0017" .-> LS["LangSmith"]
+    BE -. "planned — ADR-0017" .-> LS["LangSmith"]
 
     FE -- "HTTPS · VITE_API_BASE_URL<br/>session cookie, credentials: include" --> BE
 
