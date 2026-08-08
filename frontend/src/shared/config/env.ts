@@ -16,6 +16,17 @@
 import { z } from 'zod';
 
 const envSchema = z.object({
+  // In production this is the *Vercel* origin, not the Fly one, even though Fly serves the
+  // API. `vercel.json` rewrites `/api/*`, `/health` and `/ready` through to Fly, so the
+  // browser only ever talks to one origin.
+  //
+  // That indirection is load-bearing, not tidiness. Pointing this straight at
+  // `*.fly.dev` makes the session cookie third-party — `vercel.app` and `fly.dev` are
+  // separate registrable domains — and every browser that blocks third-party cookies then
+  // drops it: login returns 200 with `Set-Cookie`, and the next request 401s. That is all
+  // of iOS (Safari and, since they are WebKit underneath, Chrome/Firefox/Edge on iPhone),
+  // plus Chrome Incognito. Routing through Vercel makes the cookie first-party and the
+  // problem disappears. See DEPLOYMENT.md §4.
   VITE_API_BASE_URL: z.string().url().default('http://localhost:7575'),
 });
 

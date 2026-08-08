@@ -211,6 +211,56 @@ Either way `CORS_ALLOWED_ORIGINS` must name the exact frontend origin — the ap
 The frontend already sends `credentials: 'include'` (`shared/lib/api-client.ts`), so no
 change is needed there.
 
+### Option B did not survive contact with real browsers — what shipped is Option C
+
+Option B was deployed, and it fails on any browser that blocks third-party cookies. That
+is not a fringe case: **iOS Safari has blocked them by default since 2020**, and every
+browser on iPhone is WebKit underneath, so Chrome and Firefox there fail identically.
+Chrome Incognito blocks them too. Login returns a clean 200 with `Set-Cookie`, the browser
+discards the cookie, and every subsequent request 401s — the same signature as blocker 3,
+from a different cause. Desktop Chrome in a normal window still worked, which is what made
+it look like an account or database problem rather than a cookie one.
+
+**Option C — proxy the API through Vercel.** No custom domain, no backend change. Vercel
+rewrites the API paths through to Fly, so the browser only ever sees one origin and the
+cookie is first-party:
+
+```json
+"rewrites": [
+  { "source": "/api/(.*)", "destination": "https://grandmate-v2-backend.fly.dev/api/$1" },
+  { "source": "/health", "destination": "https://grandmate-v2-backend.fly.dev/health" },
+  { "source": "/ready",  "destination": "https://grandmate-v2-backend.fly.dev/ready"  },
+  { "source": "/(.*)",   "destination": "/index.html" }
+]
+```
+
+with `VITE_API_BASE_URL` set to the Vercel origin rather than the Fly one.
+
+Four things about that block are easy to get wrong:
+
+- **The SPA catch-all must stay last.** Vercel takes the first match, so a leading
+  `/(.*)` would swallow every API call and serve `index.html` — the API would "return"
+  HTML and every schema parse would fail.
+- **`/health` and `/ready` need their own entries.** They sit outside `/api`
+  (`features/health/api/health.ts`), so the catch-all would otherwise capture them.
+- **Fly keeps its own public URL.** Nothing about the backend moves; `*.fly.dev` stays
+  directly reachable for `curl`, `/docs`, and `fly ssh`. Only browser traffic is proxied.
+- **The destination host is literal.** `vercel.json` is strict JSON validated against a
+  schema with `additionalProperties: false`, so it can hold neither comments nor
+  environment interpolation. That is why this reasoning lives here and in
+  `shared/config/env.ts` rather than beside the rewrite.
+
+`SESSION_COOKIE_SAMESITE=none` is now redundant — the cookie is same-site — and can be
+dropped back to `lax` to recover the CSRF protection Option B gave up. `CORS_ALLOWED_ORIGINS`
+likewise stops being load-bearing for the app's own traffic, since the browser no longer
+makes a cross-origin request. Option A remains the better end state; Option C is what makes
+the platform-subdomain deployment work in the meantime.
+
+One consequence worth knowing: the backend now sees every browser request arriving from a
+Vercel edge IP. `api/middleware/rate_limit.py` keys its limiter on `request.client.host`,
+so all users share one bucket unless it is taught to read `X-Forwarded-For`. At demo
+traffic this is immaterial; at real traffic it is not.
+
 ---
 
 ## 5. File storage
